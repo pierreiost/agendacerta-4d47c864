@@ -8,6 +8,11 @@ import { VenueProvider, useVenue } from "./contexts/VenueContext";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import Agenda from "./pages/Agenda";
+import Espacos from "./pages/Espacos";
+import Produtos from "./pages/Produtos";
+import Relatorios from "./pages/Relatorios";
+import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -52,11 +57,11 @@ function AppRoutes() {
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/onboarding" element={user ? <Onboarding /> : <Navigate to="/auth" replace />} />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/agenda" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/espacos" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/produtos" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/relatorios" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/configuracoes" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
+      <Route path="/espacos" element={<ProtectedRoute><Espacos /></ProtectedRoute>} />
+      <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
+      <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+      <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
