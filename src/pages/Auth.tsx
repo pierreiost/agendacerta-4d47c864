@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -22,7 +22,19 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (mode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: 'Email enviado!',
+          description: 'Verifique sua caixa de entrada para redefinir sua senha.',
+        });
+        setMode('login');
+      } else if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -79,6 +91,18 @@ export default function Auth() {
     }
   };
 
+  const getHeading = () => {
+    if (mode === 'forgot') return 'RECUPERAR SENHA';
+    if (mode === 'login') return 'BEM-VINDO';
+    return 'CRIAR CONTA';
+  };
+
+  const getSubheading = () => {
+    if (mode === 'forgot') return 'Digite seu email para receber o link de recuperação';
+    if (mode === 'login') return 'Entre com suas credenciais';
+    return 'Preencha os dados para se cadastrar';
+  };
+
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Branding */}
@@ -126,15 +150,15 @@ export default function Auth() {
           {/* Welcome heading */}
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-foreground tracking-wide">
-              {isLogin ? 'BEM-VINDO' : 'CRIAR CONTA'}
+              {getHeading()}
             </h2>
             <p className="text-muted-foreground mt-2">
-              {isLogin ? 'Entre com suas credenciais' : 'Preencha os dados para se cadastrar'}
+              {getSubheading()}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
+            {mode === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-foreground font-medium">
                   Nome completo
@@ -145,7 +169,7 @@ export default function Auth() {
                   placeholder="Seu nome"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  required={!isLogin}
+                  required
                   className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
                 />
               </div>
@@ -166,21 +190,35 @@ export default function Auth() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground font-medium">
-                Senha
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
-              />
-            </div>
+            {mode !== 'forgot' && (
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-foreground font-medium">
+                  Senha
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
+                />
+              </div>
+            )}
+
+            {mode === 'login' && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline"
+                  onClick={() => setMode('forgot')}
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+            )}
 
             <Button 
               type="submit" 
@@ -188,21 +226,33 @@ export default function Auth() {
               disabled={loading}
             >
               {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-              {isLogin ? 'ENTRAR' : 'CADASTRAR'}
+              {mode === 'forgot' ? 'ENVIAR LINK' : mode === 'login' ? 'ENTRAR' : 'CADASTRAR'}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <span className="text-muted-foreground">
-              {isLogin ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
-            </span>
-            <button
-              type="button"
-              className="text-primary font-semibold hover:underline transition-all"
-              onClick={() => setIsLogin(!isLogin)}
-            >
-              {isLogin ? 'Cadastre-se' : 'Entre'}
-            </button>
+            {mode === 'forgot' ? (
+              <button
+                type="button"
+                className="text-primary font-semibold hover:underline transition-all"
+                onClick={() => setMode('login')}
+              >
+                Voltar ao login
+              </button>
+            ) : (
+              <>
+                <span className="text-muted-foreground">
+                  {mode === 'login' ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
+                </span>
+                <button
+                  type="button"
+                  className="text-primary font-semibold hover:underline transition-all"
+                  onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                >
+                  {mode === 'login' ? 'Cadastre-se' : 'Entre'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
