@@ -21,9 +21,11 @@ import {
   endOfWeek,
   addWeeks,
   subWeeks,
+  differenceInHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus, Calendar, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Agenda() {
   const { currentVenue } = useVenue();
@@ -39,7 +41,7 @@ export default function Agenda() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
 
-  const { bookings, isLoading: bookingsLoading } = useBookings(weekStart, weekEnd);
+  const { bookings, isLoading: bookingsLoading, updateBooking, checkConflict } = useBookings(weekStart, weekEnd);
 
   const filteredSpaces = useMemo(() => {
     return spaces.filter(s => s.is_active);
@@ -74,6 +76,61 @@ export default function Agenda() {
     setDefaultSlot(null);
     setSelectedBooking(null);
     setBookingDialogOpen(true);
+  };
+
+  const { toast } = useToast();
+
+  const handleBookingMove = async (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    // Check for conflicts
+    const hasConflict = await checkConflict(spaceId, newStart, newEnd, bookingId);
+    if (hasConflict) {
+      toast({
+        title: 'Conflito de horário',
+        description: 'Já existe uma reserva nesse horário.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const space = spaces.find(s => s.id === spaceId);
+    const pricePerHour = space?.price_per_hour ?? 0;
+
+    updateBooking.mutate({
+      id: bookingId,
+      space_id: spaceId,
+      start_time: newStart.toISOString(),
+      end_time: newEnd.toISOString(),
+      space_price_per_hour: pricePerHour,
+    });
+  };
+
+  const handleBookingResize = async (bookingId: string, newStart: Date, newEnd: Date) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    // Check for conflicts
+    const hasConflict = await checkConflict(booking.space_id, newStart, newEnd, bookingId);
+    if (hasConflict) {
+      toast({
+        title: 'Conflito de horário',
+        description: 'Já existe uma reserva nesse horário.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const space = spaces.find(s => s.id === booking.space_id);
+    const pricePerHour = space?.price_per_hour ?? 0;
+
+    updateBooking.mutate({
+      id: bookingId,
+      start_time: newStart.toISOString(),
+      end_time: newEnd.toISOString(),
+      space_price_per_hour: pricePerHour,
+    });
   };
 
   const isLoading = spacesLoading || bookingsLoading;
@@ -156,6 +213,8 @@ export default function Agenda() {
             weekStart={weekStart}
             onSlotClick={handleSlotClick}
             onBookingClick={handleBookingClick}
+            onBookingMove={handleBookingMove}
+            onBookingResize={handleBookingResize}
           />
         )}
       </div>
