@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -80,23 +80,65 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-card">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Calendar className="h-6 w-6 text-primary-foreground" />
+    <div className="min-h-screen flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 gradient-primary flex-col items-center justify-center p-12 relative overflow-hidden">
+        {/* Decorative circles */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3" />
+        <div className="absolute top-1/2 right-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/2" />
+        
+        {/* Logo and branding content */}
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl mb-8">
+            <img 
+              src={logo} 
+              alt="Agenda Certa Logo" 
+              className="w-32 h-32 object-contain"
+            />
           </div>
-          <CardTitle className="text-2xl font-bold">Agenda Certa</CardTitle>
-          <CardDescription>
-            {isLogin ? 'Entre na sua conta' : 'Crie sua conta'}
-          </CardDescription>
-        </CardHeader>
+          
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Agenda Certa
+          </h1>
+          
+          <p className="text-lg text-white/80 max-w-sm">
+            Gestão completa para complexos esportivos e locação de espaços
+          </p>
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+      {/* Right Side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex flex-col items-center mb-8">
+            <div className="bg-primary rounded-2xl p-4 mb-4">
+              <img 
+                src={logo} 
+                alt="Agenda Certa Logo" 
+                className="w-16 h-16 object-contain"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Agenda Certa</h1>
+          </div>
+
+          {/* Welcome heading */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-foreground tracking-wide">
+              {isLogin ? 'BEM-VINDO' : 'CRIAR CONTA'}
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              {isLogin ? 'Entre com suas credenciais' : 'Preencha os dados para se cadastrar'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nome completo</Label>
+                <Label htmlFor="fullName" className="text-foreground font-medium">
+                  Nome completo
+                </Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -104,12 +146,15 @@ export default function Auth() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required={!isLogin}
+                  className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground font-medium">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -117,11 +162,14 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-foreground font-medium">
+                Senha
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -130,28 +178,34 @@ export default function Auth() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
               />
             </div>
-          </CardContent>
 
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLogin ? 'Entrar' : 'Criar conta'}
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-semibold gradient-primary hover:opacity-90 transition-opacity" 
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+              {isLogin ? 'ENTRAR' : 'CADASTRAR'}
             </Button>
+          </form>
 
+          <div className="mt-6 text-center">
+            <span className="text-muted-foreground">
+              {isLogin ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
+            </span>
             <button
               type="button"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="text-primary font-semibold hover:underline transition-all"
               onClick={() => setIsLogin(!isLogin)}
             >
-              {isLogin 
-                ? 'Não tem conta? Cadastre-se' 
-                : 'Já tem conta? Entre'}
+              {isLogin ? 'Cadastre-se' : 'Entre'}
             </button>
-          </CardFooter>
-        </form>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
