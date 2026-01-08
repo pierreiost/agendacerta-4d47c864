@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +22,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVenue } from '@/contexts/VenueContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   LayoutDashboard,
   Calendar,
@@ -32,6 +34,7 @@ import {
   ChevronDown,
   Building2,
   Check,
+  ShieldCheck,
 } from 'lucide-react';
 
 const menuItems = [
@@ -48,6 +51,17 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { venues, currentVenue, setCurrentVenue } = useVenue();
+
+  const { data: isSuperAdmin } = useQuery({
+    queryKey: ['is-superadmin-sidebar', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data, error } = await supabase.rpc('is_superadmin', { _user_id: user.id });
+      if (error) return false;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'U';
 
@@ -124,6 +138,18 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isSuperAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => navigate('/superadmin')}
+                    isActive={location.pathname === '/superadmin'}
+                    tooltip="SuperAdmin"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>SuperAdmin</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

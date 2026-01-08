@@ -14,6 +14,7 @@ import Espacos from "./pages/Espacos";
 import Produtos from "./pages/Produtos";
 import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
+import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -64,6 +65,7 @@ function AppRoutes() {
       <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
       <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+      <Route path="/superadmin" element={<SuperAdmin />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
