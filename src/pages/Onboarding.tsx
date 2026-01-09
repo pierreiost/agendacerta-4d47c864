@@ -27,29 +27,15 @@ export default function Onboarding() {
     setLoading(true);
 
     try {
-      // Create venue
+      // Create venue and add user as admin using secure RPC function
       const { data: venue, error: venueError } = await supabase
-        .from('venues')
-        .insert({
-          name,
-          address: address || null,
-          phone: phone || null,
-        })
-        .select()
-        .single();
-
-      if (venueError) throw venueError;
-
-      // Add user as admin of this venue
-      const { error: memberError } = await supabase
-        .from('venue_members')
-        .insert({
-          venue_id: venue.id,
-          user_id: user.id,
-          role: 'admin',
+        .rpc('create_venue_with_admin', {
+          _name: name,
+          _address: address || null,
+          _phone: phone || null,
         });
 
-      if (memberError) throw memberError;
+      if (venueError) throw venueError;
 
       toast({
         title: 'Unidade criada!',

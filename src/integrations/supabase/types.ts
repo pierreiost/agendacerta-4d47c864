@@ -456,6 +456,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_venue_with_admin: {
+        Args: { _address?: string; _name: string; _phone?: string }
+        Returns: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          reminder_hours_before: number | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "venues"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
