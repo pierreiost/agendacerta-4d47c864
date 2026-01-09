@@ -464,6 +464,10 @@ export type Database = {
         Returns: boolean
       }
       is_superadmin: { Args: { _user_id: string }; Returns: boolean }
+      is_venue_admin: {
+        Args: { _user_id: string; _venue_id: string }
+        Returns: boolean
+      }
       is_venue_member: {
         Args: { _user_id: string; _venue_id: string }
         Returns: boolean
