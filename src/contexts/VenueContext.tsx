@@ -7,7 +7,7 @@ type Venue = Tables<'venues'>;
 type VenueMember = Tables<'venue_members'>;
 
 interface VenueWithRole extends Venue {
-  role: 'admin' | 'manager' | 'staff';
+  role: 'admin' | 'manager' | 'staff' | 'superadmin';
 }
 
 interface VenueContextType {
