@@ -44,9 +44,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { venues, loading: venueLoading } = useVenue();
 
-  if (loading) {
+  if (authLoading || venueLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -58,7 +59,18 @@ function AppRoutes() {
     <Routes>
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/onboarding" element={user ? <Onboarding /> : <Navigate to="/auth" replace />} />
+      <Route
+        path="/onboarding"
+        element={
+          !user ? (
+            <Navigate to="/auth" replace />
+          ) : venues.length > 0 ? (
+            <Navigate to="/" replace />
+          ) : (
+            <Onboarding />
+          )
+        }
+      />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
       <Route path="/espacos" element={<ProtectedRoute><Espacos /></ProtectedRoute>} />
