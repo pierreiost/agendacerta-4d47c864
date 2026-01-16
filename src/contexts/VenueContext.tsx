@@ -34,6 +34,10 @@ export function VenueProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // When refetching after onboarding/login we need to block ProtectedRoute
+    // until the memberships/venues are loaded.
+    setLoading(true);
+
     try {
       // Fetch venue_members for this user
       const { data: memberships, error: memberError } = await supabase
