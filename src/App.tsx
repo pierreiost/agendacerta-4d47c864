@@ -36,7 +36,7 @@ function useSuperAdminCheck() {
   });
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, allowSuperAdmin = false }: { children: React.ReactNode; allowSuperAdmin?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const { venues, loading: venueLoading } = useVenue();
   const { data: isSuperAdmin, isLoading: checkingSuperAdmin } = useSuperAdminCheck();
@@ -53,13 +53,39 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Superadmins don't need venues - redirect to superadmin page
+  // Superadmins without venues can access superadmin page and allowed routes
   if (isSuperAdmin && venues.length === 0) {
+    if (allowSuperAdmin) {
+      return <>{children}</>;
+    }
     return <Navigate to="/superadmin" replace />;
   }
 
   if (venues.length === 0) {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function SuperAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const { data: isSuperAdmin, isLoading: checkingSuperAdmin } = useSuperAdminCheck();
+
+  if (authLoading || checkingSuperAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isSuperAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -98,8 +124,8 @@ function AppRoutes() {
       <Route path="/espacos" element={<ProtectedRoute><Espacos /></ProtectedRoute>} />
       <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
       <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
-      <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-      <Route path="/superadmin" element={<SuperAdmin />} />
+      <Route path="/configuracoes" element={<ProtectedRoute allowSuperAdmin><Configuracoes /></ProtectedRoute>} />
+      <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
