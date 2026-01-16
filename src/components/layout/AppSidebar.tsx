@@ -37,12 +37,17 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-const menuItems = [
+const venueMenuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { title: 'Agenda', icon: Calendar, path: '/agenda' },
   { title: 'Espaços', icon: MapPin, path: '/espacos' },
   { title: 'Produtos', icon: Package, path: '/produtos' },
   { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
+  { title: 'Configurações', icon: Settings, path: '/configuracoes' },
+];
+
+const superAdminMenuItems = [
+  { title: 'Clientes', icon: ShieldCheck, path: '/superadmin' },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
 ];
 
@@ -85,8 +90,8 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Venue Selector */}
-        {venues.length > 0 && (
+        {/* Venue Selector - Only show for non-superadmin or superadmin with venues */}
+        {venues.length > 0 && !isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupContent>
               <DropdownMenu>
@@ -126,29 +131,35 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    onClick={() => navigate(item.path)}
-                    isActive={location.pathname === item.path}
-                    tooltip={item.title}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              {isSuperAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => navigate('/superadmin')}
-                    isActive={location.pathname === '/superadmin'}
-                    tooltip="SuperAdmin"
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    <span>SuperAdmin</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {/* Show different menus based on user type */}
+              {isSuperAdmin ? (
+                // Superadmin menu - only Clientes and Configurações
+                superAdminMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      onClick={() => navigate(item.path)}
+                      isActive={location.pathname === item.path}
+                      tooltip={item.title}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              ) : (
+                // Regular venue user menu
+                venueMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      onClick={() => navigate(item.path)}
+                      isActive={location.pathname === item.path}
+                      tooltip={item.title}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
               )}
             </SidebarMenu>
           </SidebarGroupContent>
