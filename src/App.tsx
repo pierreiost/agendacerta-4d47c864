@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { VenueProvider, useVenue } from "./contexts/VenueContext";
+import { supabase } from "@/integrations/supabase/client";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
@@ -20,11 +22,26 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+function useSuperAdminCheck() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['is-superadmin-check', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data, error } = await supabase.rpc('is_superadmin', { _user_id: user.id });
+      if (error) return false;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { venues, loading: venueLoading } = useVenue();
+  const { data: isSuperAdmin, isLoading: checkingSuperAdmin } = useSuperAdminCheck();
 
-  if (authLoading || venueLoading) {
+  if (authLoading || venueLoading || checkingSuperAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -34,6 +51,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Superadmins don't need venues - redirect to superadmin page
+  if (isSuperAdmin && venues.length === 0) {
+    return <Navigate to="/superadmin" replace />;
   }
 
   if (venues.length === 0) {

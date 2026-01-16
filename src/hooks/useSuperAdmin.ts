@@ -70,7 +70,7 @@ export function useSuperAdmin() {
                 .from('profiles')
                 .select('full_name, phone')
                 .eq('user_id', member.user_id)
-                .single();
+                .maybeSingle();
 
               return {
                 ...member,
@@ -79,9 +79,6 @@ export function useSuperAdmin() {
             })
           );
 
-          // Cast venue to access new columns that might not be in types yet
-          const venueAny = venue as Record<string, unknown>;
-
           return {
             id: venue.id,
             name: venue.name,
@@ -89,11 +86,11 @@ export function useSuperAdmin() {
             phone: venue.phone,
             address: venue.address,
             created_at: venue.created_at,
-            subscription_status: ((venueAny.subscription_status as string) || 'trial') as SubscriptionStatus,
-            trial_ends_at: (venueAny.trial_ends_at as string) || null,
-            subscription_ends_at: (venueAny.subscription_ends_at as string) || null,
-            asaas_customer_id: (venueAny.asaas_customer_id as string) || null,
-            asaas_subscription_id: (venueAny.asaas_subscription_id as string) || null,
+            subscription_status: (venue.subscription_status || 'trial') as SubscriptionStatus,
+            trial_ends_at: venue.trial_ends_at || null,
+            subscription_ends_at: venue.subscription_ends_at || null,
+            asaas_customer_id: venue.asaas_customer_id || null,
+            asaas_subscription_id: venue.asaas_subscription_id || null,
             members: membersWithProfiles,
           } as VenueWithSubscription;
         })

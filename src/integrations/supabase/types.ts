@@ -418,35 +418,53 @@ export type Database = {
       venues: {
         Row: {
           address: string | null
+          asaas_customer_id: string | null
+          asaas_subscription_id: string | null
           created_at: string
           email: string | null
           id: string
           logo_url: string | null
           name: string
           phone: string | null
+          plan_type: string | null
           reminder_hours_before: number | null
+          subscription_ends_at: string | null
+          subscription_status: string | null
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          asaas_customer_id?: string | null
+          asaas_subscription_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
           logo_url?: string | null
           name: string
           phone?: string | null
+          plan_type?: string | null
           reminder_hours_before?: number | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          asaas_customer_id?: string | null
+          asaas_subscription_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
           logo_url?: string | null
           name?: string
           phone?: string | null
+          plan_type?: string | null
           reminder_hours_before?: number | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -460,13 +478,19 @@ export type Database = {
         Args: { _address?: string; _name: string; _phone?: string }
         Returns: {
           address: string | null
+          asaas_customer_id: string | null
+          asaas_subscription_id: string | null
           created_at: string
           email: string | null
           id: string
           logo_url: string | null
           name: string
           phone: string | null
+          plan_type: string | null
           reminder_hours_before: number | null
+          subscription_ends_at: string | null
+          subscription_status: string | null
+          trial_ends_at: string | null
           updated_at: string
         }
         SetofOptions: {
