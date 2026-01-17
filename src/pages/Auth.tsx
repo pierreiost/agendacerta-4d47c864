@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,18 +117,25 @@ export default function Auth() {
           <div className="bg-white rounded-3xl p-6 shadow-2xl mb-8">
             <img 
               src={logo} 
-              alt="Agenda Certa Logo" 
+              alt="AgendaCerta Logo" 
               className="w-32 h-32 object-contain"
             />
           </div>
           
           <h1 className="text-4xl font-bold text-white mb-4">
-            Agenda Certa
+            AgendaCerta
           </h1>
           
           <p className="text-lg text-white/80 max-w-sm">
-            Gestão completa para complexos esportivos e locação de espaços
+            Sistema de gestão e agendamento para complexos esportivos, quadras e locação de espaços. Organize reservas, gerencie clientes e acompanhe pagamentos em um só lugar.
           </p>
+          
+          <Link 
+            to="/privacy" 
+            className="mt-6 text-sm text-white/70 hover:text-white underline transition-colors"
+          >
+            Política de Privacidade
+          </Link>
         </div>
       </div>
 
@@ -140,11 +147,14 @@ export default function Auth() {
             <div className="bg-primary rounded-2xl p-4 mb-4">
               <img 
                 src={logo} 
-                alt="Agenda Certa Logo" 
+                alt="AgendaCerta Logo" 
                 className="w-16 h-16 object-contain"
               />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Agenda Certa</h1>
+            <h1 className="text-2xl font-bold text-foreground">AgendaCerta</h1>
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              Sistema de gestão e agendamento para espaços
+            </p>
           </div>
 
           {/* Welcome heading */}
@@ -249,10 +259,20 @@ export default function Auth() {
                   className="text-primary font-semibold hover:underline transition-all"
                   onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
                 >
-                  {mode === 'login' ? 'Cadastre-se' : 'Entre'}
+                {mode === 'login' ? 'Cadastre-se' : 'Entre'}
                 </button>
               </>
             )}
+          </div>
+          
+          {/* Mobile Privacy Policy Link */}
+          <div className="lg:hidden mt-6 text-center">
+            <Link 
+              to="/privacy" 
+              className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
+            >
+              Política de Privacidade
+            </Link>
           </div>
         </div>
       </div>
