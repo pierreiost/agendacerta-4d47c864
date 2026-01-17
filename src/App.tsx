@@ -18,6 +18,7 @@ import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -107,6 +108,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route
         path="/onboarding"
         element={
