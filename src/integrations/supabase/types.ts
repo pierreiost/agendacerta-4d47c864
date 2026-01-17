@@ -240,6 +240,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -276,6 +283,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -550,7 +564,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      bookings_safe: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          end_time: string | null
+          google_event_id: string | null
+          grand_total: number | null
+          id: string | null
+          items_total: number | null
+          notes: string | null
+          reminder_sent: boolean | null
+          space_id: string | null
+          space_total: number | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          updated_at: string | null
+          venue_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_email?: never
+          customer_name?: never
+          customer_phone?: never
+          end_time?: string | null
+          google_event_id?: string | null
+          grand_total?: number | null
+          id?: string | null
+          items_total?: number | null
+          notes?: string | null
+          reminder_sent?: boolean | null
+          space_id?: string | null
+          space_total?: number | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          updated_at?: string | null
+          venue_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_email?: never
+          customer_name?: never
+          customer_phone?: never
+          end_time?: string | null
+          google_event_id?: string | null
+          grand_total?: number | null
+          id?: string | null
+          items_total?: number | null
+          notes?: string | null
+          reminder_sent?: boolean | null
+          space_id?: string | null
+          space_total?: number | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          updated_at?: string | null
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_venue_with_admin: {
