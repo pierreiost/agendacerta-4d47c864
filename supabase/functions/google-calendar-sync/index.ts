@@ -201,10 +201,60 @@ serve(async (req) => {
   }
 
   try {
-    const { action, booking_id, venue_id } = await req.json();
-    console.log("Sync request - action:", action, "booking_id:", booking_id, "venue_id:", venue_id);
+    // Validate authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error("Auth error:", userError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { action, booking_id, venue_id } = await req.json();
+    console.log("Sync request - action:", action, "booking_id:", booking_id, "venue_id:", venue_id, "user:", user.id);
+
+    // Validate required parameters
+    if (!action || !booking_id || !venue_id) {
+      return new Response(JSON.stringify({ error: "Missing required parameters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify user is a member of this venue
+    const { data: isMember, error: memberError } = await supabase.rpc("is_venue_member", {
+      _user_id: user.id,
+      _venue_id: venue_id,
+    });
+
+    if (memberError) {
+      console.error("Error checking venue membership:", memberError);
+      return new Response(JSON.stringify({ error: "Failed to verify permissions" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!isMember) {
+      console.error("User is not a member of venue:", venue_id);
+      return new Response(JSON.stringify({ error: "Not authorized for this venue" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Get venue's Google Calendar tokens
     const { data: tokenData, error: tokenError } = await supabase
@@ -232,6 +282,7 @@ serve(async (req) => {
         venues:venue_id (name)
       `)
       .eq("id", booking_id)
+      .eq("venue_id", venue_id) // Ensure booking belongs to this venue
       .single();
 
     if (bookingError) {
