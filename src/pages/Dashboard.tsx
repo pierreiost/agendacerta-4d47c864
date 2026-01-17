@@ -79,7 +79,7 @@ export default function Dashboard() {
           .eq('venue_id', currentVenue.id)
           .eq('is_active', true);
 
-        // Recent bookings
+        // Recent bookings (exclude cancelled and finalized)
         const { data: recent } = await supabase
           .from('bookings')
           .select(`
@@ -87,7 +87,8 @@ export default function Dashboard() {
             space:spaces(*)
           `)
           .eq('venue_id', currentVenue.id)
-          .order('created_at', { ascending: false })
+          .in('status', ['PENDING', 'CONFIRMED'])
+          .order('start_time', { ascending: true })
           .limit(6);
 
         setStats({
@@ -354,15 +355,40 @@ export default function Dashboard() {
                         </span>
                       </div>
 
-                      {/* Date and time */}
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>
-                          {format(new Date(booking.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </span>
-                        <span className="text-muted-foreground/50">•</span>
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{formatDuration(booking.start_time, booking.end_time)}</span>
+                      {/* Date and time - visual layout */}
+                      <div className="bg-muted/50 rounded-lg p-3 mb-3">
+                        <div className="flex items-center gap-3">
+                          {/* Date block */}
+                          <div className="flex flex-col items-center justify-center bg-primary/10 rounded-md px-3 py-2 min-w-[60px]">
+                            <span className="text-xs font-medium text-primary uppercase">
+                              {format(new Date(booking.start_time), "EEE", { locale: ptBR })}
+                            </span>
+                            <span className="text-2xl font-bold text-primary leading-none">
+                              {format(new Date(booking.start_time), "dd")}
+                            </span>
+                            <span className="text-xs text-primary/70">
+                              {format(new Date(booking.start_time), "MMM", { locale: ptBR })}
+                            </span>
+                          </div>
+                          
+                          {/* Time info */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1.5 text-foreground font-medium">
+                              <Clock className="h-4 w-4 text-primary" />
+                              <span className="text-lg">
+                                {format(new Date(booking.start_time), "HH:mm")}
+                              </span>
+                              <span className="text-muted-foreground mx-1">→</span>
+                              <span className="text-lg">
+                                {format(new Date(booking.end_time), "HH:mm")}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                              <span>Duração:</span>
+                              <span className="font-medium">{formatDuration(booking.start_time, booking.end_time)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Footer with value and action hint */}
