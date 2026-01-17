@@ -3,11 +3,12 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Users, DollarSign, Clock, TrendingUp, MapPin, ChevronRight } from 'lucide-react';
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
+import { Calendar, Users, DollarSign, Clock, TrendingUp, MapPin, ChevronRight, Zap, AlertCircle } from 'lucide-react';
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInMinutes, isToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
 import { Booking } from '@/hooks/useBookings';
+import { Badge } from '@/components/ui/badge';
 
 interface DashboardStats {
   todayBookings: number;
@@ -15,6 +16,8 @@ interface DashboardStats {
   monthRevenue: number;
   totalSpaces: number;
 }
+
+type TimeIndicator = 'now' | 'soon' | 'today' | 'past' | null;
 
 export default function Dashboard() {
   const { currentVenue } = useVenue();
@@ -104,6 +107,83 @@ export default function Dashboard() {
 
     fetchStats();
   }, [currentVenue]);
+
+  const getTimeIndicator = (startTime: string, endTime: string): TimeIndicator => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    // Currently happening
+    if (start <= now && end > now) {
+      return 'now';
+    }
+    
+    // Starting within 2 hours
+    const twoHoursFromNow = addHours(now, 2);
+    if (start > now && start <= twoHoursFromNow) {
+      return 'soon';
+    }
+    
+    // Today but more than 2 hours away
+    if (isToday(start) && start > twoHoursFromNow) {
+      return 'today';
+    }
+    
+    // Already ended today
+    if (isToday(start) && end <= now) {
+      return 'past';
+    }
+    
+    return null;
+  };
+
+  const getTimeIndicatorBadge = (indicator: TimeIndicator) => {
+    switch (indicator) {
+      case 'now':
+        return (
+          <Badge className="bg-success text-success-foreground border-0 animate-pulse gap-1">
+            <Zap className="h-3 w-3" />
+            Acontecendo agora
+          </Badge>
+        );
+      case 'soon':
+        return (
+          <Badge className="bg-warning text-warning-foreground border-0 gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Em breve
+          </Badge>
+        );
+      case 'today':
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Calendar className="h-3 w-3" />
+            Hoje
+          </Badge>
+        );
+      case 'past':
+        return (
+          <Badge variant="outline" className="text-muted-foreground gap-1">
+            <Clock className="h-3 w-3" />
+            Encerrado
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const getCardBorderClass = (indicator: TimeIndicator) => {
+    switch (indicator) {
+      case 'now':
+        return 'border-success/50 ring-2 ring-success/20';
+      case 'soon':
+        return 'border-warning/50';
+      case 'today':
+        return 'border-primary/30';
+      default:
+        return '';
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -239,56 +319,69 @@ export default function Dashboard() {
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {recentBookings.map((booking) => (
-                <Card 
-                  key={booking.id}
-                  className="shadow-card cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
-                  onClick={() => handleBookingClick(booking)}
-                >
-                  <CardContent className="p-4">
-                    {/* Header with status */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground truncate">
-                          {booking.customer_name}
-                        </h3>
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
-                          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span className="truncate">{booking.space?.name || 'Espaço não encontrado'}</span>
+              {recentBookings.map((booking) => {
+                const timeIndicator = getTimeIndicator(booking.start_time, booking.end_time);
+                const indicatorBadge = getTimeIndicatorBadge(timeIndicator);
+                const cardBorderClass = getCardBorderClass(timeIndicator);
+                
+                return (
+                  <Card 
+                    key={booking.id}
+                    className={`shadow-card cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group ${cardBorderClass}`}
+                    onClick={() => handleBookingClick(booking)}
+                  >
+                    <CardContent className="p-4">
+                      {/* Time indicator badge */}
+                      {indicatorBadge && (
+                        <div className="mb-3">
+                          {indicatorBadge}
                         </div>
-                      </div>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium border flex-shrink-0 ${getStatusColor(booking.status)}`}>
-                        {getStatusLabel(booking.status)}
-                      </span>
-                    </div>
-
-                    {/* Date and time */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>
-                        {format(new Date(booking.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </span>
-                      <span className="text-muted-foreground/50">•</span>
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{formatDuration(booking.start_time, booking.end_time)}</span>
-                    </div>
-
-                    {/* Footer with value and action hint */}
-                    <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Total: </span>
-                        <span className="font-semibold text-foreground">
-                          {formatCurrency(booking.grand_total)}
+                      )}
+                      
+                      {/* Header with status */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground truncate">
+                            {booking.customer_name}
+                          </h3>
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
+                            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="truncate">{booking.space?.name || 'Espaço não encontrado'}</span>
+                          </div>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium border flex-shrink-0 ${getStatusColor(booking.status)}`}>
+                          {getStatusLabel(booking.status)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                        <span>Gerenciar</span>
-                        <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+
+                      {/* Date and time */}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>
+                          {format(new Date(booking.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </span>
+                        <span className="text-muted-foreground/50">•</span>
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{formatDuration(booking.start_time, booking.end_time)}</span>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                      {/* Footer with value and action hint */}
+                      <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Total: </span>
+                          <span className="font-semibold text-foreground">
+                            {formatCurrency(booking.grand_total)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors">
+                          <span>Gerenciar</span>
+                          <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
