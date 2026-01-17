@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useVenue } from '@/contexts/VenueContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useSyncBooking } from '@/hooks/useGoogleCalendar';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { differenceInHours } from 'date-fns';
 
@@ -15,6 +16,7 @@ export function useBookings(startDate?: Date, endDate?: Date) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { syncToCalendar } = useSyncBooking();
 
   const bookingsQuery = useQuery({
     queryKey: ['bookings', currentVenue?.id, startDate?.toISOString(), endDate?.toISOString()],
@@ -64,9 +66,13 @@ export function useBookings(startDate?: Date, endDate?: Date) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', currentVenue?.id] });
       toast({ title: 'Reserva criada com sucesso!' });
+      // Sync to Google Calendar
+      if (data?.id) {
+        syncToCalendar(data.id, 'create');
+      }
     },
     onError: (error) => {
       toast({ title: 'Erro ao criar reserva', description: error.message, variant: 'destructive' });
@@ -93,9 +99,13 @@ export function useBookings(startDate?: Date, endDate?: Date) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', currentVenue?.id] });
       toast({ title: 'Reserva atualizada!' });
+      // Sync to Google Calendar
+      if (data?.id) {
+        syncToCalendar(data.id, 'update');
+      }
     },
     onError: (error) => {
       toast({ title: 'Erro ao atualizar reserva', description: error.message, variant: 'destructive' });
@@ -104,6 +114,9 @@ export function useBookings(startDate?: Date, endDate?: Date) {
 
   const deleteBooking = useMutation({
     mutationFn: async (id: string) => {
+      // Sync deletion to Google Calendar first (before deleting)
+      await syncToCalendar(id, 'delete');
+
       const { error } = await supabase
         .from('bookings')
         .delete()

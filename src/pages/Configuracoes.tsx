@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,8 @@ import {
 import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Building2, Bell, Users } from 'lucide-react';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { Loader2, Building2, Bell, Users, Calendar, CheckCircle2, XCircle } from 'lucide-react';
 
 const venueFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -46,6 +48,41 @@ export default function Configuracoes() {
   const { currentVenue, refetchVenues } = useVenue();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    isConnected,
+    connection,
+    isLoading: isGoogleLoading,
+    connect,
+    isConnecting,
+    disconnect,
+    isDisconnecting,
+  } = useGoogleCalendar();
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const googleSuccess = searchParams.get('google_success');
+    const googleError = searchParams.get('google_error');
+
+    if (googleSuccess) {
+      toast({ title: 'Google Calendar conectado com sucesso!' });
+      setSearchParams({});
+    } else if (googleError) {
+      const errorMessages: Record<string, string> = {
+        access_denied: 'Acesso negado pelo usuário',
+        token_exchange_failed: 'Falha na autenticação',
+        save_failed: 'Falha ao salvar as credenciais',
+        missing_params: 'Parâmetros inválidos',
+        unknown: 'Erro desconhecido',
+      };
+      toast({
+        title: 'Erro ao conectar Google Calendar',
+        description: errorMessages[googleError] || googleError,
+        variant: 'destructive',
+      });
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, toast]);
 
   const venueForm = useForm<VenueFormData>({
     resolver: zodResolver(venueFormSchema),
@@ -133,6 +170,10 @@ export default function Configuracoes() {
               <Building2 className="mr-2 h-4 w-4" />
               Unidade
             </TabsTrigger>
+            <TabsTrigger value="integrations">
+              <Calendar className="mr-2 h-4 w-4" />
+              Integrações
+            </TabsTrigger>
             <TabsTrigger value="reminders">
               <Bell className="mr-2 h-4 w-4" />
               Lembretes
@@ -218,6 +259,70 @@ export default function Configuracoes() {
                     </Button>
                   </form>
                 </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="integrations">
+            <Card>
+              <CardHeader>
+                <CardTitle>Google Calendar</CardTitle>
+                <CardDescription>
+                  Sincronize suas reservas com o Google Calendar automaticamente
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isGoogleLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : isConnected ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <div className="flex-1">
+                        <p className="font-medium text-green-800 dark:text-green-200">
+                          Conectado ao Google Calendar
+                        </p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          Calendário: {connection?.calendar_id || 'Primário'}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Suas reservas serão sincronizadas automaticamente com seu Google Calendar.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => disconnect()}
+                      disabled={isDisconnecting}
+                    >
+                      {isDisconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Desconectar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="font-medium">Não conectado</p>
+                        <p className="text-sm text-muted-foreground">
+                          Conecte sua conta para sincronizar reservas
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => connect()}
+                      disabled={isConnecting}
+                    >
+                      {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Conectar Google Calendar
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
