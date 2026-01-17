@@ -22,6 +22,7 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           end_time: string
+          google_event_id: string | null
           grand_total: number | null
           id: string
           items_total: number | null
@@ -41,6 +42,7 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           end_time: string
+          google_event_id?: string | null
           grand_total?: number | null
           id?: string
           items_total?: number | null
@@ -60,6 +62,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           end_time?: string
+          google_event_id?: string | null
           grand_total?: number | null
           id?: string
           items_total?: number | null
@@ -116,6 +119,47 @@ export type Database = {
             foreignKeyName: "categories_venue_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_calendar_tokens: {
+        Row: {
+          access_token: string
+          calendar_id: string | null
+          created_at: string
+          id: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          access_token: string
+          calendar_id?: string | null
+          created_at?: string
+          id?: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          access_token?: string
+          calendar_id?: string | null
+          created_at?: string
+          id?: string
+          refresh_token?: string
+          token_expires_at?: string
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_tokens_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: true
             referencedRelation: "venues"
             referencedColumns: ["id"]
           },
