@@ -83,7 +83,7 @@ export function AppSidebar() {
             <Calendar className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-semibold text-sidebar-foreground">Agenda Certa</h1>
+            <h1 className="font-semibold text-sidebar-foreground">AgendaCerta</h1>
             <p className="text-xs text-sidebar-foreground/60">Gestão de Reservas</p>
           </div>
         </div>
@@ -190,6 +190,12 @@ export function AppSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <a 
+          href="/privacy" 
+          className="mt-2 text-center text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
+        >
+          Política de Privacidade
+        </a>
       </SidebarFooter>
     </Sidebar>
   );
