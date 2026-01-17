@@ -123,11 +123,19 @@ export function useSyncBooking() {
     if (!currentVenue?.id) return;
 
     try {
+      // Get the current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('Calendar sync failed: Not authenticated');
+        return;
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
         {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

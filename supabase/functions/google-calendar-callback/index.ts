@@ -41,9 +41,58 @@ serve(async (req) => {
   }
 
   try {
-    // Decode state to get venue_id
-    const stateData = JSON.parse(atob(state));
-    const { venue_id, user_id } = stateData;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Validate state from database
+    const { data: stateRecord, error: stateError } = await supabase
+      .from("oauth_states")
+      .select("*")
+      .eq("state", state)
+      .single();
+
+    if (stateError || !stateRecord) {
+      console.error("Invalid or missing state:", stateError);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `${FRONTEND_URL}/configuracoes?google_error=invalid_state`,
+        },
+      });
+    }
+
+    // Check if state has expired
+    if (new Date() > new Date(stateRecord.expires_at)) {
+      console.error("State has expired");
+      // Delete expired state
+      await supabase.from("oauth_states").delete().eq("state", state);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `${FRONTEND_URL}/configuracoes?google_error=state_expired`,
+        },
+      });
+    }
+
+    const { venue_id, user_id } = stateRecord;
+
+    // Delete used state immediately to prevent replay attacks
+    await supabase.from("oauth_states").delete().eq("state", state);
+
+    // Verify user still has admin access to the venue
+    const { data: isAdmin } = await supabase.rpc("is_venue_admin", {
+      _user_id: user_id,
+      _venue_id: venue_id,
+    });
+
+    if (!isAdmin) {
+      console.error("User no longer has admin access to venue");
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `${FRONTEND_URL}/configuracoes?google_error=not_authorized`,
+        },
+      });
+    }
 
     console.log("Processing callback for venue:", venue_id);
 
@@ -91,9 +140,6 @@ serve(async (req) => {
 
     // Calculate token expiration
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
-
-    // Save tokens to database
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { error: upsertError } = await supabase
       .from("google_calendar_tokens")

@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
-const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -65,8 +64,35 @@ serve(async (req) => {
       });
     }
 
-    // Build OAuth URL with state containing venue_id
-    const state = btoa(JSON.stringify({ venue_id, user_id: user.id }));
+    // Generate a secure random state token
+    const state = crypto.randomUUID();
+    
+    // Store state in database with expiration (10 minutes)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    
+    const { error: stateError } = await supabase
+      .from("oauth_states")
+      .insert({
+        state,
+        venue_id,
+        user_id: user.id,
+        expires_at: expiresAt,
+      });
+
+    if (stateError) {
+      console.error("Error storing state:", stateError);
+      return new Response(JSON.stringify({ error: "Failed to initiate OAuth flow" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Clean up expired states (fire and forget)
+    supabase
+      .from("oauth_states")
+      .delete()
+      .lt("expires_at", new Date().toISOString())
+      .then(() => console.log("Cleaned up expired OAuth states"));
     
     const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     authUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
@@ -77,7 +103,7 @@ serve(async (req) => {
     authUrl.searchParams.set("prompt", "consent");
     authUrl.searchParams.set("state", state);
 
-    console.log("Generated auth URL for venue:", venue_id);
+    console.log("Generated auth URL for venue:", venue_id, "with secure state");
 
     return new Response(JSON.stringify({ auth_url: authUrl.toString() }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
