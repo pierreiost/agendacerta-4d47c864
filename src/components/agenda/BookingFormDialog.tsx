@@ -34,11 +34,12 @@ import {
 } from '@/components/ui/popover';
 import { useBookings, type Booking } from '@/hooks/useBookings';
 import type { Space } from '@/hooks/useSpaces';
-import { format, setHours, setMinutes, parseISO } from 'date-fns';
+import { format, setHours, setMinutes, parseISO, startOfDay, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
   customer_name: z.string().min(1, 'Nome do cliente é obrigatório'),
@@ -148,7 +149,13 @@ export function BookingFormDialog({
     const startTime = setMinutes(setHours(data.date, startHour), 0);
     const endTime = setMinutes(setHours(data.date, endHour), 0);
 
-    // Check for conflicts
+    // Block retroactive bookings (only for new bookings)
+    if (!isEditing && isBefore(startTime, new Date())) {
+      setConflictError('Não é permitido criar reservas retroativas (data/hora no passado).');
+      return;
+    }
+
+    // Check for space conflicts
     const hasConflict = await checkConflict(
       data.space_id,
       startTime,
@@ -158,6 +165,21 @@ export function BookingFormDialog({
 
     if (hasConflict) {
       setConflictError('Já existe uma reserva neste horário para este espaço.');
+      return;
+    }
+
+    // Check if the same customer already has a booking at the same time in the same space
+    const { data: customerConflicts } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('space_id', data.space_id)
+      .eq('customer_name', data.customer_name)
+      .neq('status', 'CANCELLED')
+      .or(`and(start_time.lt.${endTime.toISOString()},end_time.gt.${startTime.toISOString()})`)
+      .neq('id', booking?.id ?? '00000000-0000-0000-0000-000000000000');
+
+    if (customerConflicts && customerConflicts.length > 0) {
+      setConflictError('Este cliente já possui uma reserva neste espaço no mesmo horário.');
       return;
     }
 
@@ -313,6 +335,7 @@ export function BookingFormDialog({
                         selected={field.value}
                         onSelect={field.onChange}
                         locale={ptBR}
+                        disabled={(date) => !isEditing && isBefore(startOfDay(date), startOfDay(new Date()))}
                       />
                     </PopoverContent>
                   </Popover>

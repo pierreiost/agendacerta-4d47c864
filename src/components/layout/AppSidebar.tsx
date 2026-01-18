@@ -35,11 +35,13 @@ import {
   Building2,
   Check,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 
 const venueMenuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { title: 'Agenda', icon: Calendar, path: '/agenda' },
+  { title: 'Clientes', icon: Users, path: '/clientes' },
   { title: 'Espaços', icon: MapPin, path: '/espacos' },
   { title: 'Produtos', icon: Package, path: '/produtos' },
   { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
