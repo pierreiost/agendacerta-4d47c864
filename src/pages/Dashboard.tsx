@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Users, DollarSign, Clock, TrendingUp, MapPin, ChevronRight, Zap, AlertCircle } from 'lucide-react';
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInMinutes, isToday, addHours } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInMinutes, isToday, addHours, addDays, isTomorrow, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
 import { Booking } from '@/hooks/useBookings';
@@ -17,7 +17,7 @@ interface DashboardStats {
   totalSpaces: number;
 }
 
-type TimeIndicator = 'now' | 'soon' | 'today' | 'past' | null;
+type DayIndicator = 'today' | 'tomorrow' | 'in2days' | null;
 
 export default function Dashboard() {
   const { currentVenue } = useVenue();
@@ -79,7 +79,8 @@ export default function Dashboard() {
           .eq('venue_id', currentVenue.id)
           .eq('is_active', true);
 
-        // Recent bookings (exclude cancelled and finalized)
+        // Recent bookings (only today + next 2 days, exclude cancelled and finalized)
+        const twoDaysFromNow = addDays(endOfDay(today), 2);
         const { data: recent } = await supabase
           .from('bookings')
           .select(`
@@ -88,8 +89,10 @@ export default function Dashboard() {
           `)
           .eq('venue_id', currentVenue.id)
           .in('status', ['PENDING', 'CONFIRMED'])
+          .gte('start_time', todayStart)
+          .lte('start_time', twoDaysFromNow.toISOString())
           .order('start_time', { ascending: true })
-          .limit(6);
+          .limit(12);
 
         setStats({
           todayBookings: todayCount || 0,
@@ -109,63 +112,64 @@ export default function Dashboard() {
     fetchStats();
   }, [currentVenue]);
 
-  const getTimeIndicator = (startTime: string, endTime: string): TimeIndicator => {
-    const now = new Date();
+  const getDayIndicator = (startTime: string): DayIndicator => {
     const start = new Date(startTime);
-    const end = new Date(endTime);
+    const today = new Date();
+    const daysDiff = differenceInCalendarDays(start, today);
     
-    // Currently happening
-    if (start <= now && end > now) {
-      return 'now';
-    }
-    
-    // Starting within 2 hours
-    const twoHoursFromNow = addHours(now, 2);
-    if (start > now && start <= twoHoursFromNow) {
-      return 'soon';
-    }
-    
-    // Today but more than 2 hours away
-    if (isToday(start) && start > twoHoursFromNow) {
-      return 'today';
-    }
-    
-    // Already ended today
-    if (isToday(start) && end <= now) {
-      return 'past';
-    }
+    if (daysDiff === 0) return 'today';
+    if (daysDiff === 1) return 'tomorrow';
+    if (daysDiff === 2) return 'in2days';
     
     return null;
   };
 
-  const getTimeIndicatorBadge = (indicator: TimeIndicator) => {
+  const getDayIndicatorBadge = (indicator: DayIndicator, startTime: string, endTime: string) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    // Check if currently happening
+    if (start <= now && end > now) {
+      return (
+        <Badge className="bg-success text-success-foreground border-0 animate-pulse gap-1">
+          <Zap className="h-3 w-3" />
+          Acontecendo agora
+        </Badge>
+      );
+    }
+    
+    // Check if starting within 2 hours
+    const twoHoursFromNow = addHours(now, 2);
+    if (start > now && start <= twoHoursFromNow) {
+      return (
+        <Badge className="bg-warning text-warning-foreground border-0 gap-1">
+          <AlertCircle className="h-3 w-3" />
+          Em breve
+        </Badge>
+      );
+    }
+    
     switch (indicator) {
-      case 'now':
-        return (
-          <Badge className="bg-success text-success-foreground border-0 animate-pulse gap-1">
-            <Zap className="h-3 w-3" />
-            Acontecendo agora
-          </Badge>
-        );
-      case 'soon':
-        return (
-          <Badge className="bg-warning text-warning-foreground border-0 gap-1">
-            <AlertCircle className="h-3 w-3" />
-            Em breve
-          </Badge>
-        );
       case 'today':
         return (
-          <Badge variant="secondary" className="gap-1">
+          <Badge className="bg-destructive/90 text-destructive-foreground border-0 gap-1">
             <Calendar className="h-3 w-3" />
             Hoje
           </Badge>
         );
-      case 'past':
+      case 'tomorrow':
         return (
-          <Badge variant="outline" className="text-muted-foreground gap-1">
-            <Clock className="h-3 w-3" />
-            Encerrado
+          <Badge className="bg-warning/70 text-warning-foreground border-0 gap-1">
+            <Calendar className="h-3 w-3" />
+            Amanhã
+          </Badge>
+        );
+      case 'in2days':
+        return (
+          <Badge variant="secondary" className="gap-1 opacity-70">
+            <Calendar className="h-3 w-3" />
+            Em 2 dias
           </Badge>
         );
       default:
@@ -173,16 +177,59 @@ export default function Dashboard() {
     }
   };
 
-  const getCardBorderClass = (indicator: TimeIndicator) => {
+  const getCardBorderClass = (indicator: DayIndicator, startTime: string, endTime: string) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    // Currently happening
+    if (start <= now && end > now) {
+      return 'border-success/50 ring-2 ring-success/20 bg-success/5';
+    }
+    
+    // Starting soon
+    const twoHoursFromNow = addHours(now, 2);
+    if (start > now && start <= twoHoursFromNow) {
+      return 'border-warning/50 ring-1 ring-warning/20 bg-warning/5';
+    }
+    
     switch (indicator) {
-      case 'now':
-        return 'border-success/50 ring-2 ring-success/20';
-      case 'soon':
-        return 'border-warning/50';
       case 'today':
-        return 'border-primary/30';
+        return 'border-destructive/40 bg-destructive/5';
+      case 'tomorrow':
+        return 'border-warning/30 bg-warning/5';
+      case 'in2days':
+        return 'border-muted-foreground/20 opacity-80';
       default:
         return '';
+    }
+  };
+
+  const getDateBlockClass = (indicator: DayIndicator, startTime: string, endTime: string) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    // Currently happening
+    if (start <= now && end > now) {
+      return 'bg-success/20 text-success';
+    }
+    
+    // Starting soon
+    const twoHoursFromNow = addHours(now, 2);
+    if (start > now && start <= twoHoursFromNow) {
+      return 'bg-warning/20 text-warning';
+    }
+    
+    switch (indicator) {
+      case 'today':
+        return 'bg-destructive/15 text-destructive';
+      case 'tomorrow':
+        return 'bg-warning/15 text-warning';
+      case 'in2days':
+        return 'bg-muted text-muted-foreground';
+      default:
+        return 'bg-primary/10 text-primary';
     }
   };
 
@@ -307,7 +354,8 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Users className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Reservas Recentes</h2>
+            <h2 className="text-lg font-semibold">Próximas Reservas</h2>
+            <span className="text-sm text-muted-foreground">(hoje + próximos 2 dias)</span>
           </div>
           
           {recentBookings.length === 0 ? (
@@ -321,14 +369,15 @@ export default function Dashboard() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {recentBookings.map((booking) => {
-                const timeIndicator = getTimeIndicator(booking.start_time, booking.end_time);
-                const indicatorBadge = getTimeIndicatorBadge(timeIndicator);
-                const cardBorderClass = getCardBorderClass(timeIndicator);
+                const dayIndicator = getDayIndicator(booking.start_time);
+                const indicatorBadge = getDayIndicatorBadge(dayIndicator, booking.start_time, booking.end_time);
+                const cardBorderClass = getCardBorderClass(dayIndicator, booking.start_time, booking.end_time);
+                const dateBlockClass = getDateBlockClass(dayIndicator, booking.start_time, booking.end_time);
                 
                 return (
                   <Card 
                     key={booking.id}
-                    className={`shadow-card cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group ${cardBorderClass}`}
+                    className={`shadow-card cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group ${cardBorderClass}`}
                     onClick={() => handleBookingClick(booking)}
                   >
                     <CardContent className="p-4">
@@ -358,15 +407,15 @@ export default function Dashboard() {
                       {/* Date and time - visual layout */}
                       <div className="bg-muted/50 rounded-lg p-3 mb-3">
                         <div className="flex items-center gap-3">
-                          {/* Date block */}
-                          <div className="flex flex-col items-center justify-center bg-primary/10 rounded-md px-3 py-2 min-w-[60px]">
-                            <span className="text-xs font-medium text-primary uppercase">
+                          {/* Date block with dynamic colors */}
+                          <div className={`flex flex-col items-center justify-center rounded-md px-3 py-2 min-w-[60px] ${dateBlockClass}`}>
+                            <span className="text-xs font-medium uppercase">
                               {format(new Date(booking.start_time), "EEE", { locale: ptBR })}
                             </span>
-                            <span className="text-2xl font-bold text-primary leading-none">
+                            <span className="text-2xl font-bold leading-none">
                               {format(new Date(booking.start_time), "dd")}
                             </span>
-                            <span className="text-xs text-primary/70">
+                            <span className="text-xs opacity-70">
                               {format(new Date(booking.start_time), "MMM", { locale: ptBR })}
                             </span>
                           </div>
