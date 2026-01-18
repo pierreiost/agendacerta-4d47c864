@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
@@ -44,7 +45,9 @@ export function CustomerFormDialog({
   onOpenChange,
   customer,
 }: CustomerFormDialogProps) {
-  const { createCustomer, updateCustomer } = useCustomers();
+  const { createCustomer, updateCustomer, customers } = useCustomers();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = !!customer;
 
   const form = useForm<FormData>({
@@ -81,26 +84,88 @@ export function CustomerFormDialog({
     }
   }, [customer, form, open]);
 
-  const onSubmit = async (data: FormData) => {
-    const payload = {
-      name: data.name,
-      email: data.email || null,
-      phone: data.phone || null,
-      document: data.document || null,
-      address: data.address || null,
-      notes: data.notes || null,
-    };
-
-    if (isEditing) {
-      await updateCustomer.mutateAsync({ id: customer.id, ...payload });
-    } else {
-      await createCustomer.mutateAsync(payload);
+  const checkDuplicates = (data: FormData): string | null => {
+    const otherCustomers = customers?.filter(c => c.id !== customer?.id) || [];
+    
+    // Check duplicate name (case insensitive)
+    const duplicateName = otherCustomers.find(
+      c => c.name.toLowerCase().trim() === data.name.toLowerCase().trim()
+    );
+    if (duplicateName) {
+      return `Já existe um cliente com o nome "${data.name}"`;
     }
 
-    onOpenChange(false);
+    // Check duplicate document (CPF/CNPJ) if provided
+    if (data.document && data.document.trim()) {
+      const normalizedDoc = data.document.replace(/\D/g, '');
+      const duplicateDoc = otherCustomers.find(
+        c => c.document && c.document.replace(/\D/g, '') === normalizedDoc
+      );
+      if (duplicateDoc) {
+        return `Já existe um cliente com o CPF/CNPJ "${data.document}"`;
+      }
+    }
+
+    // Check duplicate email if provided
+    if (data.email && data.email.trim()) {
+      const duplicateEmail = otherCustomers.find(
+        c => c.email && c.email.toLowerCase().trim() === data.email!.toLowerCase().trim()
+      );
+      if (duplicateEmail) {
+        return `Já existe um cliente com o email "${data.email}"`;
+      }
+    }
+
+    // Check duplicate phone if provided
+    if (data.phone && data.phone.trim()) {
+      const normalizedPhone = data.phone.replace(/\D/g, '');
+      const duplicatePhone = otherCustomers.find(
+        c => c.phone && c.phone.replace(/\D/g, '') === normalizedPhone
+      );
+      if (duplicatePhone) {
+        return `Já existe um cliente com o telefone "${data.phone}"`;
+      }
+    }
+
+    return null;
   };
 
-  const isPending = createCustomer.isPending || updateCustomer.isPending;
+  const onSubmit = async (data: FormData) => {
+    // Check for duplicates
+    const duplicateError = checkDuplicates(data);
+    if (duplicateError) {
+      toast({
+        title: 'Cliente duplicado',
+        description: duplicateError,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: data.name.trim(),
+        email: data.email?.trim() || null,
+        phone: data.phone?.trim() || null,
+        document: data.document?.trim() || null,
+        address: data.address?.trim() || null,
+        notes: data.notes?.trim() || null,
+      };
+
+      if (isEditing) {
+        await updateCustomer.mutateAsync({ id: customer.id, ...payload });
+      } else {
+        await createCustomer.mutateAsync(payload);
+      }
+
+      onOpenChange(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isPending = isSubmitting || createCustomer.isPending || updateCustomer.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
