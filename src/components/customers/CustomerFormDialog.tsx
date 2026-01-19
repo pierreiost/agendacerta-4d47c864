@@ -22,12 +22,23 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/use-toast';
+import { maskCPFCNPJ, maskPhone, isValidCPFCNPJ, unmask } from '@/lib/masks';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().max(20, 'Telefone muito longo').optional().or(z.literal('')),
-  document: z.string().max(20, 'Documento muito longo').optional().or(z.literal('')),
+  document: z.string()
+    .max(20, 'Documento muito longo')
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => {
+      if (!val || val.trim() === '') return true;
+      const digits = val.replace(/\D/g, '');
+      if (digits.length === 0) return true;
+      if (digits.length !== 11 && digits.length !== 14) return false;
+      return isValidCPFCNPJ(val);
+    }, { message: 'CPF/CNPJ inválido' }),
   address: z.string().max(200, 'Endereço muito longo').optional().or(z.literal('')),
   notes: z.string().max(500, 'Observações muito longas').optional().or(z.literal('')),
 });
@@ -214,7 +225,11 @@ export function CustomerFormDialog({
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input placeholder="(11) 99999-9999" {...field} />
+                      <Input
+                        placeholder="(11) 99999-9999"
+                        {...field}
+                        onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -229,7 +244,11 @@ export function CustomerFormDialog({
                 <FormItem>
                   <FormLabel>CPF/CNPJ</FormLabel>
                   <FormControl>
-                    <Input placeholder="000.000.000-00" {...field} />
+                    <Input
+                      placeholder="000.000.000-00"
+                      {...field}
+                      onChange={(e) => field.onChange(maskCPFCNPJ(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
