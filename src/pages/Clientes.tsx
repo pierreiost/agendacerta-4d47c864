@@ -29,7 +29,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2 } from 'lucide-react';
+import { CustomerHistorySheet } from '@/components/customers/CustomerHistorySheet';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -40,6 +41,8 @@ export default function Clientes() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
 
   const filteredCustomers = customers.filter(
     (customer) =>
@@ -69,6 +72,11 @@ export default function Clientes() {
   const handleNewCustomer = () => {
     setSelectedCustomer(null);
     setFormOpen(true);
+  };
+
+  const handleViewHistory = (customer: Customer) => {
+    setHistoryCustomer(customer);
+    setHistoryOpen(true);
   };
 
   return (
@@ -175,6 +183,10 @@ export default function Clientes() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewHistory(customer)}>
+                              <History className="mr-2 h-4 w-4" />
+                              Histórico
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(customer)}>
                               <Pencil className="mr-2 h-4 w-4" />
                               Editar
@@ -226,6 +238,13 @@ export default function Clientes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Customer History Sheet */}
+      <CustomerHistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        customer={historyCustomer}
+      />
     </AppLayout>
   );
 }
