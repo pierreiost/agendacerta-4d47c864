@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -34,14 +42,17 @@ import {
 } from '@/components/ui/popover';
 import { useBookings, type Booking } from '@/hooks/useBookings';
 import type { Space } from '@/hooks/useSpaces';
+import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { format, setHours, setMinutes, parseISO, startOfDay, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
+import { CalendarIcon, Loader2, AlertCircle, UserPlus, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 
 const formSchema = z.object({
+  customer_id: z.string().optional(),
   customer_name: z.string().min(1, 'Nome do cliente é obrigatório'),
   customer_phone: z.string().optional(),
   customer_email: z.string().email('Email inválido').optional().or(z.literal('')),
@@ -77,12 +88,17 @@ export function BookingFormDialog({
   defaultSlot,
 }: BookingFormDialogProps) {
   const { createBooking, updateBooking, checkConflict } = useBookings();
+  const { customers, refetch: refetchCustomers } = useCustomers();
   const isEditing = !!booking;
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      customer_id: '',
       customer_name: '',
       customer_phone: '',
       customer_email: '',
@@ -94,12 +110,45 @@ export function BookingFormDialog({
     },
   });
 
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
+    if (!customerSearch) return customers;
+    const searchLower = customerSearch.toLowerCase();
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(searchLower) ||
+        c.email?.toLowerCase().includes(searchLower) ||
+        c.phone?.includes(customerSearch)
+    );
+  }, [customers, customerSearch]);
+
+  const handleSelectCustomer = (customer: Customer) => {
+    form.setValue('customer_id', customer.id);
+    form.setValue('customer_name', customer.name);
+    form.setValue('customer_phone', customer.phone || '');
+    form.setValue('customer_email', customer.email || '');
+    setCustomerSearchOpen(false);
+    setCustomerSearch('');
+  };
+
+  const handleClearCustomer = () => {
+    form.setValue('customer_id', '');
+    form.setValue('customer_name', '');
+    form.setValue('customer_phone', '');
+    form.setValue('customer_email', '');
+  };
+
+  const handleNewCustomerCreated = () => {
+    refetchCustomers();
+  };
+
   useEffect(() => {
     if (booking) {
       const startDate = parseISO(booking.start_time);
       const endDate = parseISO(booking.end_time);
       
       form.reset({
+        customer_id: booking.customer_id ?? '',
         customer_name: booking.customer_name,
         customer_phone: booking.customer_phone ?? '',
         customer_email: booking.customer_email ?? '',
@@ -111,6 +160,7 @@ export function BookingFormDialog({
       });
     } else if (defaultSlot) {
       form.reset({
+        customer_id: '',
         customer_name: '',
         customer_phone: '',
         customer_email: '',
@@ -122,6 +172,7 @@ export function BookingFormDialog({
       });
     } else {
       form.reset({
+        customer_id: '',
         customer_name: '',
         customer_phone: '',
         customer_email: '',
@@ -133,6 +184,7 @@ export function BookingFormDialog({
       });
     }
     setConflictError(null);
+    setCustomerSearch('');
   }, [booking, defaultSlot, form, spaces]);
 
   const onSubmit = async (data: FormData) => {
@@ -187,6 +239,7 @@ export function BookingFormDialog({
     const pricePerHour = Number(space?.price_per_hour ?? 0);
 
     const payload = {
+      customer_id: data.customer_id || null,
       customer_name: data.customer_name,
       customer_phone: data.customer_phone || null,
       customer_email: data.customer_email || null,
@@ -227,11 +280,108 @@ export function BookingFormDialog({
               </Alert>
             )}
 
+            {/* Customer Selection with Autocomplete */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <FormLabel>Cliente *</FormLabel>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setCustomerDialogOpen(true)}
+                >
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Novo Cliente
+                </Button>
+              </div>
+              
+              <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={customerSearchOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {form.watch('customer_name') || 'Buscar cliente...'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Digite o nome, email ou telefone..."
+                      value={customerSearch}
+                      onValueChange={setCustomerSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        <div className="py-2 text-center text-sm">
+                          Nenhum cliente encontrado.
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="px-1"
+                            onClick={() => {
+                              setCustomerSearchOpen(false);
+                              setCustomerDialogOpen(true);
+                            }}
+                          >
+                            Criar novo
+                          </Button>
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {filteredCustomers.slice(0, 10).map((customer) => (
+                          <CommandItem
+                            key={customer.id}
+                            value={customer.id}
+                            onSelect={() => handleSelectCustomer(customer)}
+                          >
+                            <Check
+                              className={cn(
+                                'mr-2 h-4 w-4',
+                                form.watch('customer_id') === customer.id
+                                  ? 'opacity-100'
+                                  : 'opacity-0'
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span>{customer.name}</span>
+                              {(customer.phone || customer.email) && (
+                                <span className="text-xs text-muted-foreground">
+                                  {[customer.phone, customer.email].filter(Boolean).join(' • ')}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              
+              {form.watch('customer_id') && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-muted-foreground"
+                  onClick={handleClearCustomer}
+                >
+                  Limpar seleção
+                </Button>
+              )}
+            </div>
+
             <FormField
               control={form.control}
               name="customer_name"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className={form.watch('customer_id') ? 'hidden' : ''}>
                   <FormLabel>Nome do Cliente *</FormLabel>
                   <FormControl>
                     <Input placeholder="Nome completo" {...field} />
@@ -429,6 +579,17 @@ export function BookingFormDialog({
           </form>
         </Form>
       </DialogContent>
+
+      <CustomerFormDialog
+        open={customerDialogOpen}
+        onOpenChange={(open) => {
+          setCustomerDialogOpen(open);
+          if (!open) {
+            handleNewCustomerCreated();
+          }
+        }}
+        customer={null}
+      />
     </Dialog>
   );
 }
