@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encrypt } from "../_shared/encryption.ts";
 
-const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
+const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -141,13 +142,19 @@ serve(async (req) => {
     // Calculate token expiration
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
+    // Encrypt tokens before storing
+    const encryptedAccessToken = await encrypt(tokens.access_token);
+    const encryptedRefreshToken = await encrypt(tokens.refresh_token);
+
+    console.log("Tokens encrypted successfully");
+
     const { error: upsertError } = await supabase
       .from("google_calendar_tokens")
       .upsert(
         {
           venue_id,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
+          access_token: encryptedAccessToken,
+          refresh_token: encryptedRefreshToken,
           token_expires_at: expiresAt,
           calendar_id: calendarId,
         },
