@@ -458,6 +458,196 @@ export type Database = {
         }
         Relationships: []
       }
+      service_order_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          service_code: string | null
+          service_order_id: string
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          quantity?: number
+          service_code?: string | null
+          service_order_id: string
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          service_code?: string | null
+          service_order_id?: string
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_items_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_orders: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_address: string | null
+          customer_city: string | null
+          customer_document: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          customer_state: string | null
+          customer_zip_code: string | null
+          description: string
+          discount: number | null
+          executed_at: string | null
+          finished_at: string | null
+          id: string
+          issued_at: string | null
+          nfse_issued_at: string | null
+          nfse_number: string | null
+          nfse_pdf_url: string | null
+          nfse_verification_code: string | null
+          notes: string | null
+          order_number: number
+          order_type: Database["public"]["Enums"]["service_order_type"]
+          status_complete:
+            | Database["public"]["Enums"]["service_order_status_complete"]
+            | null
+          status_simple:
+            | Database["public"]["Enums"]["service_order_status_simple"]
+            | null
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          total: number
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          customer_state?: string | null
+          customer_zip_code?: string | null
+          description: string
+          discount?: number | null
+          executed_at?: string | null
+          finished_at?: string | null
+          id?: string
+          issued_at?: string | null
+          nfse_issued_at?: string | null
+          nfse_number?: string | null
+          nfse_pdf_url?: string | null
+          nfse_verification_code?: string | null
+          notes?: string | null
+          order_number: number
+          order_type?: Database["public"]["Enums"]["service_order_type"]
+          status_complete?:
+            | Database["public"]["Enums"]["service_order_status_complete"]
+            | null
+          status_simple?:
+            | Database["public"]["Enums"]["service_order_status_simple"]
+            | null
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          customer_state?: string | null
+          customer_zip_code?: string | null
+          description?: string
+          discount?: number | null
+          executed_at?: string | null
+          finished_at?: string | null
+          id?: string
+          issued_at?: string | null
+          nfse_issued_at?: string | null
+          nfse_number?: string | null
+          nfse_pdf_url?: string | null
+          nfse_verification_code?: string | null
+          notes?: string | null
+          order_number?: number
+          order_type?: Database["public"]["Enums"]["service_order_type"]
+          status_complete?:
+            | Database["public"]["Enums"]["service_order_status_complete"]
+            | null
+          status_simple?:
+            | Database["public"]["Enums"]["service_order_status_simple"]
+            | null
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spaces: {
         Row: {
           capacity: number | null
@@ -748,6 +938,15 @@ export type Database = {
       app_role: "admin" | "manager" | "staff" | "superadmin"
       booking_status: "PENDING" | "CONFIRMED" | "CANCELLED" | "FINALIZED"
       payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX"
+      service_order_status_complete:
+        | "draft"
+        | "approved"
+        | "in_progress"
+        | "finished"
+        | "invoiced"
+        | "cancelled"
+      service_order_status_simple: "open" | "finished" | "invoiced"
+      service_order_type: "simple" | "complete"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -878,6 +1077,16 @@ export const Constants = {
       app_role: ["admin", "manager", "staff", "superadmin"],
       booking_status: ["PENDING", "CONFIRMED", "CANCELLED", "FINALIZED"],
       payment_method: ["CASH", "CREDIT", "DEBIT", "PIX"],
+      service_order_status_complete: [
+        "draft",
+        "approved",
+        "in_progress",
+        "finished",
+        "invoiced",
+        "cancelled",
+      ],
+      service_order_status_simple: ["open", "finished", "invoiced"],
+      service_order_type: ["simple", "complete"],
     },
   },
 } as const
