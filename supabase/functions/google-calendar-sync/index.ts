@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decrypt, encrypt, isEncrypted } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,9 +24,21 @@ async function refreshAccessToken(token: CalendarToken, supabase: any): Promise<
   const now = new Date();
   const expiresAt = new Date(token.token_expires_at);
 
+  // Decrypt access token to check if it's still valid
+  let currentAccessToken = token.access_token;
+  let currentRefreshToken = token.refresh_token;
+  
+  // Decrypt tokens if they are encrypted
+  if (isEncrypted(token.access_token)) {
+    currentAccessToken = await decrypt(token.access_token);
+  }
+  if (isEncrypted(token.refresh_token)) {
+    currentRefreshToken = await decrypt(token.refresh_token);
+  }
+
   // If token is still valid for more than 5 minutes, use it
   if (expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
-    return token.access_token;
+    return currentAccessToken;
   }
 
   console.log("Refreshing access token for venue:", token.venue_id);
@@ -36,7 +49,7 @@ async function refreshAccessToken(token: CalendarToken, supabase: any): Promise<
     body: new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
-      refresh_token: token.refresh_token,
+      refresh_token: currentRefreshToken,
       grant_type: "refresh_token",
     }),
   });
@@ -50,14 +63,20 @@ async function refreshAccessToken(token: CalendarToken, supabase: any): Promise<
   const newTokens = await response.json();
   const newExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000).toISOString();
 
+  // Encrypt new tokens before storing
+  const encryptedAccessToken = await encrypt(newTokens.access_token);
+  const encryptedRefreshToken = newTokens.refresh_token 
+    ? await encrypt(newTokens.refresh_token) 
+    : undefined;
+
   // Update tokens in database
   await supabase
     .from("google_calendar_tokens")
     .update({
-      access_token: newTokens.access_token,
+      access_token: encryptedAccessToken,
       token_expires_at: newExpiresAt,
       // Only update refresh_token if a new one was provided
-      ...(newTokens.refresh_token && { refresh_token: newTokens.refresh_token }),
+      ...(encryptedRefreshToken && { refresh_token: encryptedRefreshToken }),
     })
     .eq("venue_id", token.venue_id);
 
