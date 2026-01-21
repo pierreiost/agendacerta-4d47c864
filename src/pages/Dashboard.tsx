@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx - VERSÃO CORRIGIDA
+// src/pages/Dashboard.tsx - CORRIGIDO PARA TYPESCRIPT
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +17,11 @@ export default function Dashboard() {
   const { currentVenue } = useVenue();
   const navigate = useNavigate();
 
-  // ✅ CORREÇÃO: Hook sem parâmetros (como está no código original)
+  // ✅ useBookings retorna { bookings, isLoading }
   const { bookings, isLoading: loadingBookings } = useBookings();
-  const { data: spaces } = useSpaces(currentVenue?.id);
+  // ✅ useSpaces retorna { spaces, isLoading } e recebe venueId
+  const { spaces } = useSpaces(currentVenue?.id);
 
-  // Calcular métricas
   const metrics = useMemo(() => {
     if (!bookings || bookings.length === 0) {
       return {
@@ -43,51 +43,48 @@ export default function Dashboard() {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Reservas de hoje
     const todayBookings = bookings.filter((b) => {
       const bookingDate = new Date(b.start_time);
       return bookingDate >= today && bookingDate < tomorrow;
     });
 
-    // Reservas do mês
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
+    // ✅ Status é UPPERCASE: CANCELLED não cancelled
     const monthBookings = bookings.filter((b) => {
       const bookingDate = new Date(b.start_time);
       return (
-        bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear && b.status !== "cancelled"
+        bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear && b.status !== "CANCELLED"
       );
     });
 
-    // Mês anterior para comparação
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
     const lastMonthBookings = bookings.filter((b) => {
       const bookingDate = new Date(b.start_time);
       return (
-        bookingDate.getMonth() === lastMonth && bookingDate.getFullYear() === lastMonthYear && b.status !== "cancelled"
+        bookingDate.getMonth() === lastMonth && bookingDate.getFullYear() === lastMonthYear && b.status !== "CANCELLED"
       );
     });
 
-    // Faturamento do mês
+    // ✅ Campo é grand_total não total_amount
     const monthRevenue = monthBookings.reduce((sum, b) => {
-      return sum + (Number(b.total_amount) || Number(b.grand_total) || 0);
+      return sum + (Number(b.grand_total) || 0);
     }, 0);
 
     const lastMonthRevenue = lastMonthBookings.reduce((sum, b) => {
-      return sum + (Number(b.total_amount) || Number(b.grand_total) || 0);
+      return sum + (Number(b.grand_total) || 0);
     }, 0);
 
     const revenueTrend =
       lastMonthRevenue > 0 ? (((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100).toFixed(1) : "0";
 
-    // Taxa de ocupação (simplificada)
     const totalSpaces = spaces?.length || 1;
     const occupiedSlots = todayBookings.length;
-    const occupancyRate = Math.round((occupiedSlots / (totalSpaces * 8)) * 100); // 8 slots por dia
+    const occupancyRate = Math.round((occupiedSlots / (totalSpaces * 8)) * 100);
 
-    // OS pendentes
-    const pendingOrders = bookings.filter((b) => b.status === "pending").length;
+    // ✅ Status UPPERCASE: PENDING não pending
+    const pendingOrders = bookings.filter((b) => b.status === "PENDING").length;
 
     return {
       todayBookings: todayBookings.length,
@@ -102,7 +99,6 @@ export default function Dashboard() {
     };
   }, [bookings, spaces]);
 
-  // Próximas reservas
   const upcomingBookings = useMemo(() => {
     if (!bookings || bookings.length === 0) return [];
 
@@ -110,7 +106,8 @@ export default function Dashboard() {
     return bookings
       .filter((b) => {
         const startTime = new Date(b.start_time);
-        return startTime > now && b.status !== "cancelled";
+        // ✅ Status UPPERCASE
+        return startTime > now && b.status !== "CANCELLED";
       })
       .sort((a, b) => {
         const dateA = new Date(a.start_time);
@@ -129,24 +126,16 @@ export default function Dashboard() {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      pending: "bg-warning-100 text-warning-800 border-warning-200",
-      confirmed: "bg-success-100 text-success-800 border-success-200",
-      cancelled: "bg-error-100 text-error-800 border-error-200",
-      completed: "bg-neutral-100 text-neutral-800 border-neutral-200",
       PENDING: "bg-warning-100 text-warning-800 border-warning-200",
       CONFIRMED: "bg-success-100 text-success-800 border-success-200",
       CANCELLED: "bg-error-100 text-error-800 border-error-200",
       FINALIZED: "bg-neutral-100 text-neutral-800 border-neutral-200",
     };
-    return colors[status as keyof typeof colors] || colors.pending;
+    return colors[status as keyof typeof colors] || colors.PENDING;
   };
 
   const getStatusLabel = (status: string) => {
     const labels = {
-      pending: "Pendente",
-      confirmed: "Confirmado",
-      cancelled: "Cancelado",
-      completed: "Concluído",
       PENDING: "Pendente",
       CONFIRMED: "Confirmado",
       CANCELLED: "Cancelado",
@@ -168,7 +157,6 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
@@ -180,7 +168,6 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        {/* Métricas - Grid de Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Reservas Hoje"
@@ -227,7 +214,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Próximas Reservas */}
         <Card className="border-border shadow-soft">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex items-center justify-between">
@@ -262,7 +248,6 @@ export default function Dashboard() {
                     onClick={() => navigate("/agenda")}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      {/* Info Principal */}
                       <div className="flex-1 space-y-3">
                         <div className="flex items-start gap-3">
                           <div className="rounded-lg bg-primary-100 p-2 mt-1">
@@ -295,14 +280,13 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Status e Valor */}
                       <div className="flex flex-col items-end gap-3">
-                        <Badge variant="outline" className={getStatusColor(booking.status || "pending")}>
-                          {getStatusLabel(booking.status || "pending")}
+                        <Badge variant="outline" className={getStatusColor(booking.status || "PENDING")}>
+                          {getStatusLabel(booking.status || "PENDING")}
                         </Badge>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-foreground">
-                            {formatCurrency(Number(booking.total_amount) || Number(booking.grand_total) || 0)}
+                            {formatCurrency(Number(booking.grand_total) || 0)}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">Total</p>
                         </div>
@@ -315,7 +299,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card
             className="border-border shadow-soft hover:shadow-soft-lg transition-all cursor-pointer group"
