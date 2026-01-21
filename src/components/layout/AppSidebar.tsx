@@ -1,4 +1,4 @@
-// src/components/layout/AppSidebar.tsx - VERSÃO FINAL CORRETA
+// src/components/layout/AppSidebar.tsx - CORRIGIDO PARA TYPESCRIPT
 import {
   Calendar,
   FileText,
@@ -52,8 +52,8 @@ interface NavGroup {
 
 export function AppSidebar() {
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const { currentVenue, venues, switchVenue } = useVenue();
+  const { user, signOut } = useAuth(); // ✅ signOut não logout
+  const { currentVenue, venues, setCurrentVenue } = useVenue(); // ✅ setCurrentVenue não switchVenue
   const { state } = useSidebar();
 
   const isActive = (href: string) => {
@@ -63,7 +63,6 @@ export function AppSidebar() {
     return location.pathname === href || location.pathname.startsWith(href + "/");
   };
 
-  // Navegação com rotas corretas do seu App.tsx
   const navigation: NavGroup[] = [
     {
       label: "Principal",
@@ -93,7 +92,6 @@ export function AppSidebar() {
     },
   ];
 
-  // Se for super admin, adiciona menu
   const isSuperAdmin = user?.user_metadata?.role === "super_admin";
   if (isSuperAdmin) {
     navigation.push({
@@ -115,7 +113,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Header */}
       <SidebarHeader className="border-b bg-gradient-to-br from-primary-50 to-white dark:from-primary-950 dark:to-background">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -141,7 +138,7 @@ export function AppSidebar() {
                   {venues?.map((venue) => (
                     <DropdownMenuItem
                       key={venue.id}
-                      onClick={() => switchVenue(venue.id)}
+                      onClick={() => setCurrentVenue(venue)}
                       className={cn("gap-2 p-3 cursor-pointer", currentVenue?.id === venue.id && "bg-primary-50")}
                     >
                       <div className="flex items-center gap-2 flex-1">
@@ -166,7 +163,6 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Content - Menu Items */}
       <SidebarContent className="px-2 py-4">
         {navigation.map((group, groupIdx) => (
           <SidebarGroup key={groupIdx} className="mb-4">
@@ -213,7 +209,6 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* Footer */}
       <SidebarFooter className="border-t bg-muted/30">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -245,7 +240,7 @@ export function AppSidebar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:text-red-600">
+                  <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600 focus:text-red-600">
                     <LogOut className="size-4 mr-2" />
                     <span>Sair</span>
                   </DropdownMenuItem>
@@ -275,7 +270,7 @@ export function AppSidebar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600">
+                  <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600">
                     <LogOut className="size-4 mr-2" />
                     Sair
                   </DropdownMenuItem>
