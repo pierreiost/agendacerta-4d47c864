@@ -206,6 +206,30 @@ export function useServiceOrders() {
     },
   });
 
+  const updateItemMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<ServiceOrderItemInsert> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('service_order_items')
+        .update(updates as never)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders', currentVenue?.id] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao atualizar item',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const removeItemMutation = useMutation({
     mutationFn: async (itemId: string) => {
       const { error } = await supabase
@@ -227,6 +251,17 @@ export function useServiceOrders() {
     },
   });
 
+  const getOrderItems = async (orderId: string): Promise<ServiceOrderItem[]> => {
+    const { data, error } = await supabase
+      .from('service_order_items')
+      .select('*')
+      .eq('service_order_id', orderId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data as unknown as ServiceOrderItem[];
+  };
+
   return {
     orders: ordersQuery.data ?? [],
     isLoading: ordersQuery.isLoading,
@@ -238,7 +273,9 @@ export function useServiceOrders() {
     deleteOrder: deleteMutation.mutate,
     isDeleting: deleteMutation.isPending,
     addItem: addItemMutation.mutateAsync,
-    removeItem: removeItemMutation.mutate,
+    updateItem: updateItemMutation.mutateAsync,
+    removeItem: removeItemMutation.mutateAsync,
+    getOrderItems,
   };
 }
 
