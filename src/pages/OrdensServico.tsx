@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, FileText, Pencil, Trash2, ListPlus, FileCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, FileText, Pencil, Trash2, FileCheck } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +30,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useServiceOrders, type ServiceOrder } from '@/hooks/useServiceOrders';
-import { ServiceOrderFormDialog } from '@/components/service-orders/ServiceOrderFormDialog';
-import { ServiceOrderItemsDialog } from '@/components/service-orders/ServiceOrderItemsDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -50,10 +49,8 @@ const statusLabelsComplete: Record<string, { label: string; variant: 'default' |
 };
 
 export default function OrdensServico() {
+  const navigate = useNavigate();
   const { orders, isLoading, deleteOrder, updateOrder } = useServiceOrders();
-  const [formOpen, setFormOpen] = useState(false);
-  const [itemsOpen, setItemsOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
@@ -67,13 +64,7 @@ export default function OrdensServico() {
     }).format(value);
 
   const handleEdit = (order: ServiceOrder) => {
-    setSelectedOrder(order);
-    setFormOpen(true);
-  };
-
-  const handleItems = (order: ServiceOrder) => {
-    setSelectedOrder(order);
-    setItemsOpen(true);
+    navigate(`/ordens-servico/${order.id}`);
   };
 
   const handleDelete = (id: string) => {
@@ -133,12 +124,12 @@ export default function OrdensServico() {
               : statusLabelsSimple[order.status_simple ?? 'open'];
 
             return (
-              <TableRow key={order.id}>
+              <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleEdit(order)}>
                 <TableCell className="font-mono font-bold">#{order.order_number}</TableCell>
                 <TableCell>{order.customer_name}</TableCell>
                 {isComplete && <TableCell>{order.customer_document || '-'}</TableCell>}
                 <TableCell className="max-w-[200px] truncate">{order.description}</TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="p-0 h-auto">
@@ -174,16 +165,8 @@ export default function OrdensServico() {
                 <TableCell>
                   {format(new Date(order.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleItems(order)}
-                      title="Itens"
-                    >
-                      <ListPlus className="h-4 w-4" />
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -220,7 +203,7 @@ export default function OrdensServico() {
               Gerencie suas OS simples e completas (para NFS-e)
             </p>
           </div>
-          <Button onClick={() => { setSelectedOrder(null); setFormOpen(true); }}>
+          <Button onClick={() => navigate('/ordens-servico/nova')}>
             <Plus className="h-4 w-4 mr-2" />
             Nova OS
           </Button>
@@ -255,20 +238,6 @@ export default function OrdensServico() {
           </TabsContent>
         </Tabs>
       </div>
-
-      <ServiceOrderFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        order={selectedOrder}
-      />
-
-      {selectedOrder && (
-        <ServiceOrderItemsDialog
-          open={itemsOpen}
-          onOpenChange={setItemsOpen}
-          order={selectedOrder}
-        />
-      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
