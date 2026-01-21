@@ -1,4 +1,4 @@
-// src/components/layout/AppSidebar.tsx - VERSÃO CORRIGIDA
+// src/components/layout/AppSidebar.tsx - VERSÃO FINAL CORRETA
 import {
   Calendar,
   FileText,
@@ -9,6 +9,7 @@ import {
   LogOut,
   ChevronDown,
   Building2,
+  Users,
   Home,
   Zap,
 } from "lucide-react";
@@ -42,7 +43,6 @@ interface NavItem {
   title: string;
   href: string;
   icon: any;
-  badge?: string;
 }
 
 interface NavGroup {
@@ -57,67 +57,38 @@ export function AppSidebar() {
   const { state } = useSidebar();
 
   const isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return location.pathname === "/dashboard" || location.pathname === "/";
+    if (href === "/") {
+      return location.pathname === "/";
     }
     return location.pathname === href || location.pathname.startsWith(href + "/");
   };
 
-  // Navegação organizada por grupos
+  // Navegação com rotas corretas do seu App.tsx
   const navigation: NavGroup[] = [
     {
       label: "Principal",
       items: [
-        {
-          title: "Dashboard",
-          href: "/dashboard",
-          icon: Home,
-        },
-        {
-          title: "Agenda",
-          href: "/agenda",
-          icon: Calendar,
-        },
+        { title: "Dashboard", href: "/", icon: Home },
+        { title: "Agenda", href: "/agenda", icon: Calendar },
       ],
     },
     {
       label: "Operacional",
-      items: [
-        {
-          title: "Ordens de Serviço",
-          href: "/ordem-servico",
-          icon: FileText,
-        },
-      ],
+      items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText }],
     },
     {
       label: "Cadastros",
       items: [
-        {
-          title: "Espaços",
-          href: "/espacos",
-          icon: MapPin,
-        },
-        {
-          title: "Produtos",
-          href: "/produtos",
-          icon: Package,
-        },
+        { title: "Clientes", href: "/clientes", icon: Users },
+        { title: "Espaços", href: "/espacos", icon: MapPin },
+        { title: "Produtos", href: "/produtos", icon: Package },
       ],
     },
     {
       label: "Gestão",
       items: [
-        {
-          title: "Relatórios",
-          href: "/relatorios",
-          icon: BarChart3,
-        },
-        {
-          title: "Configurações",
-          href: "/configuracoes",
-          icon: Settings,
-        },
+        { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+        { title: "Configurações", href: "/configuracoes", icon: Settings },
       ],
     },
   ];
@@ -127,13 +98,7 @@ export function AppSidebar() {
   if (isSuperAdmin) {
     navigation.push({
       label: "Administração",
-      items: [
-        {
-          title: "Super Admin",
-          href: "/super-admin",
-          icon: Zap,
-        },
-      ],
+      items: [{ title: "Super Admin", href: "/superadmin", icon: Zap }],
     });
   }
 
@@ -150,50 +115,37 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Header - Logo e Seletor de Venue */}
+      {/* Header */}
       <SidebarHeader className="border-b bg-gradient-to-br from-primary-50 to-white dark:from-primary-950 dark:to-background">
         <SidebarMenu>
           <SidebarMenuItem>
             {!isCollapsed ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
-                    className="data-[state=open]:bg-primary-100 hover:bg-primary-100/70 transition-all"
-                  >
+                  <SidebarMenuButton size="lg" className="data-[state=open]:bg-primary-100 hover:bg-primary-100/70">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-primary-600 text-primary-foreground shadow-md">
+                      <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-primary-600 text-white shadow-md">
                         <Building2 className="size-5" />
                       </div>
                       <div className="flex flex-col gap-0.5 leading-none flex-1 min-w-0">
                         <span className="font-semibold text-sm truncate text-foreground">
                           {currentVenue?.name || "Selecione..."}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {venues?.length || 0} {venues?.length === 1 ? "local" : "locais"}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{venues?.length || 0} locais</span>
                       </div>
-                      <ChevronDown className="size-4 text-muted-foreground flex-shrink-0" />
+                      <ChevronDown className="size-4 text-muted-foreground" />
                     </div>
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
-                  align="start"
-                  side="bottom"
-                  sideOffset={4}
-                >
+                <DropdownMenuContent className="w-56" align="start" side="bottom" sideOffset={4}>
                   {venues?.map((venue) => (
                     <DropdownMenuItem
                       key={venue.id}
                       onClick={() => switchVenue(venue.id)}
-                      className={cn(
-                        "gap-2 p-3 cursor-pointer",
-                        currentVenue?.id === venue.id && "bg-primary-50 dark:bg-primary-950",
-                      )}
+                      className={cn("gap-2 p-3 cursor-pointer", currentVenue?.id === venue.id && "bg-primary-50")}
                     >
                       <div className="flex items-center gap-2 flex-1">
-                        <div className="size-8 rounded-md bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                        <div className="size-8 rounded-md bg-primary-100 flex items-center justify-center">
                           <Building2 className="size-4 text-primary-600" />
                         </div>
                         <span className="font-medium">{venue.name}</span>
@@ -201,14 +153,11 @@ export function AppSidebar() {
                       {currentVenue?.id === venue.id && <div className="size-2 rounded-full bg-primary-600" />}
                     </DropdownMenuItem>
                   ))}
-                  {venues && venues.length === 0 && (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum local disponível</div>
-                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary-600 text-primary-foreground">
+              <SidebarMenuButton size="lg">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary-600 text-white">
                   <Building2 className="size-4" />
                 </div>
               </SidebarMenuButton>
@@ -217,17 +166,17 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Navegação Principal */}
+      {/* Content - Menu Items */}
       <SidebarContent className="px-2 py-4">
         {navigation.map((group, groupIdx) => (
-          <SidebarGroup key={groupIdx}>
+          <SidebarGroup key={groupIdx} className="mb-4">
             {!isCollapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mb-2 px-2">
+              <SidebarGroupLabel className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2 px-2">
                 {group.label}
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="space-y-1">
                 {group.items.map((item) => {
                   const active = isActive(item.href);
                   return (
@@ -235,48 +184,24 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={active}
+                        tooltip={item.title}
                         className={cn(
-                          "relative group transition-all duration-200 h-10",
+                          "h-10 transition-all duration-200",
                           active && [
-                            "bg-primary-100 dark:bg-primary-900/50",
-                            "text-primary-900 dark:text-primary-100",
-                            "hover:bg-primary-200 dark:hover:bg-primary-800",
+                            "bg-primary-100 dark:bg-primary-900",
+                            "text-primary-900 dark:text-primary-50",
+                            "hover:bg-primary-200",
                             "font-semibold",
+                            "border-l-4 border-primary-600",
                           ],
-                          !active && [
-                            "hover:bg-accent",
-                            "text-foreground/70 dark:text-foreground/60",
-                            "hover:text-foreground",
-                          ],
+                          !active && ["text-foreground hover:bg-accent", "hover:text-foreground", "font-medium"],
                         )}
                       >
                         <Link to={item.href} className="flex items-center gap-3 w-full">
-                          {/* Barra de destaque quando ativo */}
-                          {active && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary-600 rounded-r-full" />
-                          )}
-
-                          {/* Ícone */}
-                          <div
-                            className={cn(
-                              "flex items-center justify-center transition-all",
-                              active ? "text-primary-600" : "text-foreground/60 group-hover:text-foreground",
-                            )}
-                          >
-                            <item.icon className="size-5" />
-                          </div>
-
-                          {/* Texto */}
-                          {!isCollapsed && (
-                            <div className="flex items-center justify-between flex-1">
-                              <span className={cn(active ? "font-semibold" : "font-medium")}>{item.title}</span>
-                              {item.badge && (
-                                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary-600 text-white">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          <item.icon
+                            className={cn("size-5 flex-shrink-0", active ? "text-primary-600" : "text-foreground/70")}
+                          />
+                          {!isCollapsed && <span className="truncate">{item.title}</span>}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -288,14 +213,14 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* Footer - User Menu */}
-      <SidebarFooter className="border-t bg-gradient-to-br from-muted/30 to-background">
+      {/* Footer */}
+      <SidebarFooter className="border-t bg-muted/30">
         <SidebarMenu>
           <SidebarMenuItem>
             {!isCollapsed ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton size="lg" className="data-[state=open]:bg-accent hover:bg-accent transition-all">
+                  <SidebarMenuButton size="lg" className="data-[state=open]:bg-accent hover:bg-accent">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <Avatar className="h-9 w-9 border-2 border-primary-200">
                         <AvatarFallback className="bg-primary-600 text-white font-semibold">
@@ -308,16 +233,11 @@ export function AppSidebar() {
                         </span>
                         <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
                       </div>
-                      <ChevronDown className="size-4 text-muted-foreground flex-shrink-0" />
+                      <ChevronDown className="size-4 text-muted-foreground" />
                     </div>
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
-                  align="start"
-                  side="top"
-                  sideOffset={4}
-                >
+                <DropdownMenuContent className="w-56" align="start" side="top" sideOffset={4}>
                   <DropdownMenuItem asChild className="cursor-pointer">
                     <Link to="/configuracoes" className="flex items-center gap-2">
                       <Settings className="size-4" />
@@ -325,10 +245,7 @@ export function AppSidebar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={logout}
-                    className="cursor-pointer text-error-600 focus:text-error-600 focus:bg-error-50"
-                  >
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:text-red-600">
                     <LogOut className="size-4 mr-2" />
                     <span>Sair</span>
                   </DropdownMenuItem>
@@ -339,7 +256,7 @@ export function AppSidebar() {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton size="lg">
                     <Avatar className="h-8 w-8 border-2 border-primary-200">
-                      <AvatarFallback className="bg-primary-600 text-white font-semibold text-xs">
+                      <AvatarFallback className="bg-primary-600 text-white text-xs font-semibold">
                         {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
@@ -358,7 +275,7 @@ export function AppSidebar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer text-error-600">
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600">
                     <LogOut className="size-4 mr-2" />
                     Sair
                   </DropdownMenuItem>
