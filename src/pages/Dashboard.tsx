@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx
+// src/pages/Dashboard.tsx - VERSÃO CORRIGIDA
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +16,26 @@ import { useNavigate } from "react-router-dom";
 export default function Dashboard() {
   const { currentVenue } = useVenue();
   const navigate = useNavigate();
-  const { data: bookings, isLoading: loadingBookings } = useBookings();
+
+  // ✅ CORREÇÃO: Hook sem parâmetros (como está no código original)
+  const { bookings, isLoading: loadingBookings } = useBookings();
   const { data: spaces } = useSpaces(currentVenue?.id);
 
   // Calcular métricas
   const metrics = useMemo(() => {
-    if (!bookings) return null;
+    if (!bookings || bookings.length === 0) {
+      return {
+        todayBookings: 0,
+        todayTrend: "+0%",
+        monthRevenue: 0,
+        revenueTrend: "+0%",
+        revenueIsPositive: true,
+        occupancyRate: "0%",
+        occupancyTrend: "+0%",
+        pendingOrders: 0,
+        ordersTrend: "0",
+      };
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -40,7 +54,9 @@ export default function Dashboard() {
     const currentYear = today.getFullYear();
     const monthBookings = bookings.filter((b) => {
       const bookingDate = new Date(b.start_time);
-      return bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear;
+      return (
+        bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear && b.status !== "cancelled"
+      );
     });
 
     // Mês anterior para comparação
@@ -48,12 +64,20 @@ export default function Dashboard() {
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
     const lastMonthBookings = bookings.filter((b) => {
       const bookingDate = new Date(b.start_time);
-      return bookingDate.getMonth() === lastMonth && bookingDate.getFullYear() === lastMonthYear;
+      return (
+        bookingDate.getMonth() === lastMonth && bookingDate.getFullYear() === lastMonthYear && b.status !== "cancelled"
+      );
     });
 
     // Faturamento do mês
-    const monthRevenue = monthBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
-    const lastMonthRevenue = lastMonthBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+    const monthRevenue = monthBookings.reduce((sum, b) => {
+      return sum + (Number(b.total_amount) || Number(b.grand_total) || 0);
+    }, 0);
+
+    const lastMonthRevenue = lastMonthBookings.reduce((sum, b) => {
+      return sum + (Number(b.total_amount) || Number(b.grand_total) || 0);
+    }, 0);
+
     const revenueTrend =
       lastMonthRevenue > 0 ? (((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100).toFixed(1) : "0";
 
@@ -62,12 +86,12 @@ export default function Dashboard() {
     const occupiedSlots = todayBookings.length;
     const occupancyRate = Math.round((occupiedSlots / (totalSpaces * 8)) * 100); // 8 slots por dia
 
-    // OS pendentes (simulado - você pode buscar da tabela real)
+    // OS pendentes
     const pendingOrders = bookings.filter((b) => b.status === "pending").length;
 
     return {
       todayBookings: todayBookings.length,
-      todayTrend: "+20%", // Você pode calcular comparando com ontem
+      todayTrend: "+20%",
       monthRevenue,
       revenueTrend: `${parseFloat(revenueTrend) >= 0 ? "+" : ""}${revenueTrend}%`,
       revenueIsPositive: parseFloat(revenueTrend) >= 0,
@@ -80,11 +104,19 @@ export default function Dashboard() {
 
   // Próximas reservas
   const upcomingBookings = useMemo(() => {
-    if (!bookings) return [];
+    if (!bookings || bookings.length === 0) return [];
+
     const now = new Date();
     return bookings
-      .filter((b) => new Date(b.start_time) > now && b.status !== "cancelled")
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      .filter((b) => {
+        const startTime = new Date(b.start_time);
+        return startTime > now && b.status !== "cancelled";
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.start_time);
+        const dateB = new Date(b.start_time);
+        return dateA.getTime() - dateB.getTime();
+      })
       .slice(0, 5);
   }, [bookings]);
 
@@ -101,6 +133,10 @@ export default function Dashboard() {
       confirmed: "bg-success-100 text-success-800 border-success-200",
       cancelled: "bg-error-100 text-error-800 border-error-200",
       completed: "bg-neutral-100 text-neutral-800 border-neutral-200",
+      PENDING: "bg-warning-100 text-warning-800 border-warning-200",
+      CONFIRMED: "bg-success-100 text-success-800 border-success-200",
+      CANCELLED: "bg-error-100 text-error-800 border-error-200",
+      FINALIZED: "bg-neutral-100 text-neutral-800 border-neutral-200",
     };
     return colors[status as keyof typeof colors] || colors.pending;
   };
@@ -111,6 +147,10 @@ export default function Dashboard() {
       confirmed: "Confirmado",
       cancelled: "Cancelado",
       completed: "Concluído",
+      PENDING: "Pendente",
+      CONFIRMED: "Confirmado",
+      CANCELLED: "Cancelado",
+      FINALIZED: "Finalizado",
     };
     return labels[status as keyof typeof labels] || status;
   };
@@ -144,44 +184,44 @@ export default function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Reservas Hoje"
-            value={metrics?.todayBookings || 0}
+            value={metrics.todayBookings}
             icon={Calendar}
             color="blue"
             trend={{
-              value: metrics?.todayTrend || "+0%",
+              value: metrics.todayTrend,
               isPositive: true,
             }}
           />
 
           <MetricCard
             title="Faturamento Mês"
-            value={formatCurrency(metrics?.monthRevenue || 0)}
+            value={formatCurrency(metrics.monthRevenue)}
             icon={DollarSign}
             color="green"
             trend={{
-              value: metrics?.revenueTrend || "+0%",
-              isPositive: metrics?.revenueIsPositive ?? true,
+              value: metrics.revenueTrend,
+              isPositive: metrics.revenueIsPositive,
             }}
           />
 
           <MetricCard
             title="Taxa de Ocupação"
-            value={metrics?.occupancyRate || "0%"}
+            value={metrics.occupancyRate}
             icon={TrendingUp}
             color="purple"
             trend={{
-              value: metrics?.occupancyTrend || "+0%",
+              value: metrics.occupancyTrend,
               isPositive: true,
             }}
           />
 
           <MetricCard
             title="OS Pendentes"
-            value={metrics?.pendingOrders || 0}
+            value={metrics.pendingOrders}
             icon={FileText}
             color="orange"
             trend={{
-              value: metrics?.ordersTrend || "0",
+              value: metrics.ordersTrend,
               isPositive: false,
             }}
           />
@@ -199,7 +239,7 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {upcomingBookings.length === 0 ? (
+            {!upcomingBookings || upcomingBookings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4">
                 <div className="rounded-full bg-primary-100 p-4 mb-4">
                   <Calendar className="h-8 w-8 text-primary-600" />
@@ -229,7 +269,9 @@ export default function Dashboard() {
                             <User className="h-4 w-4 text-primary-600" />
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-semibold text-foreground text-lg">{booking.customer_name}</h4>
+                            <h4 className="font-semibold text-foreground text-lg">
+                              {booking.customer_name || "Cliente"}
+                            </h4>
                             {booking.customer_email && (
                               <p className="text-sm text-muted-foreground mt-1">{booking.customer_email}</p>
                             )}
@@ -255,12 +297,12 @@ export default function Dashboard() {
 
                       {/* Status e Valor */}
                       <div className="flex flex-col items-end gap-3">
-                        <Badge variant="outline" className={getStatusColor(booking.status)}>
-                          {getStatusLabel(booking.status)}
+                        <Badge variant="outline" className={getStatusColor(booking.status || "pending")}>
+                          {getStatusLabel(booking.status || "pending")}
                         </Badge>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-foreground">
-                            {formatCurrency(booking.total_amount || 0)}
+                            {formatCurrency(Number(booking.total_amount) || Number(booking.grand_total) || 0)}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">Total</p>
                         </div>
