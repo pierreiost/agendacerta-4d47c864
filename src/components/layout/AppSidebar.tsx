@@ -36,6 +36,7 @@ import {
   Check,
   ShieldCheck,
   Users,
+  ClipboardList,
 } from 'lucide-react';
 
 const venueMenuItems = [
@@ -44,6 +45,7 @@ const venueMenuItems = [
   { title: 'Clientes', icon: Users, path: '/clientes' },
   { title: 'Espaços', icon: MapPin, path: '/espacos' },
   { title: 'Produtos', icon: Package, path: '/produtos' },
+  { title: 'Ordens de Serviço', icon: ClipboardList, path: '/ordens-servico' },
   { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
 ];

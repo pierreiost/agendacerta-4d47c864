@@ -16,6 +16,7 @@ import Clientes from "./pages/Clientes";
 import Espacos from "./pages/Espacos";
 import Produtos from "./pages/Produtos";
 import Relatorios from "./pages/Relatorios";
+import OrdensServico from "./pages/OrdensServico";
 import Configuracoes from "./pages/Configuracoes";
 import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
@@ -127,6 +128,7 @@ function AppRoutes() {
       <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
       <Route path="/espacos" element={<ProtectedRoute><Espacos /></ProtectedRoute>} />
       <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
+      <Route path="/ordens-servico" element={<ProtectedRoute><OrdensServico /></ProtectedRoute>} />
       <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute allowSuperAdmin><Configuracoes /></ProtectedRoute>} />
       <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
