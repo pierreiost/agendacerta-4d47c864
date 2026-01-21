@@ -1,4 +1,4 @@
-// src/components/layout/AppSidebar.tsx
+// src/components/layout/AppSidebar.tsx - VERSÃO CORRIGIDA
 import {
   Calendar,
   FileText,
@@ -9,8 +9,6 @@ import {
   LogOut,
   ChevronDown,
   Building2,
-  Users,
-  ChevronRight,
   Home,
   Zap,
 } from "lucide-react";
@@ -39,14 +37,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 
 interface NavItem {
   title: string;
   href: string;
   icon: any;
   badge?: string;
-  color?: string;
 }
 
 interface NavGroup {
@@ -61,6 +57,9 @@ export function AppSidebar() {
   const { state } = useSidebar();
 
   const isActive = (href: string) => {
+    if (href === "/dashboard") {
+      return location.pathname === "/dashboard" || location.pathname === "/";
+    }
     return location.pathname === href || location.pathname.startsWith(href + "/");
   };
 
@@ -73,13 +72,11 @@ export function AppSidebar() {
           title: "Dashboard",
           href: "/dashboard",
           icon: Home,
-          color: "text-primary-600",
         },
         {
           title: "Agenda",
           href: "/agenda",
           icon: Calendar,
-          color: "text-blue-600",
         },
       ],
     },
@@ -90,7 +87,6 @@ export function AppSidebar() {
           title: "Ordens de Serviço",
           href: "/ordem-servico",
           icon: FileText,
-          color: "text-orange-600",
         },
       ],
     },
@@ -101,13 +97,11 @@ export function AppSidebar() {
           title: "Espaços",
           href: "/espacos",
           icon: MapPin,
-          color: "text-green-600",
         },
         {
           title: "Produtos",
           href: "/produtos",
           icon: Package,
-          color: "text-purple-600",
         },
       ],
     },
@@ -118,13 +112,11 @@ export function AppSidebar() {
           title: "Relatórios",
           href: "/relatorios",
           icon: BarChart3,
-          color: "text-indigo-600",
         },
         {
           title: "Configurações",
           href: "/configuracoes",
           icon: Settings,
-          color: "text-slate-600",
         },
       ],
     },
@@ -140,7 +132,6 @@ export function AppSidebar() {
           title: "Super Admin",
           href: "/super-admin",
           icon: Zap,
-          color: "text-amber-600",
         },
       ],
     });
@@ -175,7 +166,9 @@ export function AppSidebar() {
                         <Building2 className="size-5" />
                       </div>
                       <div className="flex flex-col gap-0.5 leading-none flex-1 min-w-0">
-                        <span className="font-semibold text-sm truncate">{currentVenue?.name || "Selecione..."}</span>
+                        <span className="font-semibold text-sm truncate text-foreground">
+                          {currentVenue?.name || "Selecione..."}
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {venues?.length || 0} {venues?.length === 1 ? "local" : "locais"}
                         </span>
@@ -229,7 +222,7 @@ export function AppSidebar() {
         {navigation.map((group, groupIdx) => (
           <SidebarGroup key={groupIdx}>
             {!isCollapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mb-2 px-2">
                 {group.label}
               </SidebarGroupLabel>
             )}
@@ -243,43 +236,45 @@ export function AppSidebar() {
                         asChild
                         isActive={active}
                         className={cn(
-                          "relative group transition-all duration-200",
+                          "relative group transition-all duration-200 h-10",
                           active && [
-                            "bg-primary-100 dark:bg-primary-950",
+                            "bg-primary-100 dark:bg-primary-900/50",
                             "text-primary-900 dark:text-primary-100",
-                            "hover:bg-primary-200 dark:hover:bg-primary-900",
+                            "hover:bg-primary-200 dark:hover:bg-primary-800",
                             "font-semibold",
-                            "shadow-sm",
                           ],
-                          !active && ["hover:bg-accent", "text-muted-foreground", "hover:text-foreground"],
+                          !active && [
+                            "hover:bg-accent",
+                            "text-foreground/70 dark:text-foreground/60",
+                            "hover:text-foreground",
+                          ],
                         )}
                       >
                         <Link to={item.href} className="flex items-center gap-3 w-full">
                           {/* Barra de destaque quando ativo */}
                           {active && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-600 rounded-r-full" />
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary-600 rounded-r-full" />
                           )}
 
                           {/* Ícone */}
                           <div
                             className={cn(
                               "flex items-center justify-center transition-all",
-                              active ? item.color : "text-muted-foreground group-hover:text-foreground",
+                              active ? "text-primary-600" : "text-foreground/60 group-hover:text-foreground",
                             )}
                           >
-                            <item.icon className={cn("transition-all", active ? "size-5" : "size-5")} />
+                            <item.icon className="size-5" />
                           </div>
 
                           {/* Texto */}
                           {!isCollapsed && (
                             <div className="flex items-center justify-between flex-1">
-                              <span>{item.title}</span>
+                              <span className={cn(active ? "font-semibold" : "font-medium")}>{item.title}</span>
                               {item.badge && (
                                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary-600 text-white">
                                   {item.badge}
                                 </span>
                               )}
-                              {active && <ChevronRight className="size-4 text-primary-600" />}
                             </div>
                           )}
                         </Link>
@@ -308,7 +303,7 @@ export function AppSidebar() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col gap-0.5 leading-none flex-1 min-w-0">
-                        <span className="font-semibold text-sm truncate">
+                        <span className="font-semibold text-sm truncate text-foreground">
                           {user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuário"}
                         </span>
                         <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
