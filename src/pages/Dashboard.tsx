@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx - CORRIGIDO PARA TYPESCRIPT
+// src/pages/Dashboard.tsx - VERSÃO FINAL CORRIGIDA
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,10 +17,8 @@ export default function Dashboard() {
   const { currentVenue } = useVenue();
   const navigate = useNavigate();
 
-  // ✅ useBookings retorna { bookings, isLoading }
   const { bookings, isLoading: loadingBookings } = useBookings();
-  // ✅ useSpaces retorna { spaces, isLoading } e recebe venueId
-  const { spaces } = useSpaces(currentVenue?.id);
+  const { spaces } = useSpaces(); // ✅ SEM parâmetro
 
   const metrics = useMemo(() => {
     if (!bookings || bookings.length === 0) {
@@ -50,7 +48,6 @@ export default function Dashboard() {
 
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    // ✅ Status é UPPERCASE: CANCELLED não cancelled
     const monthBookings = bookings.filter((b) => {
       const bookingDate = new Date(b.start_time);
       return (
@@ -67,7 +64,6 @@ export default function Dashboard() {
       );
     });
 
-    // ✅ Campo é grand_total não total_amount
     const monthRevenue = monthBookings.reduce((sum, b) => {
       return sum + (Number(b.grand_total) || 0);
     }, 0);
@@ -83,7 +79,6 @@ export default function Dashboard() {
     const occupiedSlots = todayBookings.length;
     const occupancyRate = Math.round((occupiedSlots / (totalSpaces * 8)) * 100);
 
-    // ✅ Status UPPERCASE: PENDING não pending
     const pendingOrders = bookings.filter((b) => b.status === "PENDING").length;
 
     return {
@@ -106,7 +101,6 @@ export default function Dashboard() {
     return bookings
       .filter((b) => {
         const startTime = new Date(b.start_time);
-        // ✅ Status UPPERCASE
         return startTime > now && b.status !== "CANCELLED";
       })
       .sort((a, b) => {
