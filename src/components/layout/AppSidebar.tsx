@@ -1,4 +1,4 @@
-// src/components/layout/AppSidebar.tsx - MENUS SEMPRE EXPANDIDOS
+// src/components/layout/AppSidebar.tsx - VERSÃO CUSTOM 100% VISÍVEL
 import {
   Calendar,
   FileText,
@@ -17,15 +17,6 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVenue } from "@/contexts/VenueContext";
 import { cn } from "@/lib/utils";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,7 +45,7 @@ export function AppSidebar() {
     return names[0][0].toUpperCase();
   };
 
-  const menuItems = [
+  const menuGroups = [
     {
       label: "PRINCIPAL",
       items: [
@@ -62,7 +53,10 @@ export function AppSidebar() {
         { title: "Agenda", href: "/agenda", icon: Calendar },
       ],
     },
-    { label: "OPERACIONAL", items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText }] },
+    {
+      label: "OPERACIONAL",
+      items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText }],
+    },
     {
       label: "CADASTROS",
       items: [
@@ -82,27 +76,29 @@ export function AppSidebar() {
 
   const isSuperAdmin = user?.user_metadata?.role === "super_admin";
   if (isSuperAdmin) {
-    menuItems.push({
+    menuGroups.push({
       label: "ADMINISTRAÇÃO",
       items: [{ title: "Super Admin", href: "/superadmin", icon: Zap }],
     });
   }
 
   return (
-    <Sidebar collapsible="icon">
-      {/* Header com Venue Selector */}
-      <SidebarHeader className="border-b bg-gradient-to-br from-primary-50 to-white p-4">
+    <div className="flex h-full w-64 flex-col border-r bg-background">
+      {/* Header - Venue Selector */}
+      <div className="border-b bg-gradient-to-br from-primary-50 to-white p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-primary-100 transition-colors">
+            <button className="flex w-full items-center gap-3 rounded-lg p-2 transition-colors hover:bg-primary-100">
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary-600 text-white shadow-md">
                 <Building2 className="size-5" />
               </div>
-              <div className="flex flex-col gap-0.5 flex-1 text-left">
-                <span className="font-semibold text-sm text-foreground">{currentVenue?.name || "Selecione..."}</span>
+              <div className="flex flex-1 flex-col gap-0.5 text-left">
+                <span className="truncate text-sm font-semibold text-foreground">
+                  {currentVenue?.name || "Selecione..."}
+                </span>
                 <span className="text-xs text-muted-foreground">{venues?.length || 0} locais</span>
               </div>
-              <ChevronDown className="size-4 text-muted-foreground" />
+              <ChevronDown className="size-4 text-muted-foreground flex-shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start">
@@ -112,24 +108,27 @@ export function AppSidebar() {
                 onClick={() => setCurrentVenue(venue)}
                 className={cn("cursor-pointer", currentVenue?.id === venue.id && "bg-primary-50 font-semibold")}
               >
-                {venue.name}
+                <div className="flex items-center gap-2">
+                  <Building2 className="size-4" />
+                  <span>{venue.name}</span>
+                </div>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-      </SidebarHeader>
+      </div>
 
-      {/* Menu Items - SEMPRE EXPANDIDOS */}
-      <SidebarContent className="px-3 py-4">
-        <div className="space-y-6">
-          {menuItems.map((group, groupIdx) => (
-            <div key={groupIdx} className="space-y-2">
-              {/* Label do Grupo */}
-              <div className="px-2">
-                <span className="text-xs font-bold text-foreground/50 uppercase tracking-wider">{group.label}</span>
+      {/* Navigation - SEMPRE VISÍVEL */}
+      <div className="flex-1 overflow-y-auto p-3">
+        <nav className="space-y-6">
+          {menuGroups.map((group, groupIdx) => (
+            <div key={groupIdx}>
+              {/* Group Label */}
+              <div className="mb-2 px-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground/50">{group.label}</span>
               </div>
 
-              {/* Items do Grupo - SEMPRE VISÍVEIS */}
+              {/* Menu Items */}
               <div className="space-y-1">
                 {group.items.map((item) => {
                   const active = isActive(item.href);
@@ -140,7 +139,7 @@ export function AppSidebar() {
                       key={item.href}
                       to={item.href}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
                         "hover:bg-accent",
                         active && [
                           "bg-primary-100 dark:bg-primary-900",
@@ -148,6 +147,7 @@ export function AppSidebar() {
                           "font-semibold",
                           "border-l-4 border-primary-600",
                           "pl-[10px]",
+                          "shadow-sm",
                         ],
                         !active && ["text-foreground", "font-medium"],
                       )}
@@ -162,26 +162,26 @@ export function AppSidebar() {
               </div>
             </div>
           ))}
-        </div>
-      </SidebarContent>
+        </nav>
+      </div>
 
-      {/* Footer com User Menu */}
-      <SidebarFooter className="border-t bg-muted/30 p-4">
+      {/* Footer - User Menu */}
+      <div className="border-t bg-muted/30 p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-accent transition-colors">
+            <button className="flex w-full items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent">
               <Avatar className="h-9 w-9 border-2 border-primary-200">
-                <AvatarFallback className="bg-primary-600 text-white font-semibold text-sm">
+                <AvatarFallback className="bg-primary-600 text-sm font-semibold text-white">
                   {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col gap-0.5 flex-1 text-left min-w-0">
-                <span className="font-semibold text-sm truncate text-foreground">
+              <div className="flex flex-1 flex-col gap-0.5 text-left min-w-0">
+                <span className="truncate text-sm font-semibold text-foreground">
                   {user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuário"}
                 </span>
-                <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
+                <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
               </div>
-              <ChevronDown className="size-4 text-muted-foreground flex-shrink-0" />
+              <ChevronDown className="size-4 flex-shrink-0 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start" side="top" sideOffset={8}>
@@ -194,14 +194,14 @@ export function AppSidebar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={signOut}
-              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+              className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-600"
             >
-              <LogOut className="size-4 mr-2" />
+              <LogOut className="mr-2 size-4" />
               <span>Sair</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+    </div>
   );
 }
