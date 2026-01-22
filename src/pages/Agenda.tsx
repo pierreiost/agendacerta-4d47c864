@@ -1,233 +1,324 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useBookings, type Booking } from '@/hooks/useBookings';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useVenue } from '@/contexts/VenueContext';
-import { WeekCalendar } from '@/components/agenda/WeekCalendar';
-import { BookingFormDialog } from '@/components/agenda/BookingFormDialog';
+import { AgendaHeader, ViewMode } from '@/components/agenda/AgendaHeader';
+import { AgendaSidebar } from '@/components/agenda/AgendaSidebar';
+import { DayView } from '@/components/agenda/DayView';
+import { WeekViewNew } from '@/components/agenda/WeekViewNew';
+import { MonthView } from '@/components/agenda/MonthView';
+import { BookingWizard } from '@/components/agenda/BookingWizard';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
 import {
-  format,
   startOfWeek,
   endOfWeek,
-  addWeeks,
-  subWeeks,
-  differenceInHours,
+  startOfMonth,
+  endOfMonth,
+  startOfDay,
+  endOfDay,
 } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, Calendar, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Calendar, Loader2, Filter } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export default function Agenda() {
   const { currentVenue } = useVenue();
   const { spaces, isLoading: spacesLoading } = useSpaces();
-  
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>('all');
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
-  const [defaultSlot, setDefaultSlot] = useState<{ spaceId: string; date: Date; hour: number } | null>(null);
-
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
-  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
-
-  const { bookings, isLoading: bookingsLoading, updateBooking, checkConflict } = useBookings(weekStart, weekEnd);
-
-  const filteredSpaces = useMemo(() => {
-    return spaces.filter(s => s.is_active);
-  }, [spaces]);
-
-  const displayedSpaces = useMemo(() => {
-    if (selectedSpaceId === 'all') return filteredSpaces;
-    return filteredSpaces.filter(s => s.id === selectedSpaceId);
-  }, [filteredSpaces, selectedSpaceId]);
-
-  const filteredBookings = useMemo(() => {
-    if (selectedSpaceId === 'all') return bookings;
-    return bookings.filter(b => b.space_id === selectedSpaceId);
-  }, [bookings, selectedSpaceId]);
-
-  const handlePrevWeek = () => setCurrentDate(subWeeks(currentDate, 1));
-  const handleNextWeek = () => setCurrentDate(addWeeks(currentDate, 1));
-  const handleToday = () => setCurrentDate(new Date());
-
-  const handleSlotClick = (spaceId: string, date: Date, hour: number) => {
-    setDefaultSlot({ spaceId, date, hour });
-    setSelectedBooking(null);
-    setBookingDialogOpen(true);
-  };
-
-  const handleBookingClick = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setBookingSheetOpen(true);
-  };
-
-  const handleNewBooking = () => {
-    setDefaultSlot(null);
-    setSelectedBooking(null);
-    setBookingDialogOpen(true);
-  };
-
   const { toast } = useToast();
 
-  const handleBookingMove = async (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => {
-    const booking = bookings.find(b => b.id === bookingId);
-    if (!booking) return;
+  // State
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['PENDING', 'CONFIRMED', 'FINALIZED']);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [defaultSlot, setDefaultSlot] = useState<{ spaceId: string; date: Date; hour: number } | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Check for conflicts
-    const hasConflict = await checkConflict(spaceId, newStart, newEnd, bookingId);
-    if (hasConflict) {
-      toast({
-        title: 'Conflito de horário',
-        description: 'Já existe uma reserva nesse horário.',
-        variant: 'destructive',
-      });
-      return;
+  // Calculate date range based on view mode
+  const dateRange = useMemo(() => {
+    switch (viewMode) {
+      case 'day':
+        return { start: startOfDay(currentDate), end: endOfDay(currentDate) };
+      case 'week':
+        return { start: startOfWeek(currentDate, { weekStartsOn: 0 }), end: endOfWeek(currentDate, { weekStartsOn: 0 }) };
+      case 'month':
+        return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
+    }
+  }, [currentDate, viewMode]);
+
+  const { bookings, isLoading: bookingsLoading, updateBooking, checkConflict } = useBookings(dateRange.start, dateRange.end);
+
+  // Filter active spaces
+  const activeSpaces = useMemo(() => {
+    return spaces.filter((s) => s.is_active);
+  }, [spaces]);
+
+  // Initialize selected spaces when spaces load
+  useMemo(() => {
+    if (activeSpaces.length > 0 && selectedSpaceIds.length === 0) {
+      setSelectedSpaceIds(activeSpaces.map((s) => s.id));
+    }
+  }, [activeSpaces]);
+
+  // Filter spaces based on selection
+  const filteredSpaces = useMemo(() => {
+    if (selectedSpaceIds.length === 0) return activeSpaces;
+    return activeSpaces.filter((s) => selectedSpaceIds.includes(s.id));
+  }, [activeSpaces, selectedSpaceIds]);
+
+  // Filter bookings
+  const filteredBookings = useMemo(() => {
+    let result = bookings;
+
+    // Filter by selected spaces
+    if (selectedSpaceIds.length > 0) {
+      result = result.filter((b) => selectedSpaceIds.includes(b.space_id));
     }
 
-    const space = spaces.find(s => s.id === spaceId);
-    const pricePerHour = space?.price_per_hour ?? 0;
-
-    updateBooking.mutate({
-      id: bookingId,
-      space_id: spaceId,
-      start_time: newStart.toISOString(),
-      end_time: newEnd.toISOString(),
-      space_price_per_hour: pricePerHour,
-    });
-  };
-
-  const handleBookingResize = async (bookingId: string, newStart: Date, newEnd: Date) => {
-    const booking = bookings.find(b => b.id === bookingId);
-    if (!booking) return;
-
-    // Check for conflicts
-    const hasConflict = await checkConflict(booking.space_id, newStart, newEnd, bookingId);
-    if (hasConflict) {
-      toast({
-        title: 'Conflito de horário',
-        description: 'Já existe uma reserva nesse horário.',
-        variant: 'destructive',
-      });
-      return;
+    // Filter by status
+    if (selectedStatuses.length > 0) {
+      result = result.filter((b) => selectedStatuses.includes(b.status));
     }
 
-    const space = spaces.find(s => s.id === booking.space_id);
-    const pricePerHour = space?.price_per_hour ?? 0;
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (b) =>
+          b.customer_name?.toLowerCase().includes(query) ||
+          b.customer_email?.toLowerCase().includes(query) ||
+          b.customer_phone?.includes(query)
+      );
+    }
 
-    updateBooking.mutate({
-      id: bookingId,
-      start_time: newStart.toISOString(),
-      end_time: newEnd.toISOString(),
-      space_price_per_hour: pricePerHour,
+    return result;
+  }, [bookings, selectedSpaceIds, selectedStatuses, searchQuery]);
+
+  // Handlers
+  const handleSpaceToggle = useCallback((spaceId: string) => {
+    setSelectedSpaceIds((prev) => {
+      if (prev.includes(spaceId)) {
+        return prev.filter((id) => id !== spaceId);
+      }
+      return [...prev, spaceId];
     });
-  };
+  }, []);
+
+  const handleStatusToggle = useCallback((status: string) => {
+    setSelectedStatuses((prev) => {
+      if (prev.includes(status)) {
+        return prev.filter((s) => s !== status);
+      }
+      return [...prev, status];
+    });
+  }, []);
+
+  const handleSlotClick = useCallback((spaceId: string, date: Date, hour: number) => {
+    setDefaultSlot({ spaceId, date, hour });
+    setWizardOpen(true);
+  }, []);
+
+  const handleBookingClick = useCallback((booking: Booking) => {
+    setSelectedBooking(booking);
+    setBookingSheetOpen(true);
+  }, []);
+
+  const handleNewBooking = useCallback(() => {
+    setDefaultSlot(null);
+    setWizardOpen(true);
+  }, []);
+
+  const handleDayClick = useCallback((date: Date) => {
+    setCurrentDate(date);
+    setViewMode('day');
+  }, []);
+
+  const handleBookingMove = useCallback(
+    async (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => {
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (!booking) return;
+
+      const hasConflict = await checkConflict(spaceId, newStart, newEnd, bookingId);
+      if (hasConflict) {
+        toast({
+          title: 'Conflito de horário',
+          description: 'Já existe uma reserva nesse horário.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const space = spaces.find((s) => s.id === spaceId);
+      updateBooking.mutate({
+        id: bookingId,
+        space_id: spaceId,
+        start_time: newStart.toISOString(),
+        end_time: newEnd.toISOString(),
+        space_price_per_hour: space?.price_per_hour ?? 0,
+      });
+    },
+    [bookings, spaces, checkConflict, updateBooking, toast]
+  );
+
+  const handleBookingResize = useCallback(
+    async (bookingId: string, newStart: Date, newEnd: Date) => {
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (!booking) return;
+
+      const hasConflict = await checkConflict(booking.space_id, newStart, newEnd, bookingId);
+      if (hasConflict) {
+        toast({
+          title: 'Conflito de horário',
+          description: 'Já existe uma reserva nesse horário.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const space = spaces.find((s) => s.id === booking.space_id);
+      updateBooking.mutate({
+        id: bookingId,
+        start_time: newStart.toISOString(),
+        end_time: newEnd.toISOString(),
+        space_price_per_hour: space?.price_per_hour ?? 0,
+      });
+    },
+    [bookings, spaces, checkConflict, updateBooking, toast]
+  );
 
   const isLoading = spacesLoading || bookingsLoading;
 
   return (
     <AppLayout>
-      <div className="space-y-4">
+      <div className="flex flex-col h-[calc(100vh-4rem)] -m-4 md:-m-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Agenda</h1>
-            <p className="text-muted-foreground">
-              Visualize e gerencie as reservas
-            </p>
-          </div>
-          <Button onClick={handleNewBooking}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Reserva
-          </Button>
+        <div className="p-4 md:p-6 pb-0">
+          <AgendaHeader
+            currentDate={currentDate}
+            onDateChange={setCurrentDate}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onNewBooking={handleNewBooking}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
         </div>
 
-        {/* Toolbar */}
-        <Card className="p-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            {/* Navigation */}
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={handlePrevWeek}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" onClick={handleToday}>
-                Hoje
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleNextWeek}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <span className="ml-2 font-medium">
-                {format(weekStart, "d 'de' MMMM", { locale: ptBR })} -{' '}
-                {format(weekEnd, "d 'de' MMMM, yyyy", { locale: ptBR })}
-              </span>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-2">
-              <Select value={selectedSpaceId} onValueChange={setSelectedSpaceId}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Filtrar por espaço" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os espaços</SelectItem>
-                  {filteredSpaces.map((space) => (
-                    <SelectItem key={space.id} value={space.id}>
-                      {space.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Main content */}
+        <div className="flex-1 flex gap-4 p-4 md:p-6 overflow-hidden">
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
+            <AgendaSidebar
+              spaces={activeSpaces}
+              bookings={bookings}
+              selectedSpaceIds={selectedSpaceIds}
+              onSpaceToggle={handleSpaceToggle}
+              selectedStatuses={selectedStatuses}
+              onStatusToggle={handleStatusToggle}
+              currentDate={currentDate}
+              onDateSelect={handleDayClick}
+            />
           </div>
-        </Card>
 
-        {/* Calendar */}
-        {isLoading ? (
-          <Card className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </Card>
-        ) : displayedSpaces.length === 0 ? (
-          <Card className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <Calendar className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-semibold text-lg">Nenhum espaço cadastrado</h3>
-            <p className="text-muted-foreground mt-1">
-              Cadastre espaços para visualizar a agenda
-            </p>
-          </Card>
-        ) : (
-          <WeekCalendar
-            spaces={displayedSpaces}
-            bookings={filteredBookings}
-            weekStart={weekStart}
-            onSlotClick={handleSlotClick}
-            onBookingClick={handleBookingClick}
-            onBookingMove={handleBookingMove}
-            onBookingResize={handleBookingResize}
-          />
-        )}
+          {/* Mobile Sidebar Button */}
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="lg:hidden fixed bottom-20 left-4 z-40 h-12 w-12 rounded-full shadow-lg"
+              >
+                <Filter className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-[300px]">
+              <AgendaSidebar
+                spaces={activeSpaces}
+                bookings={bookings}
+                selectedSpaceIds={selectedSpaceIds}
+                onSpaceToggle={handleSpaceToggle}
+                selectedStatuses={selectedStatuses}
+                onStatusToggle={handleStatusToggle}
+                currentDate={currentDate}
+                onDateSelect={(date) => {
+                  handleDayClick(date);
+                  setSidebarOpen(false);
+                }}
+              />
+            </SheetContent>
+          </Sheet>
+
+          {/* Calendar View */}
+          {isLoading ? (
+            <Card className="flex-1 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+            </Card>
+          ) : activeSpaces.length === 0 ? (
+            <Card className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <Calendar className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-lg">Nenhum espaço cadastrado</h3>
+              <p className="text-muted-foreground mt-1">
+                Cadastre espaços para visualizar a agenda
+              </p>
+            </Card>
+          ) : (
+            <>
+              {viewMode === 'day' && (
+                <DayView
+                  date={currentDate}
+                  spaces={filteredSpaces}
+                  bookings={filteredBookings}
+                  allSpaces={activeSpaces}
+                  onSlotClick={handleSlotClick}
+                  onBookingClick={handleBookingClick}
+                  onBookingMove={handleBookingMove}
+                  onBookingResize={handleBookingResize}
+                />
+              )}
+              {viewMode === 'week' && (
+                <WeekViewNew
+                  date={currentDate}
+                  spaces={filteredSpaces}
+                  bookings={filteredBookings}
+                  allSpaces={activeSpaces}
+                  onSlotClick={handleSlotClick}
+                  onBookingClick={handleBookingClick}
+                />
+              )}
+              {viewMode === 'month' && (
+                <MonthView
+                  date={currentDate}
+                  spaces={filteredSpaces}
+                  bookings={filteredBookings}
+                  allSpaces={activeSpaces}
+                  onDayClick={handleDayClick}
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
 
-      <BookingFormDialog
-        open={bookingDialogOpen}
-        onOpenChange={setBookingDialogOpen}
-        booking={null}
-        venueId={currentVenue?.id ?? ''}
+      {/* Booking Wizard */}
+      <BookingWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
         spaces={filteredSpaces}
+        allSpaces={activeSpaces}
         defaultSlot={defaultSlot}
       />
 
+      {/* Booking Details Sheet */}
       <BookingOrderSheet
         open={bookingSheetOpen}
         onOpenChange={setBookingSheetOpen}
