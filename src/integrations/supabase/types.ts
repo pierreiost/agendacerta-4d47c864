@@ -755,6 +755,32 @@ export type Database = {
           },
         ]
       }
+      venue_sequences: {
+        Row: {
+          current_order_number: number
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          current_order_number?: number
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          current_order_number?: number
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_sequences_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: true
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venues: {
         Row: {
           address: string | null

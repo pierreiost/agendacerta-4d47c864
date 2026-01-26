@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decrypt, encrypt, isEncrypted } from "../_shared/encryption.ts";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decrypt, encrypt, isEncrypted, decryptLegacy, isLegacyEncrypted } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,28 +20,69 @@ interface CalendarToken {
   venue_id: string;
 }
 
-async function refreshAccessToken(token: CalendarToken, supabase: any): Promise<string> {
+// Utility function to mask sensitive data for logs (LGPD compliance)
+function maskString(str: string | null | undefined): string {
+  if (!str) return "[empty]";
+  if (str.length <= 4) return "****";
+  return `${str.substring(0, 2)}***${str.substring(str.length - 2)}`;
+}
+
+// Safely decrypt token with legacy fallback and re-encryption
+async function safeDecryptToken(
+  encryptedToken: string, 
+  // deno-lint-ignore no-explicit-any
+  supabase: SupabaseClient<any, any, any>, 
+  venueId: string, 
+  tokenField: 'access_token' | 'refresh_token'
+): Promise<string> {
+  // Try new format first
+  if (isEncrypted(encryptedToken) && !isLegacyEncrypted(encryptedToken)) {
+    return await decrypt(encryptedToken);
+  }
+  
+  // Try legacy format and re-encrypt with new format
+  if (isLegacyEncrypted(encryptedToken)) {
+    console.log(`Migrating legacy ${tokenField} encryption for venue: ${maskString(venueId)}`);
+    const plaintext = await decryptLegacy(encryptedToken);
+    
+    // Re-encrypt with new random salt format
+    const newEncrypted = await encrypt(plaintext);
+    
+    // Update database with new encryption (async, don't block)
+    supabase
+      .from("google_calendar_tokens")
+      .update({ [tokenField]: newEncrypted } as Record<string, string>)
+      .eq("venue_id", venueId)
+      .then(() => {
+        console.log(`Successfully migrated ${tokenField} encryption`);
+      });
+    
+    return plaintext;
+  }
+  
+  // Not encrypted (shouldn't happen in production)
+  return encryptedToken;
+}
+
+async function refreshAccessToken(
+  token: CalendarToken, 
+  // deno-lint-ignore no-explicit-any
+  supabase: SupabaseClient<any, any, any>
+): Promise<string> {
   const now = new Date();
   const expiresAt = new Date(token.token_expires_at);
 
-  // Decrypt access token to check if it's still valid
-  let currentAccessToken = token.access_token;
-  let currentRefreshToken = token.refresh_token;
-  
-  // Decrypt tokens if they are encrypted
-  if (isEncrypted(token.access_token)) {
-    currentAccessToken = await decrypt(token.access_token);
-  }
-  if (isEncrypted(token.refresh_token)) {
-    currentRefreshToken = await decrypt(token.refresh_token);
-  }
+  // Decrypt tokens using safe method with legacy fallback
+  const currentAccessToken = await safeDecryptToken(token.access_token, supabase, token.venue_id, 'access_token');
+  const currentRefreshToken = await safeDecryptToken(token.refresh_token, supabase, token.venue_id, 'refresh_token');
 
   // If token is still valid for more than 5 minutes, use it
   if (expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
     return currentAccessToken;
   }
 
-  console.log("Refreshing access token for venue:", token.venue_id);
+  // Log without PII - only venue ID (masked)
+  console.log(`Refreshing access token for venue: ${maskString(token.venue_id)}`);
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -55,29 +96,34 @@ async function refreshAccessToken(token: CalendarToken, supabase: any): Promise<
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("Token refresh failed:", error);
+    // Don't log the actual error which may contain tokens
+    console.error(`Token refresh failed for venue: ${maskString(token.venue_id)} - Status: ${response.status}`);
     throw new Error("Failed to refresh token");
   }
 
   const newTokens = await response.json();
   const newExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000).toISOString();
 
-  // Encrypt new tokens before storing
+  // Encrypt new tokens with random salt before storing
   const encryptedAccessToken = await encrypt(newTokens.access_token);
   const encryptedRefreshToken = newTokens.refresh_token 
     ? await encrypt(newTokens.refresh_token) 
     : undefined;
 
+  // Build update object
+  const updateData: Record<string, string> = {
+    access_token: encryptedAccessToken,
+    token_expires_at: newExpiresAt,
+  };
+  
+  if (encryptedRefreshToken) {
+    updateData.refresh_token = encryptedRefreshToken;
+  }
+
   // Update tokens in database
   await supabase
     .from("google_calendar_tokens")
-    .update({
-      access_token: encryptedAccessToken,
-      token_expires_at: newExpiresAt,
-      // Only update refresh_token if a new one was provided
-      ...(encryptedRefreshToken && { refresh_token: encryptedRefreshToken }),
-    })
+    .update(updateData)
     .eq("venue_id", token.venue_id);
 
   return newTokens.access_token;
@@ -133,13 +179,14 @@ async function createCalendarEvent(
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("Failed to create calendar event:", error);
+    // Log error without exposing booking PII
+    console.error(`Failed to create calendar event - Status: ${response.status}`);
     throw new Error("Failed to create calendar event");
   }
 
   const createdEvent = await response.json();
-  console.log("Created calendar event:", createdEvent.id);
+  // Log only event ID, not customer data
+  console.log(`Created calendar event: ${maskString(createdEvent.id)}`);
   return createdEvent.id;
 }
 
@@ -182,12 +229,11 @@ async function updateCalendarEvent(
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("Failed to update calendar event:", error);
+    console.error(`Failed to update calendar event - Status: ${response.status}`);
     throw new Error("Failed to update calendar event");
   }
 
-  console.log("Updated calendar event:", eventId);
+  console.log(`Updated calendar event: ${maskString(eventId)}`);
 }
 
 async function deleteCalendarEvent(
@@ -206,12 +252,11 @@ async function deleteCalendarEvent(
   );
 
   if (!response.ok && response.status !== 404) {
-    const error = await response.text();
-    console.error("Failed to delete calendar event:", error);
+    console.error(`Failed to delete calendar event - Status: ${response.status}`);
     throw new Error("Failed to delete calendar event");
   }
 
-  console.log("Deleted calendar event:", eventId);
+  console.log(`Deleted calendar event: ${maskString(eventId)}`);
 }
 
 serve(async (req) => {
@@ -223,7 +268,7 @@ serve(async (req) => {
     // Validate authentication
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.error("No authorization header provided");
+      console.error("Missing authorization header");
       return new Response(JSON.stringify({ error: "No authorization header" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -235,7 +280,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
-      console.error("Auth error:", userError);
+      console.error("Authentication failed");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -243,7 +288,9 @@ serve(async (req) => {
     }
 
     const { action, booking_id, venue_id } = await req.json();
-    console.log("Sync request - action:", action, "booking_id:", booking_id, "venue_id:", venue_id, "user:", user.id);
+    
+    // Log request without PII
+    console.log(`Sync request - action: ${action}, booking: ${maskString(booking_id)}, venue: ${maskString(venue_id)}, user: ${maskString(user.id)}`);
 
     // Validate required parameters
     if (!action || !booking_id || !venue_id) {
@@ -253,14 +300,14 @@ serve(async (req) => {
       });
     }
 
-    // Verify user is a member of this venue
+    // SECURITY: Verify user is a member of this venue BEFORE any processing
     const { data: isMember, error: memberError } = await supabase.rpc("is_venue_member", {
       _user_id: user.id,
       _venue_id: venue_id,
     });
 
     if (memberError) {
-      console.error("Error checking venue membership:", memberError);
+      console.error("Failed to verify venue membership");
       return new Response(JSON.stringify({ error: "Failed to verify permissions" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -268,9 +315,37 @@ serve(async (req) => {
     }
 
     if (!isMember) {
-      console.error("User is not a member of venue:", venue_id);
+      console.error(`Unauthorized venue access attempt - user: ${maskString(user.id)}, venue: ${maskString(venue_id)}`);
       return new Response(JSON.stringify({ error: "Not authorized for this venue" }), {
         status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SECURITY: Verify booking belongs to the venue BEFORE processing (IDOR prevention)
+    const { data: booking, error: bookingError } = await supabase
+      .from("bookings")
+      .select(`
+        *,
+        spaces:space_id (name),
+        venues:venue_id (name)
+      `)
+      .eq("id", booking_id)
+      .eq("venue_id", venue_id) // Critical: ensure booking belongs to this venue
+      .maybeSingle();
+
+    if (bookingError) {
+      console.error("Database error fetching booking");
+      return new Response(JSON.stringify({ error: "Database error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!booking) {
+      console.error(`Booking not found or venue mismatch - booking: ${maskString(booking_id)}, venue: ${maskString(venue_id)}`);
+      return new Response(JSON.stringify({ error: "Booking not found or access denied" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -280,10 +355,10 @@ serve(async (req) => {
       .from("google_calendar_tokens")
       .select("*")
       .eq("venue_id", venue_id)
-      .single();
+      .maybeSingle();
 
     if (tokenError || !tokenData) {
-      console.log("No Google Calendar connected for venue:", venue_id);
+      console.log(`No Google Calendar connected for venue: ${maskString(venue_id)}`);
       return new Response(JSON.stringify({ synced: false, reason: "not_connected" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -291,26 +366,6 @@ serve(async (req) => {
 
     // Refresh access token if needed
     const accessToken = await refreshAccessToken(tokenData, supabase);
-
-    // Get booking with space info
-    const { data: booking, error: bookingError } = await supabase
-      .from("bookings")
-      .select(`
-        *,
-        spaces:space_id (name),
-        venues:venue_id (name)
-      `)
-      .eq("id", booking_id)
-      .eq("venue_id", venue_id) // Ensure booking belongs to this venue
-      .single();
-
-    if (bookingError) {
-      console.error("Booking not found:", bookingError);
-      return new Response(JSON.stringify({ error: "Booking not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const bookingData: BookingData = {
       id: booking.id,
@@ -327,7 +382,7 @@ serve(async (req) => {
     let result: { synced: boolean; event_id?: string } = { synced: false };
 
     switch (action) {
-      case "create":
+      case "create": {
         const eventId = await createCalendarEvent(
           accessToken,
           tokenData.calendar_id || "primary",
@@ -342,8 +397,9 @@ serve(async (req) => {
         
         result = { synced: true, event_id: eventId };
         break;
+      }
 
-      case "update":
+      case "update": {
         if (booking.google_event_id) {
           await updateCalendarEvent(
             accessToken,
@@ -366,8 +422,9 @@ serve(async (req) => {
           result = { synced: true, event_id: newEventId };
         }
         break;
+      }
 
-      case "delete":
+      case "delete": {
         if (booking.google_event_id) {
           await deleteCalendarEvent(
             accessToken,
@@ -377,6 +434,7 @@ serve(async (req) => {
           result = { synced: true };
         }
         break;
+      }
 
       default:
         return new Response(JSON.stringify({ error: "Invalid action" }), {
@@ -389,8 +447,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Sync error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    // Log error without exposing internal details
+    console.error("Sync error occurred");
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
