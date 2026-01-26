@@ -222,6 +222,30 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+        }
+        Update: {
+          attempted_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+        }
+        Relationships: []
+      }
       oauth_states: {
         Row: {
           created_at: string
@@ -917,6 +941,20 @@ export type Database = {
       }
     }
     Functions: {
+      check_login_rate_limit: {
+        Args: {
+          _email: string
+          _ip_address?: string
+          _max_attempts?: number
+          _window_minutes?: number
+        }
+        Returns: {
+          allowed: boolean
+          attempts_remaining: number
+          locked_until: string
+        }[]
+      }
+      cleanup_old_login_attempts: { Args: never; Returns: undefined }
       create_venue_with_admin: {
         Args: { _address?: string; _name: string; _phone?: string }
         Returns: {
@@ -958,6 +996,10 @@ export type Database = {
       is_venue_member: {
         Args: { _user_id: string; _venue_id: string }
         Returns: boolean
+      }
+      record_login_attempt: {
+        Args: { _email: string; _ip_address?: string; _success?: boolean }
+        Returns: undefined
       }
     }
     Enums: {
