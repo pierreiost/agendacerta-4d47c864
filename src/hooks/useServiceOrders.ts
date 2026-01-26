@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useVenue } from "@/contexts/VenueContext";
 import { useToast } from "@/hooks/use-toast";
-import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 export interface ServiceOrder {
   id: string;
@@ -119,11 +118,7 @@ export function useServiceOrders() {
 
       const { data, error } = await supabase
         .from("service_orders")
-        .insert({
-          ...order,
-          created_by: user?.id || "",
-          venue_id: currentVenue!.id,
-        } satisfies TablesInsert<"service_orders">)
+        .insert({ ...order, created_by: user?.id } as never)
         .select()
         .single();
 
