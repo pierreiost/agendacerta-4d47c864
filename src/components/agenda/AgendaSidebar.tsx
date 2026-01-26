@@ -69,18 +69,18 @@ export function AgendaSidebar({
   }, [bookings]);
 
   return (
-    <Card className="h-full w-[280px] flex-shrink-0 shadow-soft overflow-hidden">
+    <Card className="h-full w-full lg:w-[280px] flex-shrink-0 shadow-soft overflow-hidden">
       <ScrollArea className="h-full">
-        <div className="p-4 space-y-6">
+        <div className="p-3 md:p-4 space-y-4 md:space-y-6">
           {/* Mini Calendar */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Calendário</h3>
+            <h3 className="text-xs md:text-sm font-semibold text-foreground mb-2 md:mb-3">Calendário</h3>
             <Calendar
               mode="single"
               selected={currentDate}
               onSelect={(date) => date && onDateSelect(date)}
               locale={ptBR}
-              className="rounded-lg border p-2 pointer-events-auto"
+              className="rounded-lg border p-1 md:p-2 pointer-events-auto w-full"
               modifiers={{
                 hasBooking: (date) => daysWithBookings.has(format(date, 'yyyy-MM-dd')),
               }}
@@ -97,8 +97,8 @@ export function AgendaSidebar({
 
           {/* Space Filters */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Espaços</h3>
-            <div className="space-y-2">
+            <h3 className="text-xs md:text-sm font-semibold text-foreground mb-2 md:mb-3">Espaços</h3>
+            <div className="space-y-1 md:space-y-2">
               {spaces.map((space, index) => {
                 const colors = getSpaceColor(index);
                 const isChecked = selectedSpaceIds.includes(space.id);
@@ -108,7 +108,7 @@ export function AgendaSidebar({
                   <div
                     key={space.id}
                     className={cn(
-                      'flex items-center gap-3 p-2 rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50',
+                      'flex items-center gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50',
                       isChecked && 'bg-muted/30'
                     )}
                     onClick={() => onSpaceToggle(space.id)}
@@ -117,17 +117,17 @@ export function AgendaSidebar({
                       id={`space-${space.id}`}
                       checked={isChecked}
                       onCheckedChange={() => onSpaceToggle(space.id)}
-                      className="pointer-events-none"
+                      className="pointer-events-none h-4 w-4"
                     />
-                    <div className={cn('w-3 h-3 rounded-full', colors.dot)} />
+                    <div className={cn('w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0', colors.dot)} />
                     <Label
                       htmlFor={`space-${space.id}`}
-                      className="flex-1 text-sm cursor-pointer"
+                      className="flex-1 text-xs md:text-sm cursor-pointer truncate"
                     >
                       {space.name}
                     </Label>
                     {bookingCount > 0 && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-[10px] md:text-xs px-1 md:px-1.5">
                         {bookingCount}
                       </Badge>
                     )}
@@ -141,8 +141,8 @@ export function AgendaSidebar({
 
           {/* Status Filters */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Status</h3>
-            <div className="space-y-2">
+            <h3 className="text-xs md:text-sm font-semibold text-foreground mb-2 md:mb-3">Status</h3>
+            <div className="space-y-1 md:space-y-2">
               {STATUS_OPTIONS.map((status) => {
                 const isChecked = selectedStatuses.includes(status.value);
                 const statusCount = bookings.filter((b) => b.status === status.value).length;
@@ -151,7 +151,7 @@ export function AgendaSidebar({
                   <div
                     key={status.value}
                     className={cn(
-                      'flex items-center gap-3 p-2 rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50',
+                      'flex items-center gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50',
                       isChecked && 'bg-muted/30'
                     )}
                     onClick={() => onStatusToggle(status.value)}
@@ -160,14 +160,14 @@ export function AgendaSidebar({
                       id={`status-${status.value}`}
                       checked={isChecked}
                       onCheckedChange={() => onStatusToggle(status.value)}
-                      className="pointer-events-none"
+                      className="pointer-events-none h-4 w-4"
                     />
-                    <Badge variant="outline" className={cn('text-xs', status.color)}>
+                    <Badge variant="outline" className={cn('text-[10px] md:text-xs', status.color)}>
                       {status.label}
                     </Badge>
                     <span className="flex-1" />
                     {statusCount > 0 && (
-                      <span className="text-xs text-muted-foreground">{statusCount}</span>
+                      <span className="text-[10px] md:text-xs text-muted-foreground">{statusCount}</span>
                     )}
                   </div>
                 );
@@ -178,15 +178,15 @@ export function AgendaSidebar({
           <Separator />
 
           {/* Legend */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3">Legenda</h3>
+          <div className="hidden md:block">
+            <h3 className="text-xs md:text-sm font-semibold text-foreground mb-2 md:mb-3">Legenda</h3>
             <div className="space-y-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-primary-100 border-l-4 border-l-primary-500" />
+                <div className="w-4 h-4 rounded bg-primary/10 border-l-4 border-l-primary" />
                 <span>Reserva no espaço</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-muted animate-pulse-subtle" />
+                <div className="w-4 h-4 rounded bg-muted animate-pulse" />
                 <span>Agora / Próxima</span>
               </div>
               <div className="flex items-center gap-2">

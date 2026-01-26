@@ -89,26 +89,26 @@ export function WeekViewNew({
   return (
     <Card className="flex-1 overflow-hidden shadow-soft">
       <ScrollArea className="h-full">
-        <div className="min-w-[1200px]">
+        <div className="min-w-[500px] md:min-w-[800px] lg:min-w-[1000px]">
           {/* Header */}
           <div className="sticky top-0 z-20 bg-card border-b border-border">
             <div className="flex">
-              <div className="w-16 flex-shrink-0 border-r border-border" />
+              <div className="w-10 md:w-14 lg:w-16 flex-shrink-0 border-r border-border" />
               {weekDays.map((day) => (
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    'flex-1 p-3 text-center border-r border-border last:border-r-0',
-                    isToday(day) && 'bg-primary-50'
+                    'flex-1 p-1.5 md:p-2 lg:p-3 text-center border-r border-border last:border-r-0',
+                    isToday(day) && 'bg-primary/5'
                   )}
                 >
-                  <div className="text-xs text-muted-foreground uppercase">
+                  <div className="text-[10px] md:text-xs text-muted-foreground uppercase">
                     {format(day, 'EEE', { locale: ptBR })}
                   </div>
                   <div
                     className={cn(
-                      'text-lg font-semibold mt-1',
-                      isToday(day) && 'text-primary-600'
+                      'text-sm md:text-lg font-semibold mt-0.5 md:mt-1',
+                      isToday(day) && 'text-primary'
                     )}
                   >
                     {format(day, 'd')}
@@ -126,19 +126,19 @@ export function WeekViewNew({
             return (
               <div key={space.id} className="border-b border-border last:border-b-0">
                 {/* Space name header */}
-                <div className="flex items-center gap-2 p-2 bg-muted/30 border-b border-border sticky left-0">
-                  <div className={cn('w-3 h-3 rounded-full', colors.dot)} />
-                  <span className="font-medium text-sm">{space.name}</span>
+                <div className="flex items-center gap-1.5 md:gap-2 p-1.5 md:p-2 bg-muted/30 border-b border-border sticky left-0">
+                  <div className={cn('w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0', colors.dot)} />
+                  <span className="font-medium text-xs md:text-sm truncate">{space.name}</span>
                 </div>
 
                 {/* Time grid */}
                 <div className="relative flex">
                   {/* Time labels */}
-                  <div className="w-16 flex-shrink-0 border-r border-border">
+                  <div className="w-10 md:w-14 lg:w-16 flex-shrink-0 border-r border-border">
                     {HOURS.map((hour) => (
                       <div
                         key={hour}
-                        className="border-b border-border text-right pr-2 text-xs text-muted-foreground"
+                        className="border-b border-border text-right pr-1 md:pr-2 text-[9px] md:text-xs text-muted-foreground flex items-start justify-end pt-0.5"
                         style={{ height: HOUR_HEIGHT }}
                       >
                         {format(new Date().setHours(hour, 0), 'HH:mm')}
@@ -154,8 +154,8 @@ export function WeekViewNew({
                       <div
                         key={day.toISOString()}
                         className={cn(
-                          'flex-1 relative border-r border-border last:border-r-0',
-                          isToday(day) && 'bg-primary-50/30'
+                          'flex-1 relative border-r border-border last:border-r-0 min-w-[50px]',
+                          isToday(day) && 'bg-primary/5'
                         )}
                       >
                         {/* Hour slots */}
@@ -182,11 +182,11 @@ export function WeekViewNew({
                             <div
                               key={booking.id}
                               className={cn(
-                                'absolute left-1 right-1 rounded border-l-4 p-1 cursor-pointer',
+                                'absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded border-l-2 md:border-l-4 p-0.5 md:p-1 cursor-pointer',
                                 'transition-all duration-200 hover:scale-[1.02] hover:shadow-md hover:z-10',
                                 colors.bg,
                                 colors.border,
-                                isNow && 'ring-2 ring-primary-500/50'
+                                isNow && 'ring-2 ring-primary/50'
                               )}
                               style={{ top, height }}
                               onClick={(e) => {
@@ -194,14 +194,14 @@ export function WeekViewNew({
                                 onBookingClick(booking);
                               }}
                             >
-                              <div className="flex items-center gap-1 text-xs font-medium truncate">
-                                <User className="h-3 w-3 flex-shrink-0" />
+                              <div className="flex items-center gap-0.5 md:gap-1 text-[9px] md:text-xs font-medium truncate">
+                                <User className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0 hidden sm:block" />
                                 <span className="truncate">
                                   {booking.customer_name || 'Cliente'}
                                 </span>
                               </div>
-                              {height >= 40 && (
-                                <div className="text-[10px] text-muted-foreground mt-0.5">
+                              {height >= 35 && (
+                                <div className="text-[8px] md:text-[10px] text-muted-foreground mt-0.5 hidden sm:block">
                                   {format(new Date(booking.start_time), 'HH:mm')} -{' '}
                                   {format(new Date(booking.end_time), 'HH:mm')}
                                 </div>
