@@ -6,17 +6,85 @@ import { useToast } from '@/hooks/use-toast';
 import { useSyncBooking } from '@/hooks/useGoogleCalendar';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { differenceInHours } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 export type Booking = Tables<'bookings'> & {
   space?: Tables<'spaces'> | null;
 };
 
+// Error codes that indicate permission/auth issues
+const AUTH_ERROR_CODES = ['PGRST301', 'PGRST302', '401', '403', '42501'];
+const SESSION_EXPIRED_MESSAGES = ['JWT expired', 'session_expired', 'invalid token'];
+
+interface SupabaseError {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+}
+
+function isAuthError(error: SupabaseError | null): boolean {
+  if (!error) return false;
+  
+  // Check error code
+  if (error.code && AUTH_ERROR_CODES.includes(error.code)) {
+    return true;
+  }
+  
+  // Check error message for session/auth issues
+  const errorMessage = error.message?.toLowerCase() || '';
+  return SESSION_EXPIRED_MESSAGES.some(msg => errorMessage.includes(msg.toLowerCase()));
+}
+
+function isRLSError(error: SupabaseError | null): boolean {
+  if (!error) return false;
+  
+  const message = error.message?.toLowerCase() || '';
+  const details = error.details?.toLowerCase() || '';
+  
+  return (
+    message.includes('row-level security') ||
+    message.includes('rls') ||
+    details.includes('violates row-level security') ||
+    error.code === '42501' // PostgreSQL insufficient privilege
+  );
+}
+
 export function useBookings(startDate?: Date, endDate?: Date) {
   const { currentVenue } = useVenue();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { syncToCalendar } = useSyncBooking();
+  const navigate = useNavigate();
+
+  const handleAuthError = (error: SupabaseError) => {
+    console.error('Auth/RLS error in useBookings:', error);
+    
+    if (isAuthError(error)) {
+      toast({
+        title: 'Sessão expirada',
+        description: 'Sua sessão expirou. Por favor, faça login novamente.',
+        variant: 'destructive',
+      });
+      // Sign out and redirect to login
+      signOut().then(() => navigate('/auth'));
+      return true;
+    }
+    
+    if (isRLSError(error)) {
+      toast({
+        title: 'Acesso negado',
+        description: 'Você não tem permissão para acessar estes dados. Verifique se ainda é membro deste local.',
+        variant: 'destructive',
+      });
+      // Refresh venue context
+      queryClient.invalidateQueries({ queryKey: ['venues'] });
+      return true;
+    }
+    
+    return false;
+  };
 
   const bookingsQuery = useQuery({
     queryKey: ['bookings', currentVenue?.id, startDate?.toISOString(), endDate?.toISOString()],
@@ -38,10 +106,25 @@ export function useBookings(startDate?: Date, endDate?: Date) {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        // Handle auth/RLS errors specifically
+        if (handleAuthError(error as SupabaseError)) {
+          return [];
+        }
+        throw error;
+      }
+      
       return data as Booking[];
     },
-    enabled: !!currentVenue?.id,
+    enabled: !!currentVenue?.id && !!user,
+    retry: (failureCount, error) => {
+      // Don't retry auth errors
+      const err = error as SupabaseError;
+      if (isAuthError(err) || isRLSError(err)) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   const createBooking = useMutation({
@@ -63,7 +146,12 @@ export function useBookings(startDate?: Date, endDate?: Date) {
         .select('*, space:spaces(*)')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (handleAuthError(error as SupabaseError)) {
+          throw new Error('Sessão expirada');
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: (data) => {
@@ -74,8 +162,10 @@ export function useBookings(startDate?: Date, endDate?: Date) {
         syncToCalendar(data.id, 'create');
       }
     },
-    onError: (error) => {
-      toast({ title: 'Erro ao criar reserva', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      if (error.message !== 'Sessão expirada') {
+        toast({ title: 'Erro ao criar reserva', description: error.message, variant: 'destructive' });
+      }
     },
   });
 
@@ -96,7 +186,12 @@ export function useBookings(startDate?: Date, endDate?: Date) {
         .select('*, space:spaces(*)')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (handleAuthError(error as SupabaseError)) {
+          throw new Error('Sessão expirada');
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: (data) => {
@@ -107,8 +202,10 @@ export function useBookings(startDate?: Date, endDate?: Date) {
         syncToCalendar(data.id, 'update');
       }
     },
-    onError: (error) => {
-      toast({ title: 'Erro ao atualizar reserva', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      if (error.message !== 'Sessão expirada') {
+        toast({ title: 'Erro ao atualizar reserva', description: error.message, variant: 'destructive' });
+      }
     },
   });
 
@@ -122,14 +219,21 @@ export function useBookings(startDate?: Date, endDate?: Date) {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        if (handleAuthError(error as SupabaseError)) {
+          throw new Error('Sessão expirada');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings', currentVenue?.id] });
       toast({ title: 'Reserva excluída!' });
     },
-    onError: (error) => {
-      toast({ title: 'Erro ao excluir reserva', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      if (error.message !== 'Sessão expirada') {
+        toast({ title: 'Erro ao excluir reserva', description: error.message, variant: 'destructive' });
+      }
     },
   });
 
@@ -146,7 +250,12 @@ export function useBookings(startDate?: Date, endDate?: Date) {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+    
+    if (error) {
+      handleAuthError(error as SupabaseError);
+      throw error;
+    }
+    
     return data.length > 0;
   };
 
@@ -154,6 +263,7 @@ export function useBookings(startDate?: Date, endDate?: Date) {
     bookings: bookingsQuery.data ?? [],
     isLoading: bookingsQuery.isLoading,
     error: bookingsQuery.error,
+    isError: bookingsQuery.isError,
     createBooking,
     updateBooking,
     deleteBooking,
@@ -164,6 +274,10 @@ export function useBookings(startDate?: Date, endDate?: Date) {
 
 export function useBooking(id: string | null) {
   const { currentVenue } = useVenue();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: ['booking', id],
@@ -176,9 +290,40 @@ export function useBooking(id: string | null) {
         .eq('id', id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        // Handle auth errors
+        if (isAuthError(error as SupabaseError)) {
+          toast({
+            title: 'Sessão expirada',
+            description: 'Sua sessão expirou. Por favor, faça login novamente.',
+            variant: 'destructive',
+          });
+          signOut().then(() => navigate('/auth'));
+          return null;
+        }
+        
+        if (isRLSError(error as SupabaseError)) {
+          toast({
+            title: 'Acesso negado',
+            description: 'Você não tem permissão para acessar esta reserva.',
+            variant: 'destructive',
+          });
+          queryClient.invalidateQueries({ queryKey: ['venues'] });
+          return null;
+        }
+        
+        throw error;
+      }
+      
       return data as Booking | null;
     },
-    enabled: !!id && !!currentVenue?.id,
+    enabled: !!id && !!currentVenue?.id && !!user,
+    retry: (failureCount, error) => {
+      const err = error as SupabaseError;
+      if (isAuthError(err) || isRLSError(err)) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
