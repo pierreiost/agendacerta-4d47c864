@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.google-calendar-disconnect]
 verify_jwt = false
+
+[functions.rate-limit-login]
+verify_jwt = false

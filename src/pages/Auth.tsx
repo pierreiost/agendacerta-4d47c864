@@ -5,8 +5,45 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+interface RateLimitResponse {
+  allowed: boolean;
+  attemptsRemaining: number;
+  lockedUntil: string | null;
+  message?: string;
+}
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+async function checkRateLimit(email: string): Promise<RateLimitResponse> {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/rate-limit-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, action: 'check' }),
+    });
+    return await response.json();
+  } catch {
+    // If rate limit check fails, allow login attempt
+    return { allowed: true, attemptsRemaining: 5, lockedUntil: null };
+  }
+}
+
+async function recordLoginAttempt(email: string, success: boolean): Promise<RateLimitResponse> {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/rate-limit-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, action: success ? 'record_success' : 'record_failure' }),
+    });
+    return await response.json();
+  } catch {
+    return { allowed: true, attemptsRemaining: 5, lockedUntil: null };
+  }
+}
 
 export default function Auth() {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -14,12 +51,14 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitResponse | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setRateLimitInfo(null);
 
     try {
       if (mode === 'forgot') {
@@ -35,12 +74,30 @@ export default function Auth() {
         });
         setMode('login');
       } else if (mode === 'login') {
+        // Check rate limit before attempting login
+        const rateLimitCheck = await checkRateLimit(email);
+        
+        if (!rateLimitCheck.allowed) {
+          setRateLimitInfo(rateLimitCheck);
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          // Record failed attempt
+          const updatedRateLimit = await recordLoginAttempt(email, false);
+          setRateLimitInfo(updatedRateLimit);
+          throw error;
+        }
+
+        // Record successful login
+        await recordLoginAttempt(email, true);
+        setRateLimitInfo(null);
 
         toast({
           title: 'Login realizado!',
@@ -230,10 +287,32 @@ export default function Auth() {
               </div>
             )}
 
+            {/* Rate limit warning */}
+            {rateLimitInfo && mode === 'login' && (
+              <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {!rateLimitInfo.allowed ? (
+                    <>
+                      Conta bloqueada temporariamente. Tente novamente{' '}
+                      {rateLimitInfo.lockedUntil && (
+                        <>às {new Date(rateLimitInfo.lockedUntil).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>
+                      )}
+                      .
+                    </>
+                  ) : rateLimitInfo.attemptsRemaining < 5 ? (
+                    <>
+                      {rateLimitInfo.attemptsRemaining} tentativa{rateLimitInfo.attemptsRemaining !== 1 ? 's' : ''} restante{rateLimitInfo.attemptsRemaining !== 1 ? 's' : ''}.
+                    </>
+                  ) : null}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Button 
               type="submit" 
               className="w-full h-12 text-base font-semibold gradient-primary hover:opacity-90 transition-opacity" 
-              disabled={loading}
+              disabled={loading || (rateLimitInfo && !rateLimitInfo.allowed)}
             >
               {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {mode === 'forgot' ? 'ENVIAR LINK' : mode === 'login' ? 'ENTRAR' : 'CADASTRAR'}
