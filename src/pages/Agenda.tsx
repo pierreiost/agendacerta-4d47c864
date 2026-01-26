@@ -198,9 +198,9 @@ export default function Agenda() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-[calc(100vh-4rem)] -m-4 md:-m-6">
+      <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] -m-3 md:-m-6">
         {/* Header */}
-        <div className="p-4 md:p-6 pb-0">
+        <div className="p-3 md:p-6 pb-0">
           <AgendaHeader
             currentDate={currentDate}
             onDateChange={setCurrentDate}
@@ -213,7 +213,7 @@ export default function Agenda() {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 flex gap-4 p-4 md:p-6 overflow-hidden">
+        <div className="flex-1 flex gap-3 md:gap-4 p-3 md:p-6 overflow-hidden">
           {/* Desktop Sidebar */}
           <div className="hidden lg:block">
             <AgendaSidebar
@@ -234,12 +234,12 @@ export default function Agenda() {
               <Button
                 variant="outline"
                 size="icon"
-                className="lg:hidden fixed bottom-20 left-4 z-40 h-12 w-12 rounded-full shadow-lg"
+                className="lg:hidden fixed bottom-16 md:bottom-20 left-3 md:left-4 z-40 h-10 w-10 md:h-12 md:w-12 rounded-full shadow-lg bg-background"
               >
-                <Filter className="h-5 w-5" />
+                <Filter className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[300px]">
+            <SheetContent side="left" className="p-0 w-[280px] sm:w-[320px]">
               <AgendaSidebar
                 spaces={activeSpaces}
                 bookings={bookings}
@@ -259,15 +259,15 @@ export default function Agenda() {
           {/* Calendar View */}
           {isLoading ? (
             <Card className="flex-1 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+              <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary" />
             </Card>
           ) : activeSpaces.length === 0 ? (
-            <Card className="flex-1 flex flex-col items-center justify-center text-center p-8">
-              <div className="rounded-full bg-muted p-4 mb-4">
-                <Calendar className="h-8 w-8 text-muted-foreground" />
+            <Card className="flex-1 flex flex-col items-center justify-center text-center p-4 md:p-8">
+              <div className="rounded-full bg-muted p-3 md:p-4 mb-3 md:mb-4">
+                <Calendar className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-lg">Nenhum espaço cadastrado</h3>
-              <p className="text-muted-foreground mt-1">
+              <h3 className="font-semibold text-base md:text-lg">Nenhum espaço cadastrado</h3>
+              <p className="text-muted-foreground mt-1 text-sm">
                 Cadastre espaços para visualizar a agenda
               </p>
             </Card>

@@ -195,29 +195,29 @@ export default function OrdensServico() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Ordens de Serviço</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold">Ordens de Serviço</h1>
+            <p className="text-muted-foreground text-sm">
               Gerencie suas OS simples e completas (para NFS-e)
             </p>
           </div>
-          <Button onClick={() => navigate('/ordens-servico/nova')}>
+          <Button onClick={() => navigate('/ordens-servico/nova')} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Nova OS
           </Button>
         </div>
 
         <Tabs defaultValue="simple">
-          <TabsList>
-            <TabsTrigger value="simple" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Simples ({simpleOrders.length})
+          <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex">
+            <TabsTrigger value="simple" className="gap-1 md:gap-2 text-xs md:text-sm">
+              <FileText className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden xs:inline">Simples</span> ({simpleOrders.length})
             </TabsTrigger>
-            <TabsTrigger value="complete" className="gap-2">
-              <FileCheck className="h-4 w-4" />
-              Completa / NFS-e ({completeOrders.length})
+            <TabsTrigger value="complete" className="gap-1 md:gap-2 text-xs md:text-sm">
+              <FileCheck className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden xs:inline">NFS-e</span> ({completeOrders.length})
             </TabsTrigger>
           </TabsList>
 
@@ -225,7 +225,11 @@ export default function OrdensServico() {
             {isLoading ? (
               <p className="text-center py-8 text-muted-foreground">Carregando...</p>
             ) : (
-              renderOrdersTable(simpleOrders, false)
+              <div className="overflow-x-auto -mx-4 md:mx-0">
+                <div className="min-w-[600px] md:min-w-full px-4 md:px-0">
+                  {renderOrdersTable(simpleOrders, false)}
+                </div>
+              </div>
             )}
           </TabsContent>
 
@@ -233,23 +237,27 @@ export default function OrdensServico() {
             {isLoading ? (
               <p className="text-center py-8 text-muted-foreground">Carregando...</p>
             ) : (
-              renderOrdersTable(completeOrders, true)
+              <div className="overflow-x-auto -mx-4 md:mx-0">
+                <div className="min-w-[700px] md:min-w-full px-4 md:px-0">
+                  {renderOrdersTable(completeOrders, true)}
+                </div>
+              </div>
             )}
           </TabsContent>
         </Tabs>
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir OS</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir esta ordem de serviço? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Excluir</AlertDialogAction>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="w-full sm:w-auto">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

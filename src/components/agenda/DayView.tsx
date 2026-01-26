@@ -34,7 +34,7 @@ interface DayViewProps {
 }
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6:00 to 23:00
-const HOUR_HEIGHT = 80; // pixels per hour
+const HOUR_HEIGHT = 60; // pixels per hour (reduced for mobile)
 const SLOT_INCREMENT = 30; // minutes
 
 const STATUS_STYLES: Record<string, string> = {
@@ -239,27 +239,27 @@ export function DayView({
   return (
     <Card className="flex-1 overflow-hidden shadow-soft">
       <ScrollArea className="h-full">
-        <div className="min-w-[800px]">
+        <div className="min-w-[320px] md:min-w-[600px] lg:min-w-[800px]">
           {/* Header with space names */}
           <div className="sticky top-0 z-20 bg-card border-b border-border">
             <div className="flex">
-              <div className="w-16 flex-shrink-0 border-r border-border p-2" />
+              <div className="w-12 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2" />
               {spaces.map((space, index) => {
                 const colors = getSpaceColor(allSpaces.findIndex((s) => s.id === space.id));
                 return (
                   <div
                     key={space.id}
                     className={cn(
-                      'flex-1 min-w-[180px] p-3 border-r border-border last:border-r-0',
+                      'flex-1 min-w-[100px] md:min-w-[140px] lg:min-w-[180px] p-2 md:p-3 border-r border-border last:border-r-0',
                       'bg-gradient-to-b from-muted/30 to-transparent'
                     )}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className={cn('w-3 h-3 rounded-full', colors.dot)} />
-                      <span className="font-medium text-sm truncate">{space.name}</span>
+                    <div className="flex items-center gap-1 md:gap-2">
+                      <div className={cn('w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0', colors.dot)} />
+                      <span className="font-medium text-xs md:text-sm truncate">{space.name}</span>
                     </div>
                     {space.category && (
-                      <span className="text-xs text-muted-foreground">{space.category.name}</span>
+                      <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">{space.category.name}</span>
                     )}
                   </div>
                 );
@@ -289,11 +289,11 @@ export function DayView({
             {HOURS.map((hour) => (
               <div key={hour} className="flex" style={{ height: HOUR_HEIGHT }}>
                 {/* Time label */}
-                <div className="w-16 flex-shrink-0 border-r border-border p-2 text-right">
+                <div className="w-12 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2 text-right flex items-start justify-end">
                   <span
                     className={cn(
-                      'text-xs',
-                      isCurrentTimeSlot(hour) ? 'text-error-500 font-semibold' : 'text-muted-foreground'
+                      'text-[10px] md:text-xs',
+                      isCurrentTimeSlot(hour) ? 'text-destructive font-semibold' : 'text-muted-foreground'
                     )}
                   >
                     {format(setHours(date, hour), 'HH:mm')}
@@ -305,10 +305,10 @@ export function DayView({
                   <div
                     key={`${space.id}-${hour}`}
                     className={cn(
-                      'flex-1 min-w-[180px] border-r border-b border-border last:border-r-0 relative cursor-pointer',
+                      'flex-1 min-w-[100px] md:min-w-[140px] lg:min-w-[180px] border-r border-b border-border last:border-r-0 relative cursor-pointer',
                       'transition-colors duration-150',
-                      'hover:bg-primary-50/50',
-                      isCurrentTimeSlot(hour) && 'bg-error-50/30'
+                      'hover:bg-primary/5',
+                      isCurrentTimeSlot(hour) && 'bg-destructive/5'
                     )}
                     onClick={() => handleSlotClick(space.id, hour)}
                   />
@@ -346,19 +346,19 @@ export function DayView({
                   <div
                     key={booking.id}
                     className={cn(
-                      'absolute rounded-lg border-l-4 p-2 cursor-pointer',
+                      'absolute rounded-md md:rounded-lg border-l-2 md:border-l-4 p-1 md:p-2 cursor-pointer',
                       'transition-all duration-200',
-                      'hover:scale-[1.02] hover:shadow-lg hover:z-20',
+                      'hover:scale-[1.01] md:hover:scale-[1.02] hover:shadow-lg hover:z-20',
                       colors.bg,
                       colors.border,
                       isDragging && 'opacity-50',
-                      isNow && 'animate-pulse-subtle ring-2 ring-primary-500/50'
+                      isNow && 'animate-pulse-subtle ring-2 ring-primary/50'
                     )}
                     style={{
                       top: previewPos ? previewPos.top : top,
                       height: previewPos ? previewPos.height : height,
-                      left: `calc(64px + ${columnIndex} * (100% - 64px) / ${spaces.length} + 4px)`,
-                      width: `calc((100% - 64px) / ${spaces.length} - 8px)`,
+                      left: `calc(48px + ${columnIndex} * (100% - 48px) / ${spaces.length} + 2px)`,
+                      width: `calc((100% - 48px) / ${spaces.length} - 4px)`,
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -391,14 +391,14 @@ export function DayView({
 
                     {/* Content */}
                     <div className="flex flex-col h-full overflow-hidden">
-                      <div className="flex items-center gap-1 text-foreground font-medium text-sm truncate">
-                        <User className="h-3 w-3 flex-shrink-0" />
+                      <div className="flex items-center gap-1 text-foreground font-medium text-[10px] md:text-sm truncate">
+                        <User className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0" />
                         <span className="truncate">{booking.customer_name || 'Cliente'}</span>
                       </div>
 
-                      {height >= 50 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3 flex-shrink-0" />
+                      {height >= 40 && (
+                        <div className="flex items-center gap-1 text-[9px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
+                          <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0 hidden sm:block" />
                           <span>
                             {format(new Date(booking.start_time), 'HH:mm')} -{' '}
                             {format(new Date(booking.end_time), 'HH:mm')}
@@ -406,18 +406,18 @@ export function DayView({
                         </div>
                       )}
 
-                      {height >= 70 && booking.grand_total && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      {height >= 55 && booking.grand_total && (
+                        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground mt-1">
                           <DollarSign className="h-3 w-3 flex-shrink-0" />
                           <span>{formatCurrency(booking.grand_total)}</span>
                         </div>
                       )}
 
-                      {height >= 90 && (
-                        <div className="mt-auto pt-1">
+                      {height >= 70 && (
+                        <div className="mt-auto pt-0.5 md:pt-1 hidden sm:block">
                           <Badge
                             variant="outline"
-                            className={cn('text-[10px] px-1.5 py-0', STATUS_STYLES[booking.status])}
+                            className={cn('text-[8px] md:text-[10px] px-1 md:px-1.5 py-0', STATUS_STYLES[booking.status])}
                           >
                             {STATUS_LABELS[booking.status]}
                           </Badge>

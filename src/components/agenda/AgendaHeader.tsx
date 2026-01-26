@@ -86,18 +86,18 @@ export function AgendaHeader({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {/* Top Row */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Agenda</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Agenda</h1>
+          <p className="text-muted-foreground text-xs md:text-sm mt-1">
             Visualize e gerencie suas reservas
           </p>
         </div>
         <Button 
           onClick={onNewBooking} 
-          className="bg-primary-500 hover:bg-primary-600 shadow-soft transition-all duration-200 hover:scale-[1.02]"
+          className="bg-primary hover:bg-primary/90 shadow-soft transition-all duration-200 hover:scale-[1.02] w-full sm:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" />
           Nova Reserva
@@ -105,48 +105,51 @@ export function AgendaHeader({
       </div>
 
       {/* Controls Row */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-card rounded-xl p-4 shadow-soft border border-border">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between bg-card rounded-xl p-3 md:p-4 shadow-soft border border-border">
         {/* Left: Navigation */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handlePrevious}
-            className="h-9 w-9 transition-all duration-200 hover:bg-muted"
-            aria-label="Anterior"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={handleToday}
-            className="h-9 px-4 transition-all duration-200 hover:bg-muted"
-          >
-            Hoje
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleNext}
-            className="h-9 w-9 transition-all duration-200 hover:bg-muted"
-            aria-label="Próximo"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handlePrevious}
+              className="h-8 w-8 md:h-9 md:w-9 transition-all duration-200 hover:bg-muted"
+              aria-label="Anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={handleToday}
+              className="h-8 md:h-9 px-2 md:px-4 text-xs md:text-sm transition-all duration-200 hover:bg-muted"
+            >
+              Hoje
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleNext}
+              className="h-8 w-8 md:h-9 md:w-9 transition-all duration-200 hover:bg-muted"
+              aria-label="Próximo"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
 
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="h-9 px-3 gap-2 ml-2 transition-all duration-200 hover:bg-muted"
+                className="h-8 md:h-9 px-2 md:px-3 gap-1 md:gap-2 transition-all duration-200 hover:bg-muted text-xs md:text-sm"
               >
-                <CalendarIcon className="h-4 w-4" />
-                <span className="font-medium capitalize">{getDateLabel()}</span>
+                <CalendarIcon className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="font-medium capitalize hidden xs:inline sm:inline">{getDateLabel()}</span>
+                <span className="font-medium capitalize xs:hidden sm:hidden">{format(currentDate, 'd MMM', { locale: ptBR })}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 z-50" align="start">
               <Calendar
                 mode="single"
                 selected={currentDate}
@@ -164,15 +167,15 @@ export function AgendaHeader({
         </div>
 
         {/* Center: View Mode */}
-        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
-          <TabsList className="bg-muted/50">
-            <TabsTrigger value="day" className="px-6 data-[state=active]:bg-background data-[state=active]:shadow-soft">
+        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="w-full lg:w-auto">
+          <TabsList className="bg-muted/50 w-full lg:w-auto grid grid-cols-3 lg:flex">
+            <TabsTrigger value="day" className="px-3 md:px-6 text-xs md:text-sm data-[state=active]:bg-background data-[state=active]:shadow-soft">
               Dia
             </TabsTrigger>
-            <TabsTrigger value="week" className="px-6 data-[state=active]:bg-background data-[state=active]:shadow-soft">
+            <TabsTrigger value="week" className="px-3 md:px-6 text-xs md:text-sm data-[state=active]:bg-background data-[state=active]:shadow-soft">
               Semana
             </TabsTrigger>
-            <TabsTrigger value="month" className="px-6 data-[state=active]:bg-background data-[state=active]:shadow-soft">
+            <TabsTrigger value="month" className="px-3 md:px-6 text-xs md:text-sm data-[state=active]:bg-background data-[state=active]:shadow-soft">
               Mês
             </TabsTrigger>
           </TabsList>
@@ -186,7 +189,7 @@ export function AgendaHeader({
             placeholder="Buscar reservas..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-9 bg-background"
+            className="pl-9 h-8 md:h-9 bg-background text-sm"
           />
         </div>
       </div>
