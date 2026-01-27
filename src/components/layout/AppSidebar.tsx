@@ -83,22 +83,22 @@ export function AppSidebar() {
   }
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-background">
-      {/* Header - Venue Selector */}
-      <div className="border-b bg-gradient-to-br from-primary-50 to-white p-4">
+    <div className="flex h-full w-64 flex-col border-r bg-sidebar-background">
+      {/* Header - Venue Selector with brand accent */}
+      <div className="border-b border-sidebar-border bg-gradient-to-br from-sidebar-accent to-sidebar-background p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-lg p-2 transition-colors hover:bg-primary-100">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary-600 text-white shadow-md">
+            <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98]">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-md ring-2 ring-brand/30">
                 <Building2 className="size-5" />
               </div>
               <div className="flex flex-1 flex-col gap-0.5 text-left">
-                <span className="truncate text-sm font-semibold text-foreground">
+                <span className="truncate text-sm font-semibold text-sidebar-foreground">
                   {currentVenue?.name || "Selecione..."}
                 </span>
-                <span className="text-xs text-muted-foreground">{venues?.length || 0} locais</span>
+                <span className="text-xs text-sidebar-foreground/60">{venues?.length || 0} locais</span>
               </div>
-              <ChevronDown className="size-4 text-muted-foreground flex-shrink-0" />
+              <ChevronDown className="size-4 text-sidebar-foreground/60 flex-shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start">
@@ -106,7 +106,7 @@ export function AppSidebar() {
               <DropdownMenuItem
                 key={venue.id}
                 onClick={() => setCurrentVenue(venue)}
-                className={cn("cursor-pointer", currentVenue?.id === venue.id && "bg-primary-50 font-semibold")}
+                className={cn("cursor-pointer", currentVenue?.id === venue.id && "bg-brand/10 font-semibold text-brand-600")}
               >
                 <div className="flex items-center gap-2">
                   <Building2 className="size-4" />
@@ -118,17 +118,17 @@ export function AppSidebar() {
         </DropdownMenu>
       </div>
 
-      {/* Navigation - SEMPRE VISÍVEL */}
+      {/* Navigation - Mobile-optimized touch targets */}
       <div className="flex-1 overflow-y-auto p-3">
         <nav className="space-y-6">
           {menuGroups.map((group, groupIdx) => (
             <div key={groupIdx}>
               {/* Group Label */}
-              <div className="mb-2 px-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-foreground/50">{group.label}</span>
+              <div className="mb-2 px-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">{group.label}</span>
               </div>
 
-              {/* Menu Items */}
+              {/* Menu Items - Larger touch targets */}
               <div className="space-y-1">
                 {group.items.map((item) => {
                   const active = isActive(item.href);
@@ -139,21 +139,28 @@ export function AppSidebar() {
                       key={item.href}
                       to={item.href}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
-                        "hover:bg-accent",
+                        // Base - Large touch target for tablets/mobile
+                        "flex items-center gap-3 rounded-xl px-3 py-3.5 md:py-3 text-sm transition-all duration-200",
+                        "min-h-[48px] md:min-h-[44px]", // Accessibility touch target
+                        "active:scale-[0.98]",
+                        "hover:bg-sidebar-accent",
                         active && [
-                          "bg-primary-100 dark:bg-primary-900",
-                          "text-primary-900 dark:text-primary-50",
+                          "bg-gradient-to-r from-brand/20 to-brand/10",
+                          "text-brand",
                           "font-semibold",
-                          "border-l-4 border-primary-600",
+                          "border-l-4 border-brand",
                           "pl-[10px]",
-                          "shadow-sm",
+                          "shadow-sm shadow-brand/10",
                         ],
-                        !active && ["text-foreground", "font-medium"],
+                        !active && ["text-sidebar-foreground", "font-medium"],
                       )}
                     >
                       <Icon
-                        className={cn("size-5 flex-shrink-0", active ? "text-primary-600" : "text-foreground/70")}
+                        className={cn(
+                          // Larger icons for tablets
+                          "size-5 md:size-5 flex-shrink-0 transition-transform",
+                          active ? "text-brand scale-110" : "text-sidebar-foreground/70"
+                        )}
                       />
                       <span className="truncate">{item.title}</span>
                     </Link>
@@ -165,27 +172,27 @@ export function AppSidebar() {
         </nav>
       </div>
 
-      {/* Footer - User Menu */}
-      <div className="border-t bg-muted/30 p-4">
+      {/* Footer - User Menu with brand styling */}
+      <div className="border-t border-sidebar-border bg-sidebar-accent/30 p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent">
-              <Avatar className="h-9 w-9 border-2 border-primary-200">
-                <AvatarFallback className="bg-primary-600 text-sm font-semibold text-white">
+            <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98] min-h-[56px]">
+              <Avatar className="h-10 w-10 border-2 border-brand/40 ring-2 ring-brand/20">
+                <AvatarFallback className="bg-brand text-sm font-semibold text-brand-foreground">
                   {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col gap-0.5 text-left min-w-0">
-                <span className="truncate text-sm font-semibold text-foreground">
+                <span className="truncate text-sm font-semibold text-sidebar-foreground">
                   {user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuário"}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+                <span className="truncate text-xs text-sidebar-foreground/60">{user?.email}</span>
               </div>
-              <ChevronDown className="size-4 flex-shrink-0 text-muted-foreground" />
+              <ChevronDown className="size-4 flex-shrink-0 text-sidebar-foreground/60" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start" side="top" sideOffset={8}>
-            <DropdownMenuItem asChild className="cursor-pointer">
+            <DropdownMenuItem asChild className="cursor-pointer py-3">
               <Link to="/configuracoes" className="flex items-center gap-2">
                 <Settings className="size-4" />
                 <span>Configurações</span>
@@ -194,7 +201,7 @@ export function AppSidebar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={signOut}
-              className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-600"
+              className="cursor-pointer py-3 text-red-600 focus:bg-red-50 focus:text-red-600"
             >
               <LogOut className="mr-2 size-4" />
               <span>Sair</span>
