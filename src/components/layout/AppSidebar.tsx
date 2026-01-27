@@ -1,4 +1,4 @@
-// src/components/layout/AppSidebar.tsx - VERSÃO CUSTOM 100% VISÍVEL
+// src/components/layout/AppSidebar.tsx
 import {
   Calendar,
   FileText,
@@ -25,6 +25,18 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+} from "@/components/ui/sidebar";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -83,9 +95,9 @@ export function AppSidebar() {
   }
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-sidebar-background">
+    <Sidebar className="border-r border-sidebar-border">
       {/* Header - Venue Selector with brand accent */}
-      <div className="border-b border-sidebar-border bg-gradient-to-br from-sidebar-accent to-sidebar-background p-4">
+      <SidebarHeader className="border-b border-sidebar-border bg-gradient-to-br from-sidebar-accent to-sidebar-background p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98]">
@@ -116,64 +128,59 @@ export function AppSidebar() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      </SidebarHeader>
 
-      {/* Navigation - Mobile-optimized touch targets */}
-      <div className="flex-1 overflow-y-auto p-3">
-        <nav className="space-y-6">
-          {menuGroups.map((group, groupIdx) => (
-            <div key={groupIdx}>
-              {/* Group Label */}
-              <div className="mb-2 px-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">{group.label}</span>
-              </div>
-
-              {/* Menu Items - Larger touch targets */}
-              <div className="space-y-1">
+      {/* Navigation */}
+      <SidebarContent className="p-3">
+        {menuGroups.map((group, groupIdx) => (
+          <SidebarGroup key={groupIdx}>
+            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40 px-3 mb-1">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
                 {group.items.map((item) => {
                   const active = isActive(item.href);
                   const Icon = item.icon;
 
                   return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      className={cn(
-                        // Base - Large touch target for tablets/mobile
-                        "flex items-center gap-3 rounded-xl px-3 py-3.5 md:py-3 text-sm transition-all duration-200",
-                        "min-h-[48px] md:min-h-[44px]", // Accessibility touch target
-                        "active:scale-[0.98]",
-                        "hover:bg-sidebar-accent",
-                        active && [
-                          "bg-gradient-to-r from-brand/20 to-brand/10",
-                          "text-brand",
-                          "font-semibold",
-                          "border-l-4 border-brand",
-                          "pl-[10px]",
-                          "shadow-sm shadow-brand/10",
-                        ],
-                        !active && ["text-sidebar-foreground", "font-medium"],
-                      )}
-                    >
-                      <Icon
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
                         className={cn(
-                          // Larger icons for tablets
-                          "size-5 md:size-5 flex-shrink-0 transition-transform",
-                          active ? "text-brand scale-110" : "text-sidebar-foreground/70"
+                          "min-h-[48px] md:min-h-[44px] rounded-xl px-3 py-3.5 md:py-3",
+                          "transition-all duration-200 active:scale-[0.98]",
+                          active && [
+                            "bg-gradient-to-r from-brand/20 to-brand/10",
+                            "text-brand font-semibold",
+                            "border-l-4 border-brand pl-[10px]",
+                            "shadow-sm shadow-brand/10",
+                          ],
+                          !active && "hover:bg-sidebar-accent"
                         )}
-                      />
-                      <span className="truncate">{item.title}</span>
-                    </Link>
+                      >
+                        <Link to={item.href} className="flex items-center gap-3">
+                          <Icon
+                            className={cn(
+                              "size-5 flex-shrink-0 transition-transform",
+                              active ? "text-brand scale-110" : "text-sidebar-foreground/70"
+                            )}
+                          />
+                          <span className="truncate">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   );
                 })}
-              </div>
-            </div>
-          ))}
-        </nav>
-      </div>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
 
-      {/* Footer - User Menu with brand styling */}
-      <div className="border-t border-sidebar-border bg-sidebar-accent/30 p-4">
+      {/* Footer - User Menu */}
+      <SidebarFooter className="border-t border-sidebar-border bg-sidebar-accent/30 p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98] min-h-[56px]">
@@ -208,7 +215,7 @@ export function AppSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-    </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
