@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Agenda Certa Design System - Indigo + Slate */
+/* Agenda Certa Design System - Indigo + Gold Brand */
 
 @layer base {
   :root {
@@ -36,6 +36,20 @@
     --accent: 239 84% 97%;
     --accent-foreground: 239 84% 45%;
 
+    /* Brand - Amber/Gold for premium feel */
+    --brand: 38 92% 50%;
+    --brand-50: 38 92% 97%;
+    --brand-100: 38 92% 90%;
+    --brand-200: 38 92% 80%;
+    --brand-300: 38 92% 65%;
+    --brand-400: 38 92% 55%;
+    --brand-500: 38 92% 50%;
+    --brand-600: 38 92% 42%;
+    --brand-700: 38 92% 35%;
+    --brand-800: 38 92% 28%;
+    --brand-900: 38 92% 20%;
+    --brand-foreground: 0 0% 100%;
+
     /* Destructive - Red */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -55,15 +69,15 @@
 
     --radius: 0.5rem;
 
-    /* Sidebar */
-    --sidebar-background: 215 25% 15%;
+    /* Sidebar - Dark with brand accent */
+    --sidebar-background: 215 25% 12%;
     --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary: 38 92% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 20%;
+    --sidebar-accent: 215 25% 18%;
     --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 215 25% 25%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-border: 215 25% 20%;
+    --sidebar-ring: 38 92% 50%;
   }
 
   .dark {
@@ -88,6 +102,20 @@
     --accent: 239 84% 20%;
     --accent-foreground: 239 84% 80%;
 
+    /* Brand - Gold in dark mode */
+    --brand: 38 92% 50%;
+    --brand-50: 38 40% 15%;
+    --brand-100: 38 50% 18%;
+    --brand-200: 38 60% 22%;
+    --brand-300: 38 70% 30%;
+    --brand-400: 38 80% 40%;
+    --brand-500: 38 92% 50%;
+    --brand-600: 38 92% 55%;
+    --brand-700: 38 92% 60%;
+    --brand-800: 38 92% 70%;
+    --brand-900: 38 92% 80%;
+    --brand-foreground: 215 25% 9%;
+
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
 
@@ -103,12 +131,12 @@
 
     --sidebar-background: 215 25% 7%;
     --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary: 38 92% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 25% 12%;
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 215 25% 15%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-ring: 38 92% 50%;
   }
 }
 
@@ -128,11 +156,28 @@
     background: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
   }
 
+  .gradient-brand {
+    background: linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 45%));
+  }
+
   .shadow-soft {
     box-shadow: 0 2px 8px -2px hsl(215 25% 15% / 0.08), 0 4px 16px -4px hsl(215 25% 15% / 0.12);
   }
 
   .shadow-card {
     box-shadow: 0 1px 3px hsl(215 25% 15% / 0.04), 0 2px 6px hsl(215 25% 15% / 0.08);
+  }
+
+  .glass {
+    background: hsl(var(--background) / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-card {
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 }

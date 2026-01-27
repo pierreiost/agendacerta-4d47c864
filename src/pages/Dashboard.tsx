@@ -24,14 +24,14 @@ export default function Dashboard() {
     if (!bookings || bookings.length === 0) {
       return {
         todayBookings: 0,
-        todayTrend: "+0%",
         monthRevenue: 0,
         revenueTrend: "+0%",
         revenueIsPositive: true,
         occupancyRate: "0%",
-        occupancyTrend: "+0%",
         pendingOrders: 0,
-        ordersTrend: "0",
+        // Sparkline data - last 7 days
+        revenueSparkline: [0, 0, 0, 0, 0, 0, 0],
+        occupancySparkline: [0, 0, 0, 0, 0, 0, 0],
       };
     }
 
@@ -81,16 +81,37 @@ export default function Dashboard() {
 
     const pendingOrders = bookings.filter((b) => b.status === "PENDING").length;
 
+    // Generate sparkline data for last 7 days
+    const revenueSparkline: number[] = [];
+    const occupancySparkline: number[] = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      
+      const dayBookings = bookings.filter((b) => {
+        const bookingDate = new Date(b.start_time);
+        return bookingDate >= date && bookingDate < nextDate && b.status !== "CANCELLED";
+      });
+      
+      const dayRevenue = dayBookings.reduce((sum, b) => sum + (Number(b.grand_total) || 0), 0);
+      revenueSparkline.push(dayRevenue);
+      
+      const dayOccupancy = Math.round((dayBookings.length / (totalSpaces * 8)) * 100);
+      occupancySparkline.push(dayOccupancy);
+    }
+
     return {
       todayBookings: todayBookings.length,
-      todayTrend: "+20%",
       monthRevenue,
       revenueTrend: `${parseFloat(revenueTrend) >= 0 ? "+" : ""}${revenueTrend}%`,
       revenueIsPositive: parseFloat(revenueTrend) >= 0,
       occupancyRate: `${occupancyRate}%`,
-      occupancyTrend: "+5%",
       pendingOrders,
-      ordersTrend: "-2",
+      revenueSparkline,
+      occupancySparkline,
     };
   }, [bookings, spaces]);
 
@@ -162,16 +183,12 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Reservas Hoje"
             value={metrics.todayBookings}
             icon={Calendar}
             color="blue"
-            trend={{
-              value: metrics.todayTrend,
-              isPositive: true,
-            }}
           />
 
           <MetricCard
@@ -179,10 +196,7 @@ export default function Dashboard() {
             value={formatCurrency(metrics.monthRevenue)}
             icon={DollarSign}
             color="green"
-            trend={{
-              value: metrics.revenueTrend,
-              isPositive: metrics.revenueIsPositive,
-            }}
+            sparklineData={metrics.revenueSparkline}
           />
 
           <MetricCard
@@ -190,10 +204,7 @@ export default function Dashboard() {
             value={metrics.occupancyRate}
             icon={TrendingUp}
             color="purple"
-            trend={{
-              value: metrics.occupancyTrend,
-              isPositive: true,
-            }}
+            sparklineData={metrics.occupancySparkline}
           />
 
           <MetricCard
@@ -201,10 +212,6 @@ export default function Dashboard() {
             value={metrics.pendingOrders}
             icon={FileText}
             color="orange"
-            trend={{
-              value: metrics.ordersTrend,
-              isPositive: false,
-            }}
           />
         </div>
 

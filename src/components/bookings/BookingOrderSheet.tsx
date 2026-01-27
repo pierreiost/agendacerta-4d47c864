@@ -5,6 +5,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -41,18 +42,31 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Pendente',
-  CONFIRMED: 'Confirmado',
-  CANCELLED: 'Cancelado',
-  FINALIZED: 'Finalizado',
-};
-
-const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  PENDING: 'secondary',
-  CONFIRMED: 'default',
-  CANCELLED: 'destructive',
-  FINALIZED: 'outline',
+const STATUS_CONFIG: Record<string, { 
+  label: string; 
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  className: string;
+}> = {
+  PENDING: { 
+    label: 'Pendente', 
+    variant: 'secondary',
+    className: 'bg-warning-100 text-warning-800 border-warning-300 hover:bg-warning-200'
+  },
+  CONFIRMED: { 
+    label: 'Confirmado', 
+    variant: 'default',
+    className: 'bg-success-100 text-success-800 border-success-300 hover:bg-success-200'
+  },
+  CANCELLED: { 
+    label: 'Cancelado', 
+    variant: 'destructive',
+    className: 'bg-error-100 text-error-800 border-error-300 hover:bg-error-200'
+  },
+  FINALIZED: { 
+    label: 'Finalizado', 
+    variant: 'outline',
+    className: 'bg-primary-100 text-primary-800 border-primary-300 hover:bg-primary-200'
+  },
 };
 
 interface BookingOrderSheetProps {
@@ -113,15 +127,20 @@ export function BookingOrderSheet({
   const isFinalized = booking.status === 'FINALIZED';
   const isCancelled = booking.status === 'CANCELLED';
 
+  const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-[400px] sm:w-[540px] flex flex-col p-0">
-          <SheetHeader className="px-6 py-4 border-b">
+        <SheetContent className="w-[400px] sm:w-[540px] flex flex-col p-0 bg-background/80 backdrop-blur-xl border-l border-border/50 shadow-2xl">
+          <SheetHeader className="px-6 py-5 border-b border-border/50 bg-gradient-to-r from-card/90 to-card/70 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <SheetTitle>Detalhes da Reserva</SheetTitle>
-              <Badge variant={STATUS_VARIANTS[booking.status]}>
-                {STATUS_LABELS[booking.status]}
+              <SheetTitle className="text-lg font-semibold">Detalhes da Reserva</SheetTitle>
+              <Badge 
+                variant="outline" 
+                className={cn("font-semibold border-2 px-3 py-1", statusConfig.className)}
+              >
+                {statusConfig.label}
               </Badge>
             </div>
           </SheetHeader>
