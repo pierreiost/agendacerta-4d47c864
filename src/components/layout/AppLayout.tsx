@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
+import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -8,6 +9,9 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title }: AppLayoutProps) {
+  // Aplica a cor primária dinâmica baseada nas configurações do venue
+  useDynamicTheme();
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">

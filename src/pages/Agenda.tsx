@@ -32,7 +32,7 @@ export default function Agenda() {
 
   // State
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['PENDING', 'CONFIRMED', 'FINALIZED']);

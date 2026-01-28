@@ -28,8 +28,10 @@ import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import { Loader2, Building2, Bell, Users, Calendar, CheckCircle2, XCircle, Palette, ImageIcon } from 'lucide-react';
+import { Loader2, Building2, Bell, Users, Calendar, CheckCircle2, XCircle, Palette, ImageIcon, Upload, Link, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { Label } from '@/components/ui/label';
 
 // Cores predefinidas para identidade visual
 const PRESET_COLORS = [
@@ -64,6 +66,8 @@ export default function Configuracoes() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
+  const { upload, isUploading } = useFileUpload();
   const {
     isConnected,
     connection,
@@ -288,24 +292,111 @@ export default function Configuracoes() {
                           name="logo_url"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Logotipo (URL)</FormLabel>
-                              <div className="flex items-center gap-4">
-                                <Avatar className="h-16 w-16 border">
-                                  <AvatarImage src={field.value || undefined} alt="Logo" />
-                                  <AvatarFallback>
-                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                  <FormControl>
-                                    <Input
-                                      placeholder="https://exemplo.com/logo.png"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormDescription className="mt-1">
-                                    Insira a URL de uma imagem para o logotipo da unidade
-                                  </FormDescription>
+                              <FormLabel>Logotipo</FormLabel>
+                              <div className="flex items-start gap-4">
+                                <div className="relative">
+                                  <Avatar className="h-20 w-20 border">
+                                    <AvatarImage src={field.value || undefined} alt="Logo" />
+                                    <AvatarFallback>
+                                      <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {field.value && (
+                                    <button
+                                      type="button"
+                                      onClick={() => field.onChange('')}
+                                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+                                      title="Remover logo"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                  {/* Toggle entre URL e Upload */}
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant={logoInputMode === 'url' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => setLogoInputMode('url')}
+                                    >
+                                      <Link className="h-4 w-4 mr-1" />
+                                      URL
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={logoInputMode === 'file' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => setLogoInputMode('file')}
+                                    >
+                                      <Upload className="h-4 w-4 mr-1" />
+                                      Arquivo
+                                    </Button>
+                                  </div>
+
+                                  {logoInputMode === 'url' ? (
+                                    <div>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="https://exemplo.com/logo.png"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormDescription className="mt-1">
+                                        Cole a URL de uma imagem
+                                      </FormDescription>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <Label
+                                        htmlFor="logo-upload"
+                                        className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                                          isUploading ? 'opacity-50 pointer-events-none' : ''
+                                        }`}
+                                      >
+                                        {isUploading ? (
+                                          <div className="flex items-center gap-2">
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            <span className="text-sm">Enviando...</span>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                                            <span className="text-sm text-muted-foreground">
+                                              Clique para selecionar
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                              PNG, JPG, GIF ou SVG (max. 5MB)
+                                            </span>
+                                          </>
+                                        )}
+                                      </Label>
+                                      <Input
+                                        id="logo-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        disabled={isUploading}
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file || !currentVenue?.id) return;
+
+                                          const result = await upload(file, {
+                                            bucket: 'venue-logos',
+                                            folder: currentVenue.id,
+                                          });
+
+                                          if (result) {
+                                            field.onChange(result.url);
+                                            toast({ title: 'Logo enviado com sucesso!' });
+                                          }
+                                          // Reset input
+                                          e.target.value = '';
+                                        }}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <FormMessage />
