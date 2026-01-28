@@ -130,11 +130,13 @@ export function useBookings(startDate?: Date, endDate?: Date) {
   const createBooking = useMutation({
     mutationFn: async (booking: Omit<TablesInsert<'bookings'>, 'created_by' | 'space_total'> & { space_price_per_hour: number }) => {
       const { space_price_per_hour, ...bookingData } = booking;
-      
+
       // Calculate space_total based on duration
       const hours = differenceInHours(new Date(booking.end_time), new Date(booking.start_time));
       const space_total = hours * space_price_per_hour;
 
+      // Reservas criadas pelo sistema já vêm como CONFIRMED
+      // Apenas reservas vindas do Google Calendar ou links externos virão como PENDING
       const { data, error } = await supabase
         .from('bookings')
         .insert({
@@ -142,6 +144,7 @@ export function useBookings(startDate?: Date, endDate?: Date) {
           created_by: user?.id,
           space_total,
           grand_total: space_total,
+          status: bookingData.status || 'CONFIRMED',
         })
         .select('*, space:spaces(*)')
         .single();

@@ -33,7 +33,8 @@ interface DayViewProps {
   onBookingResize?: (bookingId: string, newStart: Date, newEnd: Date) => void;
 }
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6:00 to 23:00
+// Horários visíveis na agenda (8:00 a 22:00) - mais espaço útil
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 to 22:00
 const HOUR_HEIGHT = 48; // pixels per hour (reduced for better visibility)
 const SLOT_INCREMENT = 30; // minutes
 const BUSINESS_HOURS_START = 8; // Scroll to 8:00 by default
@@ -50,6 +51,14 @@ const STATUS_STYLES: Record<string, string> = {
   CONFIRMED: 'bg-success-100 text-success-700 border-success-200',
   FINALIZED: 'bg-primary-100 text-primary-700 border-primary-200',
   CANCELLED: 'bg-error-100 text-error-700 border-error-200',
+};
+
+// Cores de fundo do card baseadas no status
+const STATUS_CARD_STYLES: Record<string, { bg: string; border: string }> = {
+  PENDING: { bg: 'bg-warning-50', border: 'border-l-warning-500' },
+  CONFIRMED: { bg: 'bg-success-50', border: 'border-l-success-500' },
+  FINALIZED: { bg: 'bg-primary-50', border: 'border-l-primary-500' },
+  CANCELLED: { bg: 'bg-error-50', border: 'border-l-error-500' },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -101,11 +110,11 @@ export function DayView({
 
     // Se for hoje e estiver dentro do horário comercial, scroll para hora atual
     // Caso contrário, scroll para início do expediente
-    const targetHour = isToday && currentHour >= BUSINESS_HOURS_START && currentHour <= 23
+    const targetHour = isToday && currentHour >= BUSINESS_HOURS_START && currentHour <= 22
       ? currentHour
       : BUSINESS_HOURS_START;
 
-    const scrollPosition = (targetHour - 6) * HOUR_HEIGHT;
+    const scrollPosition = (targetHour - 8) * HOUR_HEIGHT;
 
     // Pequeno delay para garantir que o DOM está renderizado
     setTimeout(() => {
@@ -133,7 +142,7 @@ export function DayView({
     const endMinutes = end.getHours() * 60 + end.getMinutes();
     const durationMinutes = endMinutes - startMinutes;
 
-    const top = ((startMinutes - 6 * 60) / 60) * HOUR_HEIGHT;
+    const top = ((startMinutes - 8 * 60) / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
 
     return { top, height: Math.max(height, 24) };
@@ -146,7 +155,7 @@ export function DayView({
   };
 
   const yToTime = (y: number, baseDate: Date) => {
-    const minutesFromStart = (y / HOUR_HEIGHT) * 60 + 6 * 60;
+    const minutesFromStart = (y / HOUR_HEIGHT) * 60 + 8 * 60;
     const hours = Math.floor(minutesFromStart / 60);
     const minutes = Math.round((minutesFromStart % 60) / SLOT_INCREMENT) * SLOT_INCREMENT;
     return setMinutes(setHours(baseDate, hours), minutes);
@@ -201,11 +210,11 @@ export function DayView({
         }
       }
 
-      // Clamp to valid hours
+      // Clamp to valid hours (visual: 8-22, but bookings can still be 6-23)
       const startHour = newStart.getHours();
       const endHour = newEnd.getHours();
-      if (startHour < 6) return;
-      if (endHour > 23 || (endHour === 23 && newEnd.getMinutes() > 0)) return;
+      if (startHour < 8) return;
+      if (endHour > 22 || (endHour === 22 && newEnd.getMinutes() > 0)) return;
 
       setDragPreview({
         spaceId: dragState.spaceId,
@@ -322,11 +331,11 @@ export function DayView({
           {/* Time grid */}
           <div className="relative">
             {/* Current time indicator */}
-            {isToday && currentHour >= 6 && currentHour <= 23 && (
+            {isToday && currentHour >= 8 && currentHour <= 22 && (
               <div
                 className="absolute left-0 right-0 z-30 pointer-events-none"
                 style={{
-                  top: ((currentHour - 6) * 60 + currentMinute) * (HOUR_HEIGHT / 60),
+                  top: ((currentHour - 8) * 60 + currentMinute) * (HOUR_HEIGHT / 60),
                 }}
               >
                 <div className="flex items-center">
@@ -394,6 +403,9 @@ export function DayView({
                     end: new Date(booking.end_time),
                   });
 
+                // Usar cores baseadas no status
+                const statusStyles = STATUS_CARD_STYLES[booking.status] || STATUS_CARD_STYLES.PENDING;
+
                 return (
                   <div
                     key={booking.id}
@@ -401,8 +413,8 @@ export function DayView({
                       'absolute rounded-md md:rounded-lg border-l-2 md:border-l-4 p-1 md:p-2 cursor-pointer',
                       'transition-all duration-200',
                       'hover:scale-[1.01] md:hover:scale-[1.02] hover:shadow-lg hover:z-20',
-                      colors.bg,
-                      colors.border,
+                      statusStyles.bg,
+                      statusStyles.border,
                       isDragging && 'opacity-50',
                       isNow && 'animate-pulse-subtle ring-2 ring-primary/50'
                     )}
