@@ -348,7 +348,7 @@ export function DayView({
                       isCurrentTimeSlot(hour) ? 'text-destructive font-semibold' : 'text-muted-foreground'
                     )}
                   >
-                    {format(setHours(date, hour), 'HH:mm')}
+                    {format(setMinutes(setHours(date, hour), 0), 'HH:mm')}
                   </span>
                 </div>
 

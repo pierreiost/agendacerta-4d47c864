@@ -200,7 +200,7 @@ export default function Agenda() {
     <AppLayout>
       <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] -m-3 md:-m-6">
         {/* Header */}
-        <div className="p-3 md:p-6 pb-0">
+        <div className="p-2 md:p-3 pb-0">
           <AgendaHeader
             currentDate={currentDate}
             onDateChange={setCurrentDate}
@@ -213,7 +213,7 @@ export default function Agenda() {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 flex gap-3 md:gap-4 p-3 md:p-6 overflow-hidden">
+        <div className="flex-1 flex gap-2 md:gap-3 p-2 md:p-3 overflow-hidden">
           {/* Desktop Sidebar */}
           <div className="hidden lg:block">
             <AgendaSidebar

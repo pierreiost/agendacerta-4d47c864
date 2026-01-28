@@ -94,7 +94,7 @@ export function MonthView({
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-rows-[repeat(auto-fill,minmax(60px,1fr))] md:grid-rows-[repeat(auto-fill,minmax(100px,1fr))]">
+      <div className="flex-1">
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="grid grid-cols-7 border-b border-border last:border-b-0">
             {week.map((day) => {
@@ -107,7 +107,7 @@ export function MonthView({
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    'min-h-[60px] md:min-h-[100px] p-1 md:p-2 border-r border-border last:border-r-0 cursor-pointer',
+                    'min-h-[50px] md:min-h-[70px] p-1 md:p-1.5 border-r border-border last:border-r-0 cursor-pointer',
                     'transition-colors duration-200 hover:bg-muted/50',
                     !isCurrentMonth && 'bg-muted/20 text-muted-foreground',
                     today && 'bg-primary/5'
