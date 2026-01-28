@@ -1,8 +1,13 @@
 // src/components/ui/metric-card.tsx
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, Info } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Sparkline } from '@/components/ui/sparkline';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface MetricCardProps {
   title: string;
@@ -15,6 +20,7 @@ interface MetricCardProps {
   sparklineData?: number[];
   color: 'blue' | 'green' | 'purple' | 'orange' | 'brand';
   className?: string;
+  tooltip?: string;
 }
 
 const colorClasses = {
@@ -73,6 +79,7 @@ export function MetricCard({
   sparklineData,
   color,
   className,
+  tooltip,
 }: MetricCardProps) {
   const colors = colorClasses[color];
 
@@ -98,9 +105,21 @@ export function MetricCard({
         <div className="flex items-start justify-between gap-3">
           {/* Texto */}
           <div className="flex-1 space-y-1">
-            <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              {title}
-            </p>
+            <div className="flex items-center gap-1">
+              <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                {title}
+              </p>
+              {tooltip && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help hover:text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px] text-xs">
+                    {tooltip}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
             <p className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
               {value}
             </p>

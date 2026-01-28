@@ -64,12 +64,19 @@ export default function Dashboard() {
       );
     });
 
+    // Faturamento: apenas reservas FINALIZADAS contam
     const monthRevenue = monthBookings.reduce((sum, b) => {
-      return sum + (Number(b.grand_total) || 0);
+      if (b.status === 'FINALIZED') {
+        return sum + (Number(b.grand_total) || 0);
+      }
+      return sum;
     }, 0);
 
     const lastMonthRevenue = lastMonthBookings.reduce((sum, b) => {
-      return sum + (Number(b.grand_total) || 0);
+      if (b.status === 'FINALIZED') {
+        return sum + (Number(b.grand_total) || 0);
+      }
+      return sum;
     }, 0);
 
     const revenueTrend =
@@ -96,7 +103,13 @@ export default function Dashboard() {
         return bookingDate >= date && bookingDate < nextDate && b.status !== "CANCELLED";
       });
       
-      const dayRevenue = dayBookings.reduce((sum, b) => sum + (Number(b.grand_total) || 0), 0);
+      // Apenas reservas finalizadas contam no faturamento
+      const dayRevenue = dayBookings.reduce((sum, b) => {
+        if (b.status === 'FINALIZED') {
+          return sum + (Number(b.grand_total) || 0);
+        }
+        return sum;
+      }, 0);
       revenueSparkline.push(dayRevenue);
       
       const dayOccupancy = Math.round((dayBookings.length / (totalSpaces * 8)) * 100);
@@ -189,6 +202,7 @@ export default function Dashboard() {
             value={metrics.todayBookings}
             icon={Calendar}
             color="blue"
+            tooltip="Total de reservas agendadas para hoje, excluindo canceladas"
           />
 
           <MetricCard
@@ -197,6 +211,7 @@ export default function Dashboard() {
             icon={DollarSign}
             color="green"
             sparklineData={metrics.revenueSparkline}
+            tooltip="Soma dos valores de reservas finalizadas no mês atual"
           />
 
           <MetricCard
@@ -205,6 +220,7 @@ export default function Dashboard() {
             icon={TrendingUp}
             color="purple"
             sparklineData={metrics.occupancySparkline}
+            tooltip="Percentual de horários ocupados hoje (reservas / slots disponíveis)"
           />
 
           <MetricCard
@@ -212,6 +228,7 @@ export default function Dashboard() {
             value={metrics.pendingOrders}
             icon={FileText}
             color="orange"
+            tooltip="Reservas aguardando confirmação ou ação"
           />
         </div>
 

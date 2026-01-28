@@ -31,7 +31,8 @@ interface WeekViewNewProps {
   onBookingClick: (booking: Booking) => void;
 }
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
+// Horários visíveis na agenda (8:00 a 22:00) - mais espaço útil
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 to 22:00
 const HOUR_HEIGHT = 40; // Reduzido para mostrar mais conteúdo sem scroll
 
 const STATUS_STYLES: Record<string, string> = {
@@ -39,6 +40,14 @@ const STATUS_STYLES: Record<string, string> = {
   CONFIRMED: 'bg-success-100 text-success-700 border-success-200',
   FINALIZED: 'bg-primary-100 text-primary-700 border-primary-200',
   CANCELLED: 'bg-error-100 text-error-700 border-error-200',
+};
+
+// Cores de fundo do card baseadas no status
+const STATUS_CARD_STYLES: Record<string, { bg: string; border: string }> = {
+  PENDING: { bg: 'bg-warning-50', border: 'border-l-warning-500' },
+  CONFIRMED: { bg: 'bg-success-50', border: 'border-l-success-500' },
+  FINALIZED: { bg: 'bg-primary-50', border: 'border-l-primary-500' },
+  CANCELLED: { bg: 'bg-error-50', border: 'border-l-error-500' },
 };
 
 export function WeekViewNew({
@@ -70,7 +79,7 @@ export function WeekViewNew({
     const endMinutes = end.getHours() * 60 + end.getMinutes();
     const durationMinutes = endMinutes - startMinutes;
 
-    const top = ((startMinutes - 6 * 60) / 60) * HOUR_HEIGHT;
+    const top = ((startMinutes - 8 * 60) / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
 
     return { top, height: Math.max(height, 20) };
@@ -178,14 +187,17 @@ export function WeekViewNew({
                               end: new Date(booking.end_time),
                             });
 
+                          // Usar cores baseadas no status
+                          const statusStyles = STATUS_CARD_STYLES[booking.status] || STATUS_CARD_STYLES.PENDING;
+
                           return (
                             <div
                               key={booking.id}
                               className={cn(
                                 'absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded border-l-2 md:border-l-4 p-0.5 md:p-1 cursor-pointer',
                                 'transition-all duration-200 hover:scale-[1.02] hover:shadow-md hover:z-10',
-                                colors.bg,
-                                colors.border,
+                                statusStyles.bg,
+                                statusStyles.border,
                                 isNow && 'ring-2 ring-primary/50'
                               )}
                               style={{ top, height }}
