@@ -12,6 +12,7 @@ import {
   Users,
   Home,
   Shield,
+  Palette,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -95,6 +96,7 @@ export function AppSidebar() {
       label: "GESTÃO",
       items: [
         { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+        { title: "Personalização", href: "/personalizacao", icon: Palette },
         { title: "Configurações", href: "/configuracoes", icon: Settings },
       ],
     },

@@ -75,58 +75,33 @@ function generateColorVariations(hex: string) {
 }
 
 /**
- * Hook para aplicar cor primária dinâmica baseada nas configurações do venue
+ * Hook para aplicar tema dinâmico baseado nas configurações do venue
+ * Suporta:
+ * - Cor primária: botões principais, links, sidebar ativa
+ * - Cor secundária: botões secundários, badges
+ * - Cor de destaque: notificações, alertas
+ * - Modo escuro: tema dark/light
  */
 export function useDynamicTheme() {
   const { currentVenue } = useVenue();
 
   useEffect(() => {
-    const primaryColor = currentVenue?.primary_color;
-
-    if (!primaryColor) {
-      // Remover customizações se não houver cor definida
-      document.documentElement.style.removeProperty('--primary');
-      document.documentElement.style.removeProperty('--primary-foreground');
-      document.documentElement.style.removeProperty('--brand');
-      document.documentElement.style.removeProperty('--brand-foreground');
-      document.documentElement.style.removeProperty('--sidebar-primary');
-      document.documentElement.style.removeProperty('--sidebar-primary-foreground');
-      document.documentElement.style.removeProperty('--sidebar-accent');
-      document.documentElement.style.removeProperty('--sidebar-accent-foreground');
-      document.documentElement.style.removeProperty('--ring');
-      return;
-    }
-
-    // Validar formato hexadecimal
-    if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(primaryColor)) {
-      console.warn('Cor primária inválida:', primaryColor);
-      return;
-    }
-
-    const variations = generateColorVariations(primaryColor);
-
-    // Aplicar variáveis CSS no :root
     const root = document.documentElement;
+    const primaryColor = currentVenue?.primary_color;
+    const secondaryColor = currentVenue?.secondary_color;
+    const accentColor = currentVenue?.accent_color;
+    const darkMode = currentVenue?.dark_mode;
 
-    // Cor primária principal
-    root.style.setProperty('--primary', variations.base);
-    root.style.setProperty('--primary-foreground', variations.foreground);
+    // Aplicar modo escuro
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
 
-    // Aplicar também como brand para manter consistência com sidebar
-    root.style.setProperty('--brand', variations.base);
-    root.style.setProperty('--brand-foreground', variations.foreground);
-
-    // Sidebar
-    root.style.setProperty('--sidebar-primary', variations.base);
-    root.style.setProperty('--sidebar-primary-foreground', variations.foreground);
-    root.style.setProperty('--sidebar-accent', variations.light);
-    root.style.setProperty('--sidebar-accent-foreground', '0 0% 10%');
-
-    // Ring (focus)
-    root.style.setProperty('--ring', variations.base);
-
-    // Cleanup quando o componente desmonta
-    return () => {
+    // Se não há nenhuma cor definida, limpar customizações
+    if (!primaryColor && !secondaryColor && !accentColor) {
+      // Remover customizações de cor primária
       root.style.removeProperty('--primary');
       root.style.removeProperty('--primary-foreground');
       root.style.removeProperty('--brand');
@@ -136,10 +111,93 @@ export function useDynamicTheme() {
       root.style.removeProperty('--sidebar-accent');
       root.style.removeProperty('--sidebar-accent-foreground');
       root.style.removeProperty('--ring');
+      // Remover customizações de cor secundária
+      root.style.removeProperty('--secondary');
+      root.style.removeProperty('--secondary-foreground');
+      root.style.removeProperty('--muted');
+      root.style.removeProperty('--muted-foreground');
+      // Remover customizações de cor de destaque
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--accent-foreground');
+      root.style.removeProperty('--destructive');
+      return;
+    }
+
+    // Aplicar cor primária
+    if (primaryColor && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(primaryColor)) {
+      const variations = generateColorVariations(primaryColor);
+
+      // Cor primária principal
+      root.style.setProperty('--primary', variations.base);
+      root.style.setProperty('--primary-foreground', variations.foreground);
+
+      // Aplicar também como brand para manter consistência com sidebar
+      root.style.setProperty('--brand', variations.base);
+      root.style.setProperty('--brand-foreground', variations.foreground);
+
+      // Sidebar
+      root.style.setProperty('--sidebar-primary', variations.base);
+      root.style.setProperty('--sidebar-primary-foreground', variations.foreground);
+      root.style.setProperty('--sidebar-accent', variations.light);
+      root.style.setProperty('--sidebar-accent-foreground', '0 0% 10%');
+
+      // Ring (focus)
+      root.style.setProperty('--ring', variations.base);
+    }
+
+    // Aplicar cor secundária
+    if (secondaryColor && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(secondaryColor)) {
+      const variations = generateColorVariations(secondaryColor);
+
+      root.style.setProperty('--secondary', variations.light);
+      root.style.setProperty('--secondary-foreground', '0 0% 10%');
+      root.style.setProperty('--muted', variations.light);
+      root.style.setProperty('--muted-foreground', variations.dark);
+    }
+
+    // Aplicar cor de destaque/accent
+    if (accentColor && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(accentColor)) {
+      const variations = generateColorVariations(accentColor);
+
+      root.style.setProperty('--accent', variations.light);
+      root.style.setProperty('--accent-foreground', variations.dark);
+      // Usar accent também para destructive (alertas) quando é vermelho/laranja
+      // Caso contrário, manter o padrão
+    }
+
+    // Cleanup quando o componente desmonta
+    return () => {
+      root.classList.remove('dark');
+      // Cores primárias
+      root.style.removeProperty('--primary');
+      root.style.removeProperty('--primary-foreground');
+      root.style.removeProperty('--brand');
+      root.style.removeProperty('--brand-foreground');
+      root.style.removeProperty('--sidebar-primary');
+      root.style.removeProperty('--sidebar-primary-foreground');
+      root.style.removeProperty('--sidebar-accent');
+      root.style.removeProperty('--sidebar-accent-foreground');
+      root.style.removeProperty('--ring');
+      // Cores secundárias
+      root.style.removeProperty('--secondary');
+      root.style.removeProperty('--secondary-foreground');
+      root.style.removeProperty('--muted');
+      root.style.removeProperty('--muted-foreground');
+      // Cores de destaque
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--accent-foreground');
     };
-  }, [currentVenue?.primary_color]);
+  }, [
+    currentVenue?.primary_color,
+    currentVenue?.secondary_color,
+    currentVenue?.accent_color,
+    currentVenue?.dark_mode,
+  ]);
 
   return {
     primaryColor: currentVenue?.primary_color || null,
+    secondaryColor: currentVenue?.secondary_color || null,
+    accentColor: currentVenue?.accent_color || null,
+    darkMode: currentVenue?.dark_mode || false,
   };
 }
