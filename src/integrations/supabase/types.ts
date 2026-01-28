@@ -817,6 +817,7 @@ export type Database = {
           name: string
           phone: string | null
           plan_type: string | null
+          primary_color: string | null
           reminder_hours_before: number | null
           subscription_ends_at: string | null
           subscription_status: string | null
@@ -834,6 +835,7 @@ export type Database = {
           name: string
           phone?: string | null
           plan_type?: string | null
+          primary_color?: string | null
           reminder_hours_before?: number | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
@@ -851,6 +853,7 @@ export type Database = {
           name?: string
           phone?: string | null
           plan_type?: string | null
+          primary_color?: string | null
           reminder_hours_before?: number | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
