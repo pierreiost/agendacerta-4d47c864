@@ -86,26 +86,9 @@ export function AgendaHeader({
   };
 
   return (
-    <div className="space-y-3 md:space-y-4">
-      {/* Top Row */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Agenda</h1>
-          <p className="text-muted-foreground text-xs md:text-sm mt-1">
-            Visualize e gerencie suas reservas
-          </p>
-        </div>
-        <Button 
-          onClick={onNewBooking} 
-          className="bg-primary hover:bg-primary/90 shadow-soft transition-all duration-200 hover:scale-[1.02] w-full sm:w-auto"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Reserva
-        </Button>
-      </div>
-
-      {/* Controls Row */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between bg-card rounded-xl p-3 md:p-4 shadow-soft border border-border">
+    <div className="space-y-2">
+      {/* Single Row Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-card rounded-lg p-2 md:p-3 shadow-soft border border-border">
         {/* Left: Navigation */}
         <div className="flex items-center gap-1 md:gap-2 flex-wrap">
           <div className="flex items-center gap-1">
@@ -181,16 +164,26 @@ export function AgendaHeader({
           </TabsList>
         </Tabs>
 
-        {/* Right: Search */}
-        <div className="relative w-full lg:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Buscar reservas..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-8 md:h-9 bg-background text-sm"
-          />
+        {/* Right: Search + New Booking */}
+        <div className="flex items-center gap-2 w-full lg:w-auto">
+          <div className="relative flex-1 lg:w-48">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-8 h-8 md:h-9 bg-background text-sm"
+            />
+          </div>
+          <Button
+            onClick={onNewBooking}
+            size="sm"
+            className="bg-primary hover:bg-primary/90 shadow-soft h-8 md:h-9 px-2 md:px-3 whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 md:mr-1" />
+            <span className="hidden md:inline">Nova Reserva</span>
+          </Button>
         </div>
       </div>
     </div>

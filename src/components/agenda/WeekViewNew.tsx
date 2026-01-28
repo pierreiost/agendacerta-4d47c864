@@ -32,7 +32,7 @@ interface WeekViewNewProps {
 }
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
-const HOUR_HEIGHT = 60;
+const HOUR_HEIGHT = 40; // Reduzido para mostrar mais conteúdo sem scroll
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: 'bg-warning-100 text-warning-700 border-warning-200',
@@ -73,7 +73,7 @@ export function WeekViewNew({
     const top = ((startMinutes - 6 * 60) / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
 
-    return { top, height: Math.max(height, 24) };
+    return { top, height: Math.max(height, 20) };
   };
 
   if (spaces.length === 0) {
@@ -200,7 +200,7 @@ export function WeekViewNew({
                                   {booking.customer_name || 'Cliente'}
                                 </span>
                               </div>
-                              {height >= 35 && (
+                              {height >= 28 && (
                                 <div className="text-[8px] md:text-[10px] text-muted-foreground mt-0.5 hidden sm:block">
                                   {format(new Date(booking.start_time), 'HH:mm')} -{' '}
                                   {format(new Date(booking.end_time), 'HH:mm')}
