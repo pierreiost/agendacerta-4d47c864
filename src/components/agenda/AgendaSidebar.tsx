@@ -73,14 +73,14 @@ export function AgendaSidebar({
       <ScrollArea className="h-full">
         <div className="p-3 md:p-4 space-y-4 md:space-y-6">
           {/* Mini Calendar */}
-          <div>
+          <div className="overflow-hidden">
             <h3 className="text-xs md:text-sm font-semibold text-foreground mb-2 md:mb-3">Calendário</h3>
             <Calendar
               mode="single"
               selected={currentDate}
               onSelect={(date) => date && onDateSelect(date)}
               locale={ptBR}
-              className="rounded-lg border p-1 md:p-2 pointer-events-auto w-full"
+              className="rounded-lg border p-1 pointer-events-auto w-full [&_table]:w-full [&_th]:w-8 [&_th]:text-xs [&_td]:w-8 [&_td]:h-8 [&_button]:w-8 [&_button]:h-8 [&_button]:text-xs"
               modifiers={{
                 hasBooking: (date) => daysWithBookings.has(format(date, 'yyyy-MM-dd')),
               }}
