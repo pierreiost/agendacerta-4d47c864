@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -34,8 +34,16 @@ interface DayViewProps {
 }
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6:00 to 23:00
-const HOUR_HEIGHT = 60; // pixels per hour (reduced for mobile)
+const HOUR_HEIGHT = 48; // pixels per hour (reduced for better visibility)
 const SLOT_INCREMENT = 30; // minutes
+const BUSINESS_HOURS_START = 8; // Scroll to 8:00 by default
+
+/**
+ * Arredonda minutos para o slot mais próximo (30 min)
+ */
+function snapMinutesToSlot(minutes: number): number {
+  return Math.round(minutes / SLOT_INCREMENT) * SLOT_INCREMENT;
+}
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: 'bg-warning-100 text-warning-700 border-warning-200',
@@ -76,11 +84,40 @@ export function DayView({
     start: Date;
     end: Date;
   } | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const hasScrolledRef = useRef(false);
 
   const now = new Date();
   const isToday = isSameDay(date, now);
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
+
+  // Scroll para horário comercial ou horário atual ao carregar
+  useEffect(() => {
+    if (hasScrolledRef.current) return;
+
+    const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!scrollContainer) return;
+
+    // Se for hoje e estiver dentro do horário comercial, scroll para hora atual
+    // Caso contrário, scroll para início do expediente
+    const targetHour = isToday && currentHour >= BUSINESS_HOURS_START && currentHour <= 23
+      ? currentHour
+      : BUSINESS_HOURS_START;
+
+    const scrollPosition = (targetHour - 6) * HOUR_HEIGHT;
+
+    // Pequeno delay para garantir que o DOM está renderizado
+    setTimeout(() => {
+      scrollContainer.scrollTop = Math.max(0, scrollPosition - 20);
+      hasScrolledRef.current = true;
+    }, 100);
+  }, [isToday, currentHour]);
+
+  // Reset scroll flag quando a data muda
+  useEffect(() => {
+    hasScrolledRef.current = false;
+  }, [date]);
 
   const dayBookings = useMemo(() => {
     return bookings.filter((booking) => {
@@ -99,7 +136,7 @@ export function DayView({
     const top = ((startMinutes - 6 * 60) / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
 
-    return { top, height: Math.max(height, 30) };
+    return { top, height: Math.max(height, 24) };
   };
 
   const snapToGrid = (y: number) => {
@@ -209,8 +246,23 @@ export function DayView({
     }
   }, [dragState, handleMouseMove, handleMouseUp]);
 
-  const handleSlotClick = (spaceId: string, hour: number) => {
-    onSlotClick(spaceId, date, hour);
+  const handleSlotClick = (spaceId: string, hour: number, event?: React.MouseEvent) => {
+    // Calcular minutos baseado na posição do clique dentro do slot
+    let minutes = 0;
+    if (event) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const clickY = event.clientY - rect.top;
+      const rawMinutes = (clickY / HOUR_HEIGHT) * 60;
+      minutes = snapMinutesToSlot(rawMinutes);
+    }
+
+    // Arredondar hora para o slot mais próximo
+    const finalHour = hour + Math.floor(minutes / 60);
+    const finalMinutes = minutes % 60;
+
+    // Criar data com hora arredondada
+    const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
+    onSlotClick(spaceId, slotDate, finalHour);
   };
 
   const isCurrentTimeSlot = (hour: number) => {
@@ -238,7 +290,7 @@ export function DayView({
 
   return (
     <Card className="flex-1 overflow-hidden shadow-soft">
-      <ScrollArea className="h-full">
+      <ScrollArea className="h-full" ref={scrollAreaRef}>
         <div className="min-w-[320px] md:min-w-[600px] lg:min-w-[800px]">
           {/* Header with space names */}
           <div className="sticky top-0 z-20 bg-card border-b border-border">
@@ -310,7 +362,7 @@ export function DayView({
                       'hover:bg-primary/5',
                       isCurrentTimeSlot(hour) && 'bg-destructive/5'
                     )}
-                    onClick={() => handleSlotClick(space.id, hour)}
+                    onClick={(e) => handleSlotClick(space.id, hour, e)}
                   />
                 ))}
               </div>
@@ -357,8 +409,8 @@ export function DayView({
                     style={{
                       top: previewPos ? previewPos.top : top,
                       height: previewPos ? previewPos.height : height,
-                      left: `calc(48px + ${columnIndex} * (100% - 48px) / ${spaces.length} + 2px)`,
-                      width: `calc((100% - 48px) / ${spaces.length} - 4px)`,
+                      left: `calc(48px + ${columnIndex} * (100% - 48px) / ${spaces.length} + 1px)`,
+                      width: `calc((100% - 48px) / ${spaces.length} - 2px)`,
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -396,8 +448,8 @@ export function DayView({
                         <span className="truncate">{booking.customer_name || 'Cliente'}</span>
                       </div>
 
-                      {height >= 40 && (
-                        <div className="flex items-center gap-1 text-[9px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
+                      {height >= 32 && (
+                        <div className="flex items-center gap-1 text-[9px] md:text-xs text-muted-foreground mt-0.5">
                           <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0 hidden sm:block" />
                           <span>
                             {format(new Date(booking.start_time), 'HH:mm')} -{' '}
@@ -406,15 +458,15 @@ export function DayView({
                         </div>
                       )}
 
-                      {height >= 55 && booking.grand_total && (
-                        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      {height >= 44 && booking.grand_total && (
+                        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                           <DollarSign className="h-3 w-3 flex-shrink-0" />
                           <span>{formatCurrency(booking.grand_total)}</span>
                         </div>
                       )}
 
-                      {height >= 70 && (
-                        <div className="mt-auto pt-0.5 md:pt-1 hidden sm:block">
+                      {height >= 56 && (
+                        <div className="mt-auto pt-0.5 hidden sm:block">
                           <Badge
                             variant="outline"
                             className={cn('text-[8px] md:text-[10px] px-1 md:px-1.5 py-0', STATUS_STYLES[booking.status])}
