@@ -28,13 +28,28 @@ import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import { Loader2, Building2, Bell, Users, Calendar, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Building2, Bell, Users, Calendar, CheckCircle2, XCircle, Palette, ImageIcon } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+// Cores predefinidas para identidade visual
+const PRESET_COLORS = [
+  '#6366f1', // Indigo
+  '#22c55e', // Green
+  '#f59e0b', // Amber
+  '#ef4444', // Red
+  '#8b5cf6', // Violet
+  '#06b6d4', // Cyan
+  '#ec4899', // Pink
+  '#f97316', // Orange
+];
 
 const venueFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   address: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
+  logo_url: z.string().url('URL inválida').optional().or(z.literal('')),
+  primary_color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Hexadecimal inválido').optional().or(z.literal('')),
 });
 
 const reminderFormSchema = z.object({
@@ -91,8 +106,13 @@ export default function Configuracoes() {
       address: currentVenue?.address ?? '',
       phone: currentVenue?.phone ?? '',
       email: currentVenue?.email ?? '',
+      logo_url: currentVenue?.logo_url ?? '',
+      primary_color: currentVenue?.primary_color ?? '',
     },
   });
+
+  // Verificar se o utilizador tem permissão de admin/superadmin
+  const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
 
   const reminderForm = useForm<ReminderFormData>({
     resolver: zodResolver(reminderFormSchema),
@@ -112,6 +132,8 @@ export default function Configuracoes() {
         address: data.address || null,
         phone: data.phone || null,
         email: data.email || null,
+        logo_url: data.logo_url || null,
+        primary_color: data.primary_color || null,
       })
       .eq('id', currentVenue.id);
 
@@ -252,6 +274,87 @@ export default function Configuracoes() {
                         )}
                       />
                     </div>
+
+                    {/* Secção de Identidade Visual - apenas para admin/superadmin */}
+                    {isAdmin && (
+                      <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center gap-2">
+                          <Palette className="h-5 w-5 text-muted-foreground" />
+                          <h3 className="font-medium">Identidade Visual</h3>
+                        </div>
+
+                        <FormField
+                          control={venueForm.control}
+                          name="logo_url"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Logotipo (URL)</FormLabel>
+                              <div className="flex items-center gap-4">
+                                <Avatar className="h-16 w-16 border">
+                                  <AvatarImage src={field.value || undefined} alt="Logo" />
+                                  <AvatarFallback>
+                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <FormControl>
+                                    <Input
+                                      placeholder="https://exemplo.com/logo.png"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormDescription className="mt-1">
+                                    Insira a URL de uma imagem para o logotipo da unidade
+                                  </FormDescription>
+                                </div>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={venueForm.control}
+                          name="primary_color"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cor Principal</FormLabel>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {PRESET_COLORS.map((color) => (
+                                  <button
+                                    key={color}
+                                    type="button"
+                                    className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                                      field.value === color ? 'border-foreground scale-110' : 'border-transparent'
+                                    }`}
+                                    style={{ backgroundColor: color }}
+                                    onClick={() => field.onChange(color)}
+                                    title={color}
+                                  />
+                                ))}
+                                <FormControl>
+                                  <Input
+                                    type="color"
+                                    className="h-8 w-8 p-0 border-0 cursor-pointer"
+                                    value={field.value || '#6366f1'}
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                  />
+                                </FormControl>
+                                {field.value && (
+                                  <span className="text-sm text-muted-foreground ml-2">
+                                    {field.value}
+                                  </span>
+                                )}
+                              </div>
+                              <FormDescription>
+                                Esta cor será utilizada para personalizar a interface da sua unidade
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
 
                     <Button type="submit" disabled={isLoading}>
                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
