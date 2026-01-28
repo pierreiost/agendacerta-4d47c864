@@ -11,11 +11,13 @@ import {
   Building2,
   Users,
   Home,
-  Zap,
+  Shield,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVenue } from "@/contexts/VenueContext";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -42,6 +44,18 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { currentVenue, venues, setCurrentVenue } = useVenue();
+
+  // Check if user is superadmin from database
+  const { data: isSuperAdmin } = useQuery({
+    queryKey: ['is-superadmin-sidebar', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data, error } = await supabase.rpc('is_superadmin', { _user_id: user.id });
+      if (error) return false;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const isActive = (href: string) => {
     if (href === "/") return location.pathname === "/";
@@ -86,11 +100,11 @@ export function AppSidebar() {
     },
   ];
 
-  const isSuperAdmin = user?.user_metadata?.role === "super_admin";
+  // Add SuperAdmin menu for superadmins
   if (isSuperAdmin) {
     menuGroups.push({
       label: "ADMINISTRAÇÃO",
-      items: [{ title: "Super Admin", href: "/superadmin", icon: Zap }],
+      items: [{ title: "Super Admin", href: "/superadmin", icon: Shield }],
     });
   }
 
