@@ -40,7 +40,7 @@ function useSuperAdminCheck() {
   });
 }
 
-function ProtectedRoute({ children, allowSuperAdmin = false }: { children: React.ReactNode; allowSuperAdmin?: boolean }) {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { venues, loading: venueLoading } = useVenue();
   const { data: isSuperAdmin, isLoading: checkingSuperAdmin } = useSuperAdminCheck();
@@ -57,12 +57,9 @@ function ProtectedRoute({ children, allowSuperAdmin = false }: { children: React
     return <Navigate to="/auth" replace />;
   }
 
-  // Superadmins without venues can access superadmin page and allowed routes
-  if (isSuperAdmin && venues.length === 0) {
-    if (allowSuperAdmin) {
-      return <>{children}</>;
-    }
-    return <Navigate to="/superadmin" replace />;
+  // Superadmins have full access to everything
+  if (isSuperAdmin) {
+    return <>{children}</>;
   }
 
   if (venues.length === 0) {
@@ -133,7 +130,7 @@ function AppRoutes() {
       <Route path="/ordens-servico/nova" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
       <Route path="/ordens-servico/:id" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
       <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
-      <Route path="/configuracoes" element={<ProtectedRoute allowSuperAdmin><Configuracoes /></ProtectedRoute>} />
+      <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
       <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
