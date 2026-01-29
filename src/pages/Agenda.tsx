@@ -35,7 +35,7 @@ export default function Agenda() {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['PENDING', 'CONFIRMED', 'FINALIZED']);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['CONFIRMED']);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
