@@ -46,19 +46,28 @@ function snapMinutesToSlot(minutes: number): number {
   return Math.round(minutes / SLOT_INCREMENT) * SLOT_INCREMENT;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  PENDING: 'bg-warning-100 text-warning-700 border-warning-200',
-  CONFIRMED: 'bg-success-100 text-success-700 border-success-200',
-  FINALIZED: 'bg-primary-100 text-primary-700 border-primary-200',
-  CANCELLED: 'bg-error-100 text-error-700 border-error-200',
-};
-
-// Cores de fundo do card baseadas no status (com suporte a dark mode)
-const STATUS_CARD_STYLES: Record<string, { bg: string; border: string }> = {
-  PENDING: { bg: 'bg-warning-50 dark:bg-warning-500/20', border: 'border-l-warning-500' },
-  CONFIRMED: { bg: 'bg-success-50 dark:bg-success-500/20', border: 'border-l-success-500' },
-  FINALIZED: { bg: 'bg-primary-50 dark:bg-primary-500/20', border: 'border-l-primary-500' },
-  CANCELLED: { bg: 'bg-error-50 dark:bg-error-500/20', border: 'border-l-error-500' },
+// Cores de fundo do card baseadas no status - com suporte a dark mode
+const STATUS_CARD_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+  PENDING: { 
+    bg: 'bg-amber-50 dark:bg-amber-950/50', 
+    border: 'border-l-amber-500 dark:border-l-amber-400',
+    text: 'text-amber-900 dark:text-amber-100'
+  },
+  CONFIRMED: { 
+    bg: 'bg-emerald-50 dark:bg-emerald-950/50', 
+    border: 'border-l-emerald-500 dark:border-l-emerald-400',
+    text: 'text-emerald-900 dark:text-emerald-100'
+  },
+  FINALIZED: { 
+    bg: 'bg-indigo-50 dark:bg-indigo-950/50', 
+    border: 'border-l-indigo-500 dark:border-l-indigo-400',
+    text: 'text-indigo-900 dark:text-indigo-100'
+  },
+  CANCELLED: { 
+    bg: 'bg-red-50 dark:bg-red-950/50', 
+    border: 'border-l-red-500 dark:border-l-red-400',
+    text: 'text-red-900 dark:text-red-100'
+  },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -415,6 +424,7 @@ export function DayView({
                       'hover:scale-[1.01] md:hover:scale-[1.02] hover:shadow-lg hover:z-20',
                       statusStyles.bg,
                       statusStyles.border,
+                      statusStyles.text,
                       isDragging && 'opacity-50',
                       isNow && 'animate-pulse-subtle ring-2 ring-primary/50'
                     )}
@@ -479,9 +489,15 @@ export function DayView({
 
                       {height >= 56 && (
                         <div className="mt-auto pt-0.5 hidden sm:block">
-                          <Badge
+                        <Badge
                             variant="outline"
-                            className={cn('text-[8px] md:text-[10px] px-1 md:px-1.5 py-0', STATUS_STYLES[booking.status])}
+                            className={cn(
+                              'text-[8px] md:text-[10px] px-1 md:px-1.5 py-0 border',
+                              booking.status === 'PENDING' && 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700',
+                              booking.status === 'CONFIRMED' && 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-700',
+                              booking.status === 'FINALIZED' && 'bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-900/50 dark:text-indigo-200 dark:border-indigo-700',
+                              booking.status === 'CANCELLED' && 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-200 dark:border-red-700'
+                            )}
                           >
                             {STATUS_LABELS[booking.status]}
                           </Badge>

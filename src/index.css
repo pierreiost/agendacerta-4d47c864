@@ -4,50 +4,44 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Agenda Certa Design System - Indigo + Gold Brand */
+/* AgendaCerta Design System - Neutral Admin Theme (Zinc/Slate) */
+/* Compact Mode: Scale reduced for higher information density */
 
 @layer base {
   :root {
-    /* Main Background */
-    --background: 210 40% 98%;
-    --foreground: 215 25% 15%;
+    /* Compact mode - reduced base font size for higher density */
+    font-size: 13px;
+
+    /* Main Background - Light neutral */
+    --background: 0 0% 98%;
+    --foreground: 240 10% 10%;
 
     /* Cards & Surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 240 10% 10%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 240 10% 10%;
 
-    /* Primary - Indigo */
+    /* Primary - Indigo/Violet accent for CTAs only */
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Slate Light */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 215 25% 27%;
+    /* Secondary - Neutral Zinc */
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 25%;
 
-    /* Muted - Slate Lighter */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted - Zinc shades */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    /* Accent */
-    --accent: 239 84% 97%;
-    --accent-foreground: 239 84% 45%;
+    /* Accent - Subtle violet tint */
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 25%;
 
-    /* Brand - Amber/Gold for premium feel */
-    --brand: 38 92% 50%;
-    --brand-50: 38 92% 97%;
-    --brand-100: 38 92% 90%;
-    --brand-200: 38 92% 80%;
-    --brand-300: 38 92% 65%;
-    --brand-400: 38 92% 55%;
-    --brand-500: 38 92% 50%;
-    --brand-600: 38 92% 42%;
-    --brand-700: 38 92% 35%;
-    --brand-800: 38 92% 28%;
-    --brand-900: 38 92% 20%;
+    /* Brand - kept for backwards compatibility */
+    --brand: 239 84% 67%;
     --brand-foreground: 0 0% 100%;
 
     /* Destructive - Red */
@@ -57,86 +51,127 @@
     /* Success - Emerald */
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
+    --success-50: 160 76% 95%;
+    --success-100: 160 84% 85%;
+    --success-500: 160 84% 39%;
+    --success-700: 160 84% 25%;
 
     /* Warning - Amber */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --warning-50: 38 92% 95%;
+    --warning-100: 38 92% 85%;
+    --warning-500: 38 92% 50%;
+    --warning-700: 38 75% 35%;
 
-    /* Borders */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    /* Error - Red */
+    --error-50: 0 86% 95%;
+    --error-100: 0 86% 85%;
+    --error-500: 0 84% 60%;
+    --error-700: 0 72% 45%;
+
+    /* Primary shades */
+    --primary-50: 239 84% 97%;
+    --primary-100: 239 84% 90%;
+    --primary-500: 239 84% 67%;
+    --primary-700: 239 84% 50%;
+
+    /* Borders - Zinc */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
     --ring: 239 84% 67%;
 
     --radius: 0.5rem;
 
-    /* Sidebar - Dark with brand accent */
-    --sidebar-background: 215 25% 12%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 38 92% 50%;
+    /* Sidebar - Dark neutral theme */
+    --sidebar-background: 240 6% 10%;
+    --sidebar-foreground: 240 5% 92%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 18%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 215 25% 20%;
-    --sidebar-ring: 38 92% 50%;
+    --sidebar-accent: 240 5% 17%;
+    --sidebar-accent-foreground: 240 5% 92%;
+    --sidebar-border: 240 5% 18%;
+    --sidebar-ring: 239 84% 67%;
   }
 
   .dark {
-    --background: 215 25% 9%;
-    --foreground: 210 40% 98%;
+    /* Compact mode - reduced base font size for higher density */
+    font-size: 13px;
 
-    --card: 215 25% 12%;
-    --card-foreground: 210 40% 98%;
+    /* Main Background - Dark Zinc */
+    --background: 240 6% 6%;
+    --foreground: 0 0% 95%;
 
-    --popover: 215 25% 12%;
-    --popover-foreground: 210 40% 98%;
+    /* Cards & Surfaces */
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 95%;
 
+    /* Popovers */
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Primary - Indigo/Violet accent */
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 25% 17%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary - Dark Zinc */
+    --secondary: 240 5% 17%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 215 25% 17%;
-    --muted-foreground: 215 20% 65%;
+    /* Muted - Dark Zinc */
+    --muted: 240 5% 17%;
+    --muted-foreground: 240 4% 65%;
 
-    --accent: 239 84% 20%;
-    --accent-foreground: 239 84% 80%;
+    /* Accent */
+    --accent: 240 5% 17%;
+    --accent-foreground: 0 0% 95%;
 
-    /* Brand - Gold in dark mode */
-    --brand: 38 92% 50%;
-    --brand-50: 38 40% 15%;
-    --brand-100: 38 50% 18%;
-    --brand-200: 38 60% 22%;
-    --brand-300: 38 70% 30%;
-    --brand-400: 38 80% 40%;
-    --brand-500: 38 92% 50%;
-    --brand-600: 38 92% 55%;
-    --brand-700: 38 92% 60%;
-    --brand-800: 38 92% 70%;
-    --brand-900: 38 92% 80%;
-    --brand-foreground: 215 25% 9%;
+    /* Brand */
+    --brand: 239 84% 67%;
+    --brand-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 160 84% 30%;
     --success-foreground: 0 0% 100%;
+    --success-50: 160 50% 15%;
+    --success-100: 160 60% 25%;
+    --success-500: 160 84% 40%;
+    --success-700: 160 84% 60%;
 
     --warning: 38 92% 40%;
     --warning-foreground: 0 0% 100%;
+    --warning-50: 38 50% 15%;
+    --warning-100: 38 60% 25%;
+    --warning-500: 38 92% 50%;
+    --warning-700: 38 92% 65%;
 
-    --border: 215 25% 20%;
-    --input: 215 25% 20%;
+    /* Error - Red (dark mode) */
+    --error-50: 0 50% 15%;
+    --error-100: 0 60% 25%;
+    --error-500: 0 63% 50%;
+    --error-700: 0 72% 65%;
+
+    /* Primary shades (dark mode) */
+    --primary-50: 239 50% 18%;
+    --primary-100: 239 60% 28%;
+    --primary-500: 239 84% 67%;
+    --primary-700: 239 84% 80%;
+
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
     --ring: 239 84% 67%;
 
-    --sidebar-background: 215 25% 7%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 38 92% 50%;
+    /* Sidebar - Darker */
+    --sidebar-background: 240 6% 5%;
+    --sidebar-foreground: 240 5% 92%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 12%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 215 25% 15%;
-    --sidebar-ring: 38 92% 50%;
+    --sidebar-accent: 240 5% 12%;
+    --sidebar-accent-foreground: 240 5% 92%;
+    --sidebar-border: 240 5% 12%;
+    --sidebar-ring: 239 84% 67%;
   }
 }
 
@@ -157,15 +192,15 @@
   }
 
   .gradient-brand {
-    background: linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 45%));
+    background: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
   }
 
   .shadow-soft {
-    box-shadow: 0 2px 8px -2px hsl(215 25% 15% / 0.08), 0 4px 16px -4px hsl(215 25% 15% / 0.12);
+    box-shadow: 0 2px 8px -2px hsl(240 6% 10% / 0.06), 0 4px 16px -4px hsl(240 6% 10% / 0.1);
   }
 
   .shadow-card {
-    box-shadow: 0 1px 3px hsl(215 25% 15% / 0.04), 0 2px 6px hsl(215 25% 15% / 0.08);
+    box-shadow: 0 1px 3px hsl(240 6% 10% / 0.03), 0 2px 6px hsl(240 6% 10% / 0.06);
   }
 
   .glass {
@@ -180,4 +215,21 @@
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid hsl(var(--border) / 0.5);
   }
+}
+
+/* Animation for public page */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+  opacity: 0;
 }

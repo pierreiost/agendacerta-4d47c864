@@ -12,7 +12,7 @@ import {
   Users,
   Home,
   Shield,
-  Palette,
+  Globe,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sidebar,
   SidebarContent,
@@ -45,6 +45,9 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { currentVenue, venues, setCurrentVenue } = useVenue();
+
+  // Check if venue is on max plan
+  const isMaxPlan = currentVenue?.plan_type === 'max';
 
   // Check if user is superadmin from database
   const { data: isSuperAdmin } = useQuery({
@@ -72,6 +75,24 @@ export function AppSidebar() {
     return names[0][0].toUpperCase();
   };
 
+  const getVenueInitials = (name: string) => {
+    if (!name) return "V";
+    const words = name.split(" ");
+    if (words.length >= 2) {
+      return `${words[0][0]}${words[1][0]}`.toUpperCase();
+    }
+    return name[0].toUpperCase();
+  };
+
+  // Build menu items conditionally based on plan
+  const gestaoItems = [
+    { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+    ...(isMaxPlan ? [
+      { title: "Página Pública", href: "/pagina-publica", icon: Globe },
+    ] : []),
+    { title: "Configurações", href: "/configuracoes", icon: Settings },
+  ];
+
   const menuGroups = [
     {
       label: "PRINCIPAL",
@@ -94,11 +115,7 @@ export function AppSidebar() {
     },
     {
       label: "GESTÃO",
-      items: [
-        { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
-        { title: "Personalização", href: "/personalizacao", icon: Palette },
-        { title: "Configurações", href: "/configuracoes", icon: Settings },
-      ],
+      items: gestaoItems,
     },
   ];
 
@@ -112,14 +129,28 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-sidebar-border">
-      {/* Header - Venue Selector with brand accent */}
+      {/* Header - Venue Selector with logo */}
       <SidebarHeader className="border-b border-sidebar-border bg-gradient-to-br from-sidebar-accent to-sidebar-background p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98]">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-md ring-2 ring-brand/30">
-                <Building2 className="size-5" />
-              </div>
+              {/* Logo ou Ícone da Venue */}
+              {currentVenue?.logo_url ? (
+                <Avatar className="size-11 rounded-xl shadow-md ring-2 ring-brand/30">
+                  <AvatarImage 
+                    src={currentVenue.logo_url} 
+                    alt={currentVenue.name} 
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="rounded-xl bg-brand text-brand-foreground font-semibold">
+                    {getVenueInitials(currentVenue.name)}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="flex size-11 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-md ring-2 ring-brand/30">
+                  <Building2 className="size-5" />
+                </div>
+              )}
               <div className="flex flex-1 flex-col gap-0.5 text-left">
                 <span className="truncate text-sm font-semibold text-sidebar-foreground">
                   {currentVenue?.name || "Selecione..."}
@@ -137,7 +168,16 @@ export function AppSidebar() {
                 className={cn("cursor-pointer", currentVenue?.id === venue.id && "bg-brand/10 font-semibold text-brand-600")}
               >
                 <div className="flex items-center gap-2">
-                  <Building2 className="size-4" />
+                  {venue.logo_url ? (
+                    <Avatar className="size-5 rounded">
+                      <AvatarImage src={venue.logo_url} alt={venue.name} className="object-cover" />
+                      <AvatarFallback className="rounded bg-brand/20 text-brand text-[10px]">
+                        {getVenueInitials(venue.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <Building2 className="size-4" />
+                  )}
                   <span>{venue.name}</span>
                 </div>
               </DropdownMenuItem>

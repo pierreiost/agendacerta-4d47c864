@@ -160,8 +160,8 @@ export function useBookings(startDate?: Date, endDate?: Date) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', currentVenue?.id] });
       toast({ title: 'Reserva criada com sucesso!' });
-      // Sync to Google Calendar
-      if (data?.id) {
+      // Sync to Google Calendar - only for CONFIRMED bookings
+      if (data?.id && data?.status === 'CONFIRMED') {
         syncToCalendar(data.id, 'create');
       }
     },
@@ -197,12 +197,24 @@ export function useBookings(startDate?: Date, endDate?: Date) {
       }
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', currentVenue?.id] });
       toast({ title: 'Reserva atualizada!' });
-      // Sync to Google Calendar
+      
+      // Google Calendar sync logic based on status changes
       if (data?.id) {
-        syncToCalendar(data.id, 'update');
+        const newStatus = data.status;
+        const hadEventBefore = !!data.google_event_id;
+        
+        // If status is CONFIRMED, sync to calendar (create or update)
+        if (newStatus === 'CONFIRMED') {
+          syncToCalendar(data.id, hadEventBefore ? 'update' : 'create');
+        }
+        // If status changed to CANCELLED or FINALIZED and event exists, delete it
+        else if ((newStatus === 'CANCELLED' || newStatus === 'FINALIZED') && hadEventBefore) {
+          syncToCalendar(data.id, 'delete');
+        }
+        // PENDING bookings are not synced to calendar
       }
     },
     onError: (error: Error) => {
@@ -214,8 +226,17 @@ export function useBookings(startDate?: Date, endDate?: Date) {
 
   const deleteBooking = useMutation({
     mutationFn: async (id: string) => {
-      // Sync deletion to Google Calendar first (before deleting)
-      await syncToCalendar(id, 'delete');
+      // Get booking info to check if it has a google event
+      const { data: bookingToDelete } = await supabase
+        .from('bookings')
+        .select('google_event_id')
+        .eq('id', id)
+        .single();
+      
+      // Sync deletion to Google Calendar first (before deleting) - only if has event
+      if (bookingToDelete?.google_event_id) {
+        await syncToCalendar(id, 'delete');
+      }
 
       const { error } = await supabase
         .from('bookings')
