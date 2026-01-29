@@ -811,6 +811,7 @@ export type Database = {
           address: string | null
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
+          booking_mode: 'calendar' | 'inquiry' | 'external_link' | null
           created_at: string
           dark_mode: boolean | null
           email: string | null
@@ -820,8 +821,16 @@ export type Database = {
           phone: string | null
           plan_type: string | null
           primary_color: string | null
+          public_page_enabled: boolean | null
+          public_settings: {
+            external_link_url?: string
+            inquiry_notification_email?: string
+            page_title?: string
+            page_instruction?: string
+          } | null
           reminder_hours_before: number | null
           secondary_color: string | null
+          slug: string | null
           subscription_ends_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
@@ -832,6 +841,7 @@ export type Database = {
           address?: string | null
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
+          booking_mode?: 'calendar' | 'inquiry' | 'external_link' | null
           created_at?: string
           dark_mode?: boolean | null
           email?: string | null
@@ -841,8 +851,16 @@ export type Database = {
           phone?: string | null
           plan_type?: string | null
           primary_color?: string | null
+          public_page_enabled?: boolean | null
+          public_settings?: {
+            external_link_url?: string
+            inquiry_notification_email?: string
+            page_title?: string
+            page_instruction?: string
+          } | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
+          slug?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
@@ -853,6 +871,7 @@ export type Database = {
           address?: string | null
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
+          booking_mode?: 'calendar' | 'inquiry' | 'external_link' | null
           created_at?: string
           dark_mode?: boolean | null
           email?: string | null
@@ -862,8 +881,16 @@ export type Database = {
           phone?: string | null
           plan_type?: string | null
           primary_color?: string | null
+          public_page_enabled?: boolean | null
+          public_settings?: {
+            external_link_url?: string
+            inquiry_notification_email?: string
+            page_title?: string
+            page_instruction?: string
+          } | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
+          slug?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
