@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
+import { Switch } from '@/components/ui/switch';
 import {
   Popover,
   PopoverContent,
@@ -51,6 +52,8 @@ import {
   differenceInHours,
   isBefore,
   startOfDay,
+  addWeeks,
+  addMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -66,6 +69,7 @@ import {
   DollarSign,
   Mail,
   Phone,
+  Repeat,
 } from 'lucide-react';
 
 type Space = Tables<'spaces'> & {
@@ -88,6 +92,19 @@ const HOUR_OPTIONS = Array.from({ length: 18 }, (_, i) => {
   };
 });
 
+const RECURRENCE_OPTIONS = [
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'monthly', label: 'Mensal' },
+];
+
+const RECURRENCE_COUNT_OPTIONS = [
+  { value: '4', label: '4 vezes' },
+  { value: '8', label: '8 vezes' },
+  { value: '12', label: '12 vezes' },
+  { value: '24', label: '24 vezes' },
+  { value: '52', label: '52 vezes (1 ano semanal)' },
+];
+
 const schema = z.object({
   customerId: z.string().optional(),
   customerName: z.string().min(1, 'Nome é obrigatório'),
@@ -98,6 +115,9 @@ const schema = z.object({
   startHour: z.string().min(1, 'Horário inicial é obrigatório'),
   endHour: z.string().min(1, 'Horário final é obrigatório'),
   notes: z.string().optional(),
+  isRecurring: z.boolean().optional(),
+  recurrenceType: z.enum(['weekly', 'monthly']).optional(),
+  recurrenceCount: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -139,6 +159,9 @@ export function BookingWizard({
   const startHour = watch('startHour');
   const endHour = watch('endHour');
   const customerName = watch('customerName');
+  const isRecurring = watch('isRecurring');
+  const recurrenceType = watch('recurrenceType');
+  const recurrenceCount = watch('recurrenceCount');
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -220,42 +243,92 @@ export function BookingWizard({
   const onSubmit = async (data: FormData) => {
     if (!currentVenue?.id || !data.date) return;
 
-    const startTime = setMinutes(setHours(data.date, parseInt(data.startHour)), 0);
-    const endTime = setMinutes(setHours(data.date, parseInt(data.endHour)), 0);
-
-    // Check for past dates
-    if (isBefore(startOfDay(startTime), startOfDay(new Date()))) {
-      return;
-    }
-
-    // Check conflicts
-    const hasConflict = await checkConflict(data.spaceId, startTime, endTime);
-    if (hasConflict) {
-      return;
-    }
-
     const space = spaces.find((s) => s.id === data.spaceId);
-
-    createBooking.mutate(
-      {
-        venue_id: currentVenue.id,
-        space_id: data.spaceId,
-        customer_id: data.customerId || null,
-        customer_name: data.customerName,
-        customer_email: data.customerEmail || null,
-        customer_phone: data.customerPhone || null,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        notes: data.notes || null,
-        status: 'PENDING',
-        space_price_per_hour: space?.price_per_hour ?? 0,
-      },
-      {
-        onSuccess: () => {
-          onOpenChange(false);
-        },
+    const count = data.isRecurring && data.recurrenceCount ? parseInt(data.recurrenceCount) : 1;
+    
+    // Generate all booking dates
+    const bookingDates: Date[] = [];
+    for (let i = 0; i < count; i++) {
+      let bookingDate = data.date;
+      if (i > 0) {
+        if (data.recurrenceType === 'weekly') {
+          bookingDate = addWeeks(data.date, i);
+        } else if (data.recurrenceType === 'monthly') {
+          bookingDate = addMonths(data.date, i);
+        }
       }
-    );
+      bookingDates.push(bookingDate);
+    }
+
+    // Check for conflicts on all dates
+    for (const bookingDate of bookingDates) {
+      const startTime = setMinutes(setHours(bookingDate, parseInt(data.startHour)), 0);
+      const endTime = setMinutes(setHours(bookingDate, parseInt(data.endHour)), 0);
+
+      // Check for past dates (only for first booking)
+      if (isBefore(startOfDay(startTime), startOfDay(new Date()))) {
+        continue; // Skip past dates
+      }
+
+      const hasConflict = await checkConflict(data.spaceId, startTime, endTime);
+      if (hasConflict) {
+        // Skip dates with conflicts for recurrent bookings
+        continue;
+      }
+    }
+
+    // Create all bookings
+    let successCount = 0;
+    for (const bookingDate of bookingDates) {
+      const startTime = setMinutes(setHours(bookingDate, parseInt(data.startHour)), 0);
+      const endTime = setMinutes(setHours(bookingDate, parseInt(data.endHour)), 0);
+
+      // Skip past dates
+      if (isBefore(startOfDay(startTime), startOfDay(new Date()))) {
+        continue;
+      }
+
+      // Check conflict again before creating
+      const hasConflict = await checkConflict(data.spaceId, startTime, endTime);
+      if (hasConflict) {
+        continue;
+      }
+
+      const recurrenceNote = data.isRecurring
+        ? `[Reserva Recorrente ${successCount + 1}/${count}] `
+        : '';
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          createBooking.mutate(
+            {
+              venue_id: currentVenue.id,
+              space_id: data.spaceId,
+              customer_id: data.customerId || null,
+              customer_name: data.customerName,
+              customer_email: data.customerEmail || null,
+              customer_phone: data.customerPhone || null,
+              start_time: startTime.toISOString(),
+              end_time: endTime.toISOString(),
+              notes: recurrenceNote + (data.notes || ''),
+              status: 'CONFIRMED',
+              space_price_per_hour: space?.price_per_hour ?? 0,
+            },
+            {
+              onSuccess: () => resolve(),
+              onError: () => reject(),
+            }
+          );
+        });
+        successCount++;
+      } catch {
+        // Continue to next booking even if one fails
+      }
+    }
+
+    if (successCount > 0) {
+      onOpenChange(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -542,15 +615,107 @@ export function BookingWizard({
                     />
                   </div>
 
+                  {/* Recurrence Toggle */}
+                  <Card className="p-4 border-dashed">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-accent-100 flex items-center justify-center">
+                          <Repeat className="h-5 w-5 text-accent-600" />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">Reserva Recorrente</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Repetir esta reserva automaticamente
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={isRecurring || false}
+                        onCheckedChange={(checked) => {
+                          setValue('isRecurring', checked);
+                          if (!checked) {
+                            setValue('recurrenceType', undefined);
+                            setValue('recurrenceCount', undefined);
+                          } else {
+                            setValue('recurrenceType', 'weekly');
+                            setValue('recurrenceCount', '4');
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {isRecurring && (
+                      <div className="mt-4 pt-4 border-t border-dashed space-y-4 animate-fade-in">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="mb-2 text-xs">Frequência</Label>
+                            <Select
+                              value={recurrenceType}
+                              onValueChange={(v) => setValue('recurrenceType', v as 'weekly' | 'monthly')}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {RECURRENCE_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="mb-2 text-xs">Repetições</Label>
+                            <Select
+                              value={recurrenceCount}
+                              onValueChange={(v) => setValue('recurrenceCount', v)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {RECURRENCE_COUNT_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                          {recurrenceType === 'weekly' && recurrenceCount && (
+                            <>Serão criadas <strong>{recurrenceCount} reservas</strong> (toda {format(selectedDate || new Date(), 'EEEE', { locale: ptBR })})</>
+                          )}
+                          {recurrenceType === 'monthly' && recurrenceCount && (
+                            <>Serão criadas <strong>{recurrenceCount} reservas</strong> (todo dia {format(selectedDate || new Date(), 'd', { locale: ptBR })} do mês)</>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+
                   {/* Price preview */}
                   {pricePreview !== null && (
                     <Card className="p-4 bg-success-50 border-success-200">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-success-700">Valor estimado</span>
+                        <span className="text-sm text-success-700">
+                          {isRecurring && recurrenceCount
+                            ? `Valor total (${recurrenceCount}x)`
+                            : 'Valor estimado'}
+                        </span>
                         <span className="text-lg font-semibold text-success-700">
-                          {formatCurrency(pricePreview)}
+                          {formatCurrency(
+                            pricePreview * (isRecurring && recurrenceCount ? parseInt(recurrenceCount) : 1)
+                          )}
                         </span>
                       </div>
+                      {isRecurring && recurrenceCount && (
+                        <div className="text-xs text-success-600 mt-1">
+                          {formatCurrency(pricePreview)} por reserva
+                        </div>
+                      )}
                     </Card>
                   )}
                 </div>
@@ -580,7 +745,7 @@ export function BookingWizard({
                         <p className="font-medium">{selectedSpace?.name}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Data</span>
+                        <span className="text-muted-foreground">Data inicial</span>
                         <p className="font-medium">
                           {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
                         </p>
@@ -599,14 +764,53 @@ export function BookingWizard({
                       </div>
                     </div>
 
+                    {isRecurring && recurrenceType && recurrenceCount && (
+                      <>
+                        <Separator />
+                        <div className="bg-accent-50 rounded-lg p-3 border border-accent-200">
+                          <div className="flex items-center gap-2 text-accent-700 mb-2">
+                            <Repeat className="h-4 w-4" />
+                            <span className="font-medium text-sm">Reserva Recorrente</span>
+                          </div>
+                          <div className="text-sm text-accent-600">
+                            {recurrenceType === 'weekly' && (
+                              <>
+                                <strong>{recurrenceCount} reservas</strong> semanais
+                                (toda {format(selectedDate || new Date(), 'EEEE', { locale: ptBR })})
+                              </>
+                            )}
+                            {recurrenceType === 'monthly' && (
+                              <>
+                                <strong>{recurrenceCount} reservas</strong> mensais
+                                (todo dia {format(selectedDate || new Date(), 'd', { locale: ptBR })})
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
                     <Separator />
 
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Total</span>
+                      <span className="font-medium">
+                        {isRecurring && recurrenceCount
+                          ? `Total (${recurrenceCount} reservas)`
+                          : 'Total'}
+                      </span>
                       <span className="text-xl font-bold text-primary-600">
-                        {pricePreview !== null ? formatCurrency(pricePreview) : '-'}
+                        {pricePreview !== null
+                          ? formatCurrency(
+                              pricePreview * (isRecurring && recurrenceCount ? parseInt(recurrenceCount) : 1)
+                            )
+                          : '-'}
                       </span>
                     </div>
+                    {isRecurring && recurrenceCount && pricePreview !== null && (
+                      <div className="text-xs text-muted-foreground text-right">
+                        {formatCurrency(pricePreview)} por reserva
+                      </div>
+                    )}
                   </Card>
 
                   {watch('notes') && (
