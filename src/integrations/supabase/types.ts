@@ -1086,6 +1086,30 @@ export type Database = {
         }
         Returns: string
       }
+      get_space_bookings_for_date: {
+        Args: {
+          p_venue_id: string
+          p_space_id: string
+          p_date: string
+        }
+        Returns: {
+          start_time: string
+          end_time: string
+        }[]
+      }
+      create_public_booking: {
+        Args: {
+          p_venue_id: string
+          p_space_id: string
+          p_customer_name: string
+          p_customer_email: string
+          p_customer_phone?: string | null
+          p_start_time: string
+          p_end_time: string
+          p_notes?: string | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "staff" | "superadmin"
