@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import {
   Form,
   FormControl,
@@ -40,30 +39,11 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  Palette,
   ImageIcon,
   Upload,
   Link,
   X,
 } from 'lucide-react';
-
-// Cores predefinidas para identidade visual
-const PRESET_COLORS = [
-  { color: '#6366f1', name: 'Indigo' },
-  { color: '#22c55e', name: 'Verde' },
-  { color: '#f59e0b', name: 'Âmbar' },
-  { color: '#ef4444', name: 'Vermelho' },
-  { color: '#8b5cf6', name: 'Violeta' },
-  { color: '#06b6d4', name: 'Ciano' },
-  { color: '#ec4899', name: 'Rosa' },
-  { color: '#f97316', name: 'Laranja' },
-];
-
-const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-
-// =====================
-// SCHEMAS ZOD
-// =====================
 
 const venueFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -71,7 +51,6 @@ const venueFormSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   logo_url: z.string().url('URL inválida').optional().or(z.literal('')),
-  primary_color: z.string().regex(hexColorRegex, 'Cor hexadecimal inválida').optional().or(z.literal('')),
 });
 
 const reminderFormSchema = z.object({
@@ -98,10 +77,8 @@ export default function Configuracoes() {
     isDisconnecting,
   } = useGoogleCalendar();
 
-  // Verificar se o utilizador tem permissão de admin/superadmin
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
 
-  // Handle Google OAuth callback
   useEffect(() => {
     const googleSuccess = searchParams.get('google_success');
     const googleError = searchParams.get('google_error');
@@ -126,9 +103,6 @@ export default function Configuracoes() {
     }
   }, [searchParams, setSearchParams, toast]);
 
-  // =====================
-  // FORM: Venue
-  // =====================
   const venueForm = useForm<VenueFormData>({
     resolver: zodResolver(venueFormSchema),
     defaultValues: {
@@ -137,11 +111,9 @@ export default function Configuracoes() {
       phone: currentVenue?.phone ?? '',
       email: currentVenue?.email ?? '',
       logo_url: currentVenue?.logo_url ?? '',
-      primary_color: currentVenue?.primary_color ?? '',
     },
   });
 
-  // Atualizar form quando venue mudar
   useEffect(() => {
     if (currentVenue) {
       venueForm.reset({
@@ -150,25 +122,16 @@ export default function Configuracoes() {
         phone: currentVenue.phone ?? '',
         email: currentVenue.email ?? '',
         logo_url: currentVenue.logo_url ?? '',
-        primary_color: currentVenue.primary_color ?? '',
       });
     }
   }, [currentVenue, venueForm]);
 
-  // =====================
-  // FORM: Reminder
-  // =====================
   const reminderForm = useForm<ReminderFormData>({
     resolver: zodResolver(reminderFormSchema),
     defaultValues: {
       reminder_hours_before: currentVenue?.reminder_hours_before ?? 24,
     },
   });
-
-
-  // =====================
-  // SUBMIT HANDLERS
-  // =====================
 
   const onVenueSubmit = async (data: VenueFormData) => {
     if (!currentVenue?.id) return;
@@ -182,7 +145,6 @@ export default function Configuracoes() {
         phone: data.phone || null,
         email: data.email || null,
         logo_url: data.logo_url || null,
-        primary_color: data.primary_color || null,
       })
       .eq('id', currentVenue.id);
 
@@ -225,13 +187,12 @@ export default function Configuracoes() {
     }
   };
 
-
   return (
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
+          <p className="text-muted-foreground text-sm">
             Gerencie as configurações da sua unidade
           </p>
         </div>
@@ -256,9 +217,7 @@ export default function Configuracoes() {
             </TabsTrigger>
           </TabsList>
 
-          {/* ===================== */}
           {/* TAB: UNIDADE */}
-          {/* ===================== */}
           <TabsContent value="venue">
             <Card>
               <CardHeader>
@@ -269,8 +228,7 @@ export default function Configuracoes() {
               </CardHeader>
               <CardContent>
                 <Form {...venueForm}>
-                  <form onSubmit={venueForm.handleSubmit(onVenueSubmit)} className="space-y-6">
-                    {/* Informações básicas */}
+                  <form onSubmit={venueForm.handleSubmit(onVenueSubmit)} className="space-y-4">
                     <FormField
                       control={venueForm.control}
                       name="name"
@@ -329,186 +287,117 @@ export default function Configuracoes() {
                       />
                     </div>
 
-                    {/* Secção de Identidade Visual - apenas para admin/superadmin */}
+                    {/* Logo - apenas para header do sistema */}
                     {isAdmin && (
-                      <>
-                        <Separator className="my-6" />
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2">
-                            <Palette className="h-5 w-5 text-muted-foreground" />
-                            <h3 className="font-medium">Identidade Visual</h3>
-                          </div>
-
-                          {/* Logo */}
-                          <FormField
-                            control={venueForm.control}
-                            name="logo_url"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Logotipo</FormLabel>
-                                <div className="flex items-start gap-4">
-                                  <div className="relative">
-                                    <Avatar className="h-20 w-20 border">
-                                      <AvatarImage src={field.value || undefined} alt="Logo" />
-                                      <AvatarFallback>
-                                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    {field.value && (
-                                      <button
-                                        type="button"
-                                        onClick={() => field.onChange('')}
-                                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
-                                        title="Remover logo"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </button>
-                                    )}
-                                  </div>
-                                  <div className="flex-1 space-y-3">
-                                    {/* Toggle entre URL e Upload */}
-                                    <div className="flex gap-2">
-                                      <Button
-                                        type="button"
-                                        variant={logoInputMode === 'url' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setLogoInputMode('url')}
-                                      >
-                                        <Link className="h-4 w-4 mr-1" />
-                                        URL
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant={logoInputMode === 'file' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setLogoInputMode('file')}
-                                      >
-                                        <Upload className="h-4 w-4 mr-1" />
-                                        Arquivo
-                                      </Button>
-                                    </div>
-
-                                    {logoInputMode === 'url' ? (
-                                      <div>
-                                        <FormControl>
-                                          <Input
-                                            placeholder="https://exemplo.com/logo.png"
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormDescription className="mt-1">
-                                          Cole a URL de uma imagem
-                                        </FormDescription>
-                                      </div>
-                                    ) : (
-                                      <div>
-                                        <Label
-                                          htmlFor="logo-upload"
-                                          className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                                            isUploading ? 'opacity-50 pointer-events-none' : ''
-                                          }`}
-                                        >
-                                          {isUploading ? (
-                                            <div className="flex items-center gap-2">
-                                              <Loader2 className="h-5 w-5 animate-spin" />
-                                              <span className="text-sm">Enviando...</span>
-                                            </div>
-                                          ) : (
-                                            <>
-                                              <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                                              <span className="text-sm text-muted-foreground">
-                                                Clique para selecionar
-                                              </span>
-                                              <span className="text-xs text-muted-foreground">
-                                                PNG, JPG, GIF ou SVG (max. 5MB)
-                                              </span>
-                                            </>
-                                          )}
-                                        </Label>
-                                        <Input
-                                          id="logo-upload"
-                                          type="file"
-                                          accept="image/*"
-                                          className="hidden"
-                                          disabled={isUploading}
-                                          onChange={async (e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file || !currentVenue?.id) return;
-
-                                            const result = await upload(file, {
-                                              bucket: 'venue-logos',
-                                              folder: currentVenue.id,
-                                            });
-
-                                            if (result) {
-                                              field.onChange(result.url);
-                                              toast({ title: 'Logo enviado com sucesso!' });
-                                            }
-                                            e.target.value = '';
-                                          }}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
+                      <FormField
+                        control={venueForm.control}
+                        name="logo_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Logotipo do Sistema</FormLabel>
+                            <FormDescription>
+                              Aparece no header da sidebar do sistema administrativo
+                            </FormDescription>
+                            <div className="flex items-start gap-4">
+                              <div className="relative">
+                                <Avatar className="h-16 w-16 border">
+                                  <AvatarImage src={field.value || undefined} alt="Logo" />
+                                  <AvatarFallback>
+                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                  </AvatarFallback>
+                                </Avatar>
+                                {field.value && (
+                                  <button
+                                    type="button"
+                                    onClick={() => field.onChange('')}
+                                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+                                    title="Remover logo"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex-1 space-y-2">
+                                <div className="flex gap-2">
+                                  <Button
+                                    type="button"
+                                    variant={logoInputMode === 'url' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setLogoInputMode('url')}
+                                  >
+                                    <Link className="h-4 w-4 mr-1" />
+                                    URL
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant={logoInputMode === 'file' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setLogoInputMode('file')}
+                                  >
+                                    <Upload className="h-4 w-4 mr-1" />
+                                    Arquivo
+                                  </Button>
                                 </div>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
 
-                          {/* Cor Primária */}
-                          <FormField
-                            control={venueForm.control}
-                            name="primary_color"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Cor Principal</FormLabel>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {PRESET_COLORS.map((preset) => (
-                                    <button
-                                      key={preset.color}
-                                      type="button"
-                                      className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                                        field.value === preset.color ? 'border-foreground scale-110 ring-2 ring-offset-2' : 'border-transparent'
-                                      }`}
-                                      style={{ backgroundColor: preset.color }}
-                                      onClick={() => field.onChange(preset.color)}
-                                      title={preset.name}
-                                    />
-                                  ))}
+                                {logoInputMode === 'url' ? (
                                   <FormControl>
                                     <Input
-                                      type="color"
-                                      className="h-8 w-8 p-0 border-0 cursor-pointer rounded-full overflow-hidden"
-                                      value={field.value || '#6366f1'}
-                                      onChange={(e) => field.onChange(e.target.value)}
+                                      placeholder="https://exemplo.com/logo.png"
+                                      {...field}
                                     />
                                   </FormControl>
-                                  {field.value && (
-                                    <>
-                                      <span className="text-sm text-muted-foreground ml-2 font-mono">
-                                        {field.value}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => field.onChange('')}
-                                        className="text-muted-foreground hover:text-foreground"
-                                        title="Remover cor"
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                                <FormDescription>
-                                  Esta cor será utilizada para personalizar a interface
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </>
+                                ) : (
+                                  <div>
+                                    <Label
+                                      htmlFor="logo-upload"
+                                      className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                                        isUploading ? 'opacity-50 pointer-events-none' : ''
+                                      }`}
+                                    >
+                                      {isUploading ? (
+                                        <div className="flex items-center gap-2">
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                          <span className="text-xs">Enviando...</span>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <Upload className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-xs text-muted-foreground">
+                                            PNG, JPG ou SVG
+                                          </span>
+                                        </>
+                                      )}
+                                    </Label>
+                                    <Input
+                                      id="logo-upload"
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      disabled={isUploading}
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file || !currentVenue?.id) return;
+
+                                        const result = await upload(file, {
+                                          bucket: 'venue-logos',
+                                          folder: currentVenue.id,
+                                        });
+
+                                        if (result) {
+                                          field.onChange(result.url);
+                                          toast({ title: 'Logo enviado!' });
+                                        }
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
 
                     <Button type="submit" disabled={isLoading}>
@@ -521,10 +410,7 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-
-          {/* ===================== */}
           {/* TAB: INTEGRAÇÕES */}
-          {/* ===================== */}
           <TabsContent value="integrations">
             <Card>
               <CardHeader>
@@ -540,13 +426,13 @@ export default function Configuracoes() {
                   </div>
                 ) : isConnected ? (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                       <div className="flex-1">
-                        <p className="font-medium text-green-800 dark:text-green-200">
+                        <p className="font-medium text-emerald-800 dark:text-emerald-200">
                           Conectado ao Google Calendar
                         </p>
-                        <p className="text-sm text-green-600 dark:text-green-400">
+                        <p className="text-sm text-emerald-600 dark:text-emerald-400">
                           Calendário: {connection?.calendar_id || 'Primário'}
                         </p>
                       </div>
@@ -589,9 +475,7 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-          {/* ===================== */}
           {/* TAB: LEMBRETES */}
-          {/* ===================== */}
           <TabsContent value="reminders">
             <Card>
               <CardHeader>
@@ -645,9 +529,7 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-          {/* ===================== */}
           {/* TAB: EQUIPE */}
-          {/* ===================== */}
           <TabsContent value="team">
             <Card>
               <CardHeader>
@@ -661,8 +543,8 @@ export default function Configuracoes() {
                   <div className="rounded-full bg-muted p-4 mb-4">
                     <Users className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <h3 className="font-semibold text-lg">Em breve</h3>
-                  <p className="text-muted-foreground mt-1 max-w-sm">
+                  <h3 className="font-semibold">Em breve</h3>
+                  <p className="text-muted-foreground mt-1 text-sm max-w-sm">
                     A funcionalidade de convite de membros estará disponível em uma próxima atualização
                   </p>
                 </div>

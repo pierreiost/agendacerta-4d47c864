@@ -12,7 +12,6 @@ import {
   Users,
   Home,
   Shield,
-  Palette,
   Globe,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -89,7 +88,6 @@ export function AppSidebar() {
   const gestaoItems = [
     { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
     ...(isMaxPlan ? [
-      { title: "Personalização", href: "/personalizacao", icon: Palette },
       { title: "Página Pública", href: "/pagina-publica", icon: Globe },
     ] : []),
     { title: "Configurações", href: "/configuracoes", icon: Settings },

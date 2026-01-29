@@ -1,5 +1,7 @@
 // Types for customizable public page sections
 
+export type CoverStyle = 'wave' | 'squared' | 'hero';
+
 export interface HeroSection {
   enabled: boolean;
   title: string | null;
@@ -7,6 +9,7 @@ export interface HeroSection {
   background_image_url: string | null;
   show_cta: boolean;
   cta_text: string;
+  cover_style: CoverStyle;
 }
 
 export interface GalleryImage {
@@ -113,7 +116,8 @@ export const DEFAULT_SECTIONS: PublicPageSections = {
     subtitle: null,
     background_image_url: null,
     show_cta: true,
-    cta_text: "Agendar agora"
+    cta_text: "Agendar agora",
+    cover_style: 'wave'
   },
   gallery: {
     enabled: false,
