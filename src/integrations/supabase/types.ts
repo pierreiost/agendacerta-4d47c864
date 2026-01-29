@@ -1040,6 +1040,41 @@ export type Database = {
         Args: { _email: string; _ip_address?: string; _success?: boolean }
         Returns: undefined
       }
+      get_public_venue_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+          booking_mode: string
+          public_settings: Json
+          logo_url: string
+          primary_color: string
+        }[]
+      }
+      get_public_spaces_by_venue: {
+        Args: { p_venue_id: string }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          price_per_hour: number
+          capacity: number
+        }[]
+      }
+      create_public_inquiry: {
+        Args: {
+          p_venue_id: string
+          p_space_id: string
+          p_customer_name: string
+          p_customer_email: string
+          p_customer_phone: string | null
+          p_start_time: string
+          p_end_time: string
+          p_notes: string | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "staff" | "superadmin"

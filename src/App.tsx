@@ -23,6 +23,7 @@ import Personalizacao from "./pages/Personalizacao";
 import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import PublicPageVenue from "./pages/public/PublicPageVenue";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -110,6 +111,8 @@ function AppRoutes() {
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
+      {/* Public page - accessible without authentication */}
+      <Route path="/v/:slug" element={<PublicPageVenue />} />
       <Route
         path="/onboarding"
         element={
