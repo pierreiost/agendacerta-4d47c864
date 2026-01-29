@@ -19,7 +19,7 @@ import Relatorios from "./pages/Relatorios";
 import OrdensServico from "./pages/OrdensServico";
 import OrdemServicoForm from "./pages/OrdemServicoForm";
 import Configuracoes from "./pages/Configuracoes";
-import Personalizacao from "./pages/Personalizacao";
+
 import PublicPageConfig from "./pages/PublicPageConfig";
 import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
@@ -133,7 +133,7 @@ function AppRoutes() {
       <Route path="/ordens-servico/:id" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
       <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-      <Route path="/personalizacao" element={<ProtectedRoute><Personalizacao /></ProtectedRoute>} />
+      
       <Route path="/pagina-publica" element={<ProtectedRoute><PublicPageConfig /></ProtectedRoute>} />
       <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
       <Route path="*" element={<NotFound />} />
