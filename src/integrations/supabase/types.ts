@@ -482,6 +482,56 @@ export type Database = {
         }
         Relationships: []
       }
+      service_inquiries: {
+        Row: {
+          created_at: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          photo_urls: string[] | null
+          problem_description: string
+          status: string | null
+          updated_at: string | null
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          photo_urls?: string[] | null
+          problem_description: string
+          status?: string | null
+          updated_at?: string | null
+          venue_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          photo_urls?: string[] | null
+          problem_description?: string
+          status?: string | null
+          updated_at?: string | null
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_inquiries_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_order_items: {
         Row: {
           created_at: string
@@ -811,7 +861,7 @@ export type Database = {
           address: string | null
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
-          booking_mode: 'calendar' | 'inquiry' | 'external_link' | null
+          booking_mode: string | null
           created_at: string
           dark_mode: boolean | null
           email: string | null
@@ -822,12 +872,7 @@ export type Database = {
           plan_type: string | null
           primary_color: string | null
           public_page_enabled: boolean | null
-          public_settings: {
-            external_link_url?: string
-            inquiry_notification_email?: string
-            page_title?: string
-            page_instruction?: string
-          } | null
+          public_settings: Json | null
           reminder_hours_before: number | null
           secondary_color: string | null
           slug: string | null
@@ -841,7 +886,7 @@ export type Database = {
           address?: string | null
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
-          booking_mode?: 'calendar' | 'inquiry' | 'external_link' | null
+          booking_mode?: string | null
           created_at?: string
           dark_mode?: boolean | null
           email?: string | null
@@ -852,12 +897,7 @@ export type Database = {
           plan_type?: string | null
           primary_color?: string | null
           public_page_enabled?: boolean | null
-          public_settings?: {
-            external_link_url?: string
-            inquiry_notification_email?: string
-            page_title?: string
-            page_instruction?: string
-          } | null
+          public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
           slug?: string | null
@@ -871,7 +911,7 @@ export type Database = {
           address?: string | null
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
-          booking_mode?: 'calendar' | 'inquiry' | 'external_link' | null
+          booking_mode?: string | null
           created_at?: string
           dark_mode?: boolean | null
           email?: string | null
@@ -882,12 +922,7 @@ export type Database = {
           plan_type?: string | null
           primary_color?: string | null
           public_page_enabled?: boolean | null
-          public_settings?: {
-            external_link_url?: string
-            inquiry_notification_email?: string
-            page_title?: string
-            page_instruction?: string
-          } | null
+          public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
           slug?: string | null
@@ -994,6 +1029,43 @@ export type Database = {
         }[]
       }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      create_public_booking: {
+        Args: {
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_end_time?: string
+          p_notes?: string
+          p_space_id: string
+          p_start_time?: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
+      create_public_inquiry: {
+        Args: {
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_end_time: string
+          p_notes?: string
+          p_space_id: string
+          p_start_time: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
+      create_service_inquiry: {
+        Args: {
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_photo_urls?: string[]
+          p_problem_description?: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
       create_venue_with_admin: {
         Args: { _address?: string; _name: string; _phone?: string }
         Returns: {
@@ -1001,6 +1073,7 @@ export type Database = {
           address: string | null
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
+          booking_mode: string | null
           created_at: string
           dark_mode: boolean | null
           email: string | null
@@ -1010,8 +1083,11 @@ export type Database = {
           phone: string | null
           plan_type: string | null
           primary_color: string | null
+          public_page_enabled: boolean | null
+          public_settings: Json | null
           reminder_hours_before: number | null
           secondary_color: string | null
+          slug: string | null
           subscription_ends_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
@@ -1023,6 +1099,35 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_public_spaces_by_venue: {
+        Args: { p_venue_id: string }
+        Returns: {
+          capacity: number
+          description: string
+          id: string
+          name: string
+          price_per_hour: number
+        }[]
+      }
+      get_public_venue_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          booking_mode: string
+          id: string
+          logo_url: string
+          name: string
+          primary_color: string
+          public_settings: Json
+          slug: string
+        }[]
+      }
+      get_space_bookings_for_date: {
+        Args: { p_date: string; p_space_id: string; p_venue_id: string }
+        Returns: {
+          end_time: string
+          start_time: string
+        }[]
       }
       has_role: {
         Args: {
@@ -1043,76 +1148,6 @@ export type Database = {
       record_login_attempt: {
         Args: { _email: string; _ip_address?: string; _success?: boolean }
         Returns: undefined
-      }
-      get_public_venue_by_slug: {
-        Args: { p_slug: string }
-        Returns: {
-          id: string
-          name: string
-          slug: string
-          booking_mode: string
-          public_settings: Json
-          logo_url: string
-          primary_color: string
-        }[]
-      }
-      get_public_spaces_by_venue: {
-        Args: { p_venue_id: string }
-        Returns: {
-          id: string
-          name: string
-          description: string
-          price_per_hour: number
-          capacity: number
-        }[]
-      }
-      create_public_inquiry: {
-        Args: {
-          p_venue_id: string
-          p_space_id: string
-          p_customer_name: string
-          p_customer_email: string
-          p_customer_phone: string | null
-          p_start_time: string
-          p_end_time: string
-          p_notes: string | null
-        }
-        Returns: string
-      }
-      create_service_inquiry: {
-        Args: {
-          p_venue_id: string
-          p_customer_name: string
-          p_customer_email: string
-          p_customer_phone?: string | null
-          p_problem_description?: string | null
-          p_photo_urls?: string[]
-        }
-        Returns: string
-      }
-      get_space_bookings_for_date: {
-        Args: {
-          p_venue_id: string
-          p_space_id: string
-          p_date: string
-        }
-        Returns: {
-          start_time: string
-          end_time: string
-        }[]
-      }
-      create_public_booking: {
-        Args: {
-          p_venue_id: string
-          p_space_id: string
-          p_customer_name: string
-          p_customer_email: string
-          p_customer_phone?: string | null
-          p_start_time: string
-          p_end_time: string
-          p_notes?: string | null
-        }
-        Returns: string
       }
     }
     Enums: {

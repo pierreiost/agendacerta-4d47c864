@@ -57,10 +57,30 @@
     /* Success - Emerald */
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
+    --success-50: 160 76% 95%;
+    --success-100: 160 84% 85%;
+    --success-500: 160 84% 39%;
+    --success-700: 160 84% 25%;
 
     /* Warning - Amber */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --warning-50: 38 92% 95%;
+    --warning-100: 38 92% 85%;
+    --warning-500: 38 92% 50%;
+    --warning-700: 38 75% 35%;
+
+    /* Error - Red */
+    --error-50: 0 86% 95%;
+    --error-100: 0 86% 85%;
+    --error-500: 0 84% 60%;
+    --error-700: 0 72% 45%;
+
+    /* Primary shades */
+    --primary-50: 239 84% 97%;
+    --primary-100: 239 84% 90%;
+    --primary-500: 239 84% 67%;
+    --primary-700: 239 84% 50%;
 
     /* Borders */
     --border: 214 32% 91%;
@@ -121,9 +141,29 @@
 
     --success: 160 84% 30%;
     --success-foreground: 0 0% 100%;
+    --success-50: 160 50% 15%;
+    --success-100: 160 60% 25%;
+    --success-500: 160 84% 40%;
+    --success-700: 160 84% 60%;
 
     --warning: 38 92% 40%;
     --warning-foreground: 0 0% 100%;
+    --warning-50: 38 50% 15%;
+    --warning-100: 38 60% 25%;
+    --warning-500: 38 92% 50%;
+    --warning-700: 38 92% 65%;
+
+    /* Error - Red (dark mode) */
+    --error-50: 0 50% 15%;
+    --error-100: 0 60% 25%;
+    --error-500: 0 63% 50%;
+    --error-700: 0 72% 65%;
+
+    /* Primary shades (dark mode) */
+    --primary-50: 239 50% 18%;
+    --primary-100: 239 60% 28%;
+    --primary-500: 239 84% 67%;
+    --primary-700: 239 84% 80%;
 
     --border: 215 25% 20%;
     --input: 215 25% 20%;
