@@ -680,7 +680,7 @@ export default function Configuracoes() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Globe className="h-4 w-4 text-primary" />
-                        <span>URL exclusiva: agendacerta.com/seu-negocio</span>
+                        <span>URL exclusiva: agendacerta.online/seu-negocio</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-primary" />
@@ -740,7 +740,7 @@ export default function Configuracoes() {
                             <FormLabel>Endereço da Página</FormLabel>
                             <div className="flex items-center">
                               <span className="inline-flex items-center px-3 h-10 border border-r-0 rounded-l-md bg-muted text-sm text-muted-foreground">
-                                agendacerta.com/
+                                agendacerta.online/
                               </span>
                               <FormControl>
                                 <Input
@@ -930,12 +930,12 @@ export default function Configuracoes() {
                         <div className="rounded-lg border p-4 bg-primary/5">
                           <p className="text-sm text-muted-foreground mb-1">Sua página estará disponível em:</p>
                           <a
-                            href={`https://agendacerta.com/${publicPageForm.watch('slug')}`}
+                            href={`https://agendacerta.online/${publicPageForm.watch('slug')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary hover:underline flex items-center gap-1"
                           >
-                            agendacerta.com/{publicPageForm.watch('slug')}
+                            agendacerta.online/{publicPageForm.watch('slug')}
                             <ExternalLink className="h-3 w-3" />
                           </a>
                         </div>
