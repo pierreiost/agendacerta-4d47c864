@@ -807,12 +807,10 @@ export type Database = {
       }
       venues: {
         Row: {
-          accent_color: string | null
           address: string | null
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
           created_at: string
-          dark_mode: boolean | null
           email: string | null
           id: string
           logo_url: string | null
@@ -821,19 +819,16 @@ export type Database = {
           plan_type: string | null
           primary_color: string | null
           reminder_hours_before: number | null
-          secondary_color: string | null
           subscription_ends_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
-          accent_color?: string | null
           address?: string | null
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           created_at?: string
-          dark_mode?: boolean | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -842,19 +837,16 @@ export type Database = {
           plan_type?: string | null
           primary_color?: string | null
           reminder_hours_before?: number | null
-          secondary_color?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
-          accent_color?: string | null
           address?: string | null
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           created_at?: string
-          dark_mode?: boolean | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -863,7 +855,6 @@ export type Database = {
           plan_type?: string | null
           primary_color?: string | null
           reminder_hours_before?: number | null
-          secondary_color?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
@@ -980,6 +971,7 @@ export type Database = {
           name: string
           phone: string | null
           plan_type: string | null
+          primary_color: string | null
           reminder_hours_before: number | null
           subscription_ends_at: string | null
           subscription_status: string | null
