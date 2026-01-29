@@ -219,25 +219,26 @@ export default function Configuracoes() {
     defaultValues: {
       slug: currentVenue?.slug ?? '',
       public_page_enabled: currentVenue?.public_page_enabled ?? false,
-      booking_mode: currentVenue?.booking_mode ?? undefined,
-      external_link_url: currentVenue?.public_settings?.external_link_url ?? '',
-      inquiry_notification_email: currentVenue?.public_settings?.inquiry_notification_email ?? '',
-      page_title: currentVenue?.public_settings?.page_title ?? '',
-      page_instruction: currentVenue?.public_settings?.page_instruction ?? '',
+      booking_mode: (currentVenue?.booking_mode as 'calendar' | 'external_link' | 'inquiry') ?? undefined,
+      external_link_url: (currentVenue?.public_settings as Record<string, string> | null)?.external_link_url ?? '',
+      inquiry_notification_email: (currentVenue?.public_settings as Record<string, string> | null)?.inquiry_notification_email ?? '',
+      page_title: (currentVenue?.public_settings as Record<string, string> | null)?.page_title ?? '',
+      page_instruction: (currentVenue?.public_settings as Record<string, string> | null)?.page_instruction ?? '',
     },
   });
 
   // Atualizar form quando venue mudar
   useEffect(() => {
     if (currentVenue) {
+      const publicSettings = currentVenue.public_settings as Record<string, string> | null;
       publicPageForm.reset({
         slug: currentVenue.slug ?? '',
         public_page_enabled: currentVenue.public_page_enabled ?? false,
-        booking_mode: currentVenue.booking_mode ?? undefined,
-        external_link_url: currentVenue.public_settings?.external_link_url ?? '',
-        inquiry_notification_email: currentVenue.public_settings?.inquiry_notification_email ?? '',
-        page_title: currentVenue.public_settings?.page_title ?? '',
-        page_instruction: currentVenue.public_settings?.page_instruction ?? '',
+        booking_mode: (currentVenue.booking_mode as 'calendar' | 'external_link' | 'inquiry') ?? undefined,
+        external_link_url: publicSettings?.external_link_url ?? '',
+        inquiry_notification_email: publicSettings?.inquiry_notification_email ?? '',
+        page_title: publicSettings?.page_title ?? '',
+        page_instruction: publicSettings?.page_instruction ?? '',
       });
     }
   }, [currentVenue, publicPageForm]);

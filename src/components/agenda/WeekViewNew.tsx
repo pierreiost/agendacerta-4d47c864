@@ -35,19 +35,28 @@ interface WeekViewNewProps {
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 to 22:00
 const HOUR_HEIGHT = 40; // Reduzido para mostrar mais conteúdo sem scroll
 
-const STATUS_STYLES: Record<string, string> = {
-  PENDING: 'bg-warning-100 text-warning-700 border-warning-200',
-  CONFIRMED: 'bg-success-100 text-success-700 border-success-200',
-  FINALIZED: 'bg-primary-100 text-primary-700 border-primary-200',
-  CANCELLED: 'bg-error-100 text-error-700 border-error-200',
-};
-
-// Cores de fundo do card baseadas no status
-const STATUS_CARD_STYLES: Record<string, { bg: string; border: string }> = {
-  PENDING: { bg: 'bg-warning-50', border: 'border-l-warning-500' },
-  CONFIRMED: { bg: 'bg-success-50', border: 'border-l-success-500' },
-  FINALIZED: { bg: 'bg-primary-50', border: 'border-l-primary-500' },
-  CANCELLED: { bg: 'bg-error-50', border: 'border-l-error-500' },
+// Cores de fundo do card baseadas no status - com suporte a dark mode
+const STATUS_CARD_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+  PENDING: { 
+    bg: 'bg-amber-50 dark:bg-amber-950/50', 
+    border: 'border-l-amber-500 dark:border-l-amber-400',
+    text: 'text-amber-900 dark:text-amber-100'
+  },
+  CONFIRMED: { 
+    bg: 'bg-emerald-50 dark:bg-emerald-950/50', 
+    border: 'border-l-emerald-500 dark:border-l-emerald-400',
+    text: 'text-emerald-900 dark:text-emerald-100'
+  },
+  FINALIZED: { 
+    bg: 'bg-indigo-50 dark:bg-indigo-950/50', 
+    border: 'border-l-indigo-500 dark:border-l-indigo-400',
+    text: 'text-indigo-900 dark:text-indigo-100'
+  },
+  CANCELLED: { 
+    bg: 'bg-red-50 dark:bg-red-950/50', 
+    border: 'border-l-red-500 dark:border-l-red-400',
+    text: 'text-red-900 dark:text-red-100'
+  },
 };
 
 export function WeekViewNew({
@@ -198,6 +207,7 @@ export function WeekViewNew({
                                 'transition-all duration-200 hover:scale-[1.02] hover:shadow-md hover:z-10',
                                 statusStyles.bg,
                                 statusStyles.border,
+                                statusStyles.text,
                                 isNow && 'ring-2 ring-primary/50'
                               )}
                               style={{ top, height }}
