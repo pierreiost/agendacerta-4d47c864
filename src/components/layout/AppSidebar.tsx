@@ -13,6 +13,7 @@ import {
   Home,
   Shield,
   Palette,
+  Globe,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -106,6 +107,7 @@ export function AppSidebar() {
       items: [
         { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
         { title: "Personalização", href: "/personalizacao", icon: Palette },
+        { title: "Página Pública", href: "/pagina-publica", icon: Globe },
         { title: "Configurações", href: "/configuracoes", icon: Settings },
       ],
     },

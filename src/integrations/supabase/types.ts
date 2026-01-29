@@ -872,6 +872,7 @@ export type Database = {
           plan_type: string | null
           primary_color: string | null
           public_page_enabled: boolean | null
+          public_page_sections: Json | null
           public_settings: Json | null
           reminder_hours_before: number | null
           secondary_color: string | null
@@ -897,6 +898,7 @@ export type Database = {
           plan_type?: string | null
           primary_color?: string | null
           public_page_enabled?: boolean | null
+          public_page_sections?: Json | null
           public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
@@ -922,6 +924,7 @@ export type Database = {
           plan_type?: string | null
           primary_color?: string | null
           public_page_enabled?: boolean | null
+          public_page_sections?: Json | null
           public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
@@ -1084,6 +1087,7 @@ export type Database = {
           plan_type: string | null
           primary_color: string | null
           public_page_enabled: boolean | null
+          public_page_sections: Json | null
           public_settings: Json | null
           reminder_hours_before: number | null
           secondary_color: string | null
