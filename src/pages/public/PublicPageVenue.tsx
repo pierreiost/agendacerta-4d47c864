@@ -210,14 +210,52 @@ export default function PublicPageVenue() {
     };
   };
 
+  // Constantes de segurança para uploads
+  const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const MAX_FILE_SIZE_MB = 5;
+  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+  const validateFile = (file: File): { valid: boolean; error?: string } => {
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return { valid: false, error: `Tipo de arquivo não permitido: ${file.type.split('/')[1] || 'desconhecido'}. Use JPG, PNG, GIF ou WebP.` };
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return { valid: false, error: `Arquivo muito grande: ${(file.size / 1024 / 1024).toFixed(1)}MB. Máximo: ${MAX_FILE_SIZE_MB}MB.` };
+    }
+    return { valid: true };
+  };
+
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const newPhotos = Array.from(files).slice(0, 5 - photos.length).map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-    setPhotos(prev => [...prev, ...newPhotos].slice(0, 5));
+
+    const validFiles: { file: File; preview: string }[] = [];
+    const errors: string[] = [];
+
+    Array.from(files).slice(0, 5 - photos.length).forEach(file => {
+      const validation = validateFile(file);
+      if (validation.valid) {
+        validFiles.push({
+          file,
+          preview: URL.createObjectURL(file),
+        });
+      } else {
+        errors.push(validation.error!);
+      }
+    });
+
+    if (errors.length > 0) {
+      toast({
+        title: 'Alguns arquivos foram rejeitados',
+        description: errors.join(' '),
+        variant: 'destructive',
+      });
+    }
+
+    if (validFiles.length > 0) {
+      setPhotos(prev => [...prev, ...validFiles].slice(0, 5));
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -234,12 +272,38 @@ export default function PublicPageVenue() {
   const uploadPhotos = async (): Promise<string[]> => {
     if (photos.length === 0) return [];
     const uploadedUrls: string[] = [];
+
+    // Mapeamento de MIME type para extensão segura
+    const MIME_TO_EXT: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+
     for (const photo of photos) {
-      const fileExt = photo.file.name.split('.').pop();
+      // Validação final antes do upload (double-check)
+      const validation = validateFile(photo.file);
+      if (!validation.valid) {
+        console.warn('Arquivo rejeitado no upload:', validation.error);
+        continue;
+      }
+
+      // Usar extensão baseada no MIME type (mais seguro que confiar na extensão do nome)
+      const fileExt = MIME_TO_EXT[photo.file.type] || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${venue?.id}/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from('inquiry-photos').upload(filePath, photo.file);
-      if (uploadError) continue;
+
+      const { error: uploadError } = await supabase.storage.from('inquiry-photos').upload(filePath, photo.file, {
+        contentType: photo.file.type,
+        cacheControl: '3600',
+      });
+
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        continue;
+      }
+
       const { data: { publicUrl } } = supabase.storage.from('inquiry-photos').getPublicUrl(filePath);
       uploadedUrls.push(publicUrl);
     }
@@ -352,10 +416,27 @@ export default function PublicPageVenue() {
     );
   }
 
+  // Função para validar URL segura (prevenir javascript:, data:, etc.)
+  const isSafeUrl = (url: string): boolean => {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase().trim();
+    // Rejeitar URLs perigosas
+    if (lowerUrl.startsWith('javascript:') ||
+        lowerUrl.startsWith('data:') ||
+        lowerUrl.startsWith('vbscript:') ||
+        lowerUrl.startsWith('file:')) {
+      return false;
+    }
+    // Aceitar apenas http e https
+    return lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://');
+  };
+
   // External link redirect mode
   if (venue.booking_mode === 'external_link') {
     const externalUrl = venue.public_settings?.external_link_url;
-    if (externalUrl) {
+    const safeUrl = externalUrl && isSafeUrl(externalUrl) ? externalUrl : null;
+
+    if (safeUrl) {
       return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full text-center shadow-lg">
@@ -370,7 +451,7 @@ export default function PublicPageVenue() {
             </CardHeader>
             <CardContent>
               <Button asChild className="w-full" size="lg">
-                <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+                <a href={safeUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Acessar Agendamento
                 </a>
@@ -635,6 +716,8 @@ export default function PublicPageVenue() {
                       <Input
                         id="customer_name"
                         required
+                        minLength={2}
+                        maxLength={200}
                         value={formData.customer_name}
                         onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
                         placeholder="Seu nome"
@@ -651,6 +734,7 @@ export default function PublicPageVenue() {
                         id="customer_email"
                         type="email"
                         required
+                        maxLength={254}
                         value={formData.customer_email}
                         onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
                         placeholder="seu@email.com"
@@ -666,6 +750,7 @@ export default function PublicPageVenue() {
                       <Input
                         id="customer_phone"
                         type="tel"
+                        maxLength={20}
                         value={formData.customer_phone}
                         onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
                         placeholder="(00) 00000-0000"
@@ -677,6 +762,7 @@ export default function PublicPageVenue() {
                       <Label htmlFor="notes">Observações</Label>
                       <Textarea
                         id="notes"
+                        maxLength={1000}
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         placeholder="Alguma informação adicional..."
@@ -781,6 +867,8 @@ export default function PublicPageVenue() {
                   <Input
                     id="customer_name"
                     required
+                    minLength={2}
+                    maxLength={200}
                     value={formData.customer_name}
                     onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
                     placeholder="Seu nome"
@@ -797,6 +885,7 @@ export default function PublicPageVenue() {
                     id="customer_email"
                     type="email"
                     required
+                    maxLength={254}
                     value={formData.customer_email}
                     onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
                     placeholder="seu@email.com"
@@ -812,6 +901,7 @@ export default function PublicPageVenue() {
                   <Input
                     id="customer_phone"
                     type="tel"
+                    maxLength={20}
                     value={formData.customer_phone}
                     onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
                     placeholder="(00) 00000-0000"
@@ -828,6 +918,7 @@ export default function PublicPageVenue() {
                 <Textarea
                   id="problem_description"
                   required
+                  maxLength={5000}
                   value={formData.problem_description}
                   onChange={(e) => setFormData({ ...formData, problem_description: e.target.value })}
                   placeholder="Descreva o problema ou serviço que você precisa..."
@@ -844,7 +935,7 @@ export default function PublicPageVenue() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"
                   multiple
                   onChange={handlePhotoSelect}
                   className="hidden"
