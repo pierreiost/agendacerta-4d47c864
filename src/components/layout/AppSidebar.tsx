@@ -47,6 +47,9 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { currentVenue, venues, setCurrentVenue } = useVenue();
 
+  // Check if venue is on max plan
+  const isMaxPlan = currentVenue?.plan_type === 'max';
+
   // Check if user is superadmin from database
   const { data: isSuperAdmin } = useQuery({
     queryKey: ['is-superadmin-sidebar', user?.id],
@@ -82,6 +85,16 @@ export function AppSidebar() {
     return name[0].toUpperCase();
   };
 
+  // Build menu items conditionally based on plan
+  const gestaoItems = [
+    { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+    ...(isMaxPlan ? [
+      { title: "Personalização", href: "/personalizacao", icon: Palette },
+      { title: "Página Pública", href: "/pagina-publica", icon: Globe },
+    ] : []),
+    { title: "Configurações", href: "/configuracoes", icon: Settings },
+  ];
+
   const menuGroups = [
     {
       label: "PRINCIPAL",
@@ -104,12 +117,7 @@ export function AppSidebar() {
     },
     {
       label: "GESTÃO",
-      items: [
-        { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
-        { title: "Personalização", href: "/personalizacao", icon: Palette },
-        { title: "Página Pública", href: "/pagina-publica", icon: Globe },
-        { title: "Configurações", href: "/configuracoes", icon: Settings },
-      ],
+      items: gestaoItems,
     },
   ];
 
