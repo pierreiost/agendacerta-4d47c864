@@ -42,12 +42,12 @@ const STATUS_STYLES: Record<string, string> = {
   CANCELLED: 'bg-error-100 text-error-700 border-error-200',
 };
 
-// Cores de fundo do card baseadas no status
+// Cores de fundo do card baseadas no status (com suporte a dark mode)
 const STATUS_CARD_STYLES: Record<string, { bg: string; border: string }> = {
-  PENDING: { bg: 'bg-warning-50', border: 'border-l-warning-500' },
-  CONFIRMED: { bg: 'bg-success-50', border: 'border-l-success-500' },
-  FINALIZED: { bg: 'bg-primary-50', border: 'border-l-primary-500' },
-  CANCELLED: { bg: 'bg-error-50', border: 'border-l-error-500' },
+  PENDING: { bg: 'bg-warning-50 dark:bg-warning-500/20', border: 'border-l-warning-500' },
+  CONFIRMED: { bg: 'bg-success-50 dark:bg-success-500/20', border: 'border-l-success-500' },
+  FINALIZED: { bg: 'bg-primary-50 dark:bg-primary-500/20', border: 'border-l-primary-500' },
+  CANCELLED: { bg: 'bg-error-50 dark:bg-error-500/20', border: 'border-l-error-500' },
 };
 
 export function WeekViewNew({
