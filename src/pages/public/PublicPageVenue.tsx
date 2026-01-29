@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,11 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, ExternalLink, Mail, Phone, User, Clock, MapPin, CheckCircle2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Loader2, Calendar, ExternalLink, Mail, Phone, User, CheckCircle2, FileText, ImagePlus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PublicVenue {
@@ -27,14 +24,6 @@ interface PublicVenue {
   } | null;
   logo_url: string | null;
   primary_color: string | null;
-}
-
-interface PublicSpace {
-  id: string;
-  name: string;
-  description: string | null;
-  price_per_hour: number | null;
-  capacity: number | null;
 }
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
@@ -68,17 +57,16 @@ export default function PublicPageVenue() {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state for inquiry mode
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_email: '',
     customer_phone: '',
-    space_id: '',
-    start_date: '',
-    start_time: '',
-    end_time: '',
-    notes: '',
+    problem_description: '',
   });
 
   // Fetch venue by slug
@@ -97,20 +85,6 @@ export default function PublicPageVenue() {
     enabled: !!slug,
   });
 
-  // Fetch spaces for the venue
-  const { data: spaces, isLoading: spacesLoading } = useQuery({
-    queryKey: ['public-spaces', venue?.id],
-    queryFn: async () => {
-      if (!venue?.id) return [];
-
-      const { data, error } = await supabase.rpc('get_public_spaces_by_venue', { p_venue_id: venue.id });
-
-      if (error) throw error;
-      return (data || []) as PublicSpace[];
-    },
-    enabled: !!venue?.id && venue.booking_mode === 'inquiry',
-  });
-
   // Apply theme colors
   useEffect(() => {
     if (venue?.primary_color) {
@@ -121,30 +95,98 @@ export default function PublicPageVenue() {
     }
 
     return () => {
-      // Reset to default on unmount
       document.documentElement.style.removeProperty('--primary');
     };
   }, [venue?.primary_color]);
 
+  // Cleanup photo previews on unmount
+  useEffect(() => {
+    return () => {
+      photos.forEach(photo => URL.revokeObjectURL(photo.preview));
+    };
+  }, []);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newPhotos = Array.from(files).slice(0, 5 - photos.length).map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setPhotos(prev => [...prev, ...newPhotos].slice(0, 5));
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => {
+      const photo = prev[index];
+      if (photo) {
+        URL.revokeObjectURL(photo.preview);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const uploadPhotos = async (): Promise<string[]> => {
+    if (photos.length === 0) return [];
+
+    const uploadedUrls: string[] = [];
+
+    for (const photo of photos) {
+      const fileExt = photo.file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${venue?.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('inquiry-photos')
+        .upload(filePath, photo.file);
+
+      if (uploadError) {
+        console.error('Error uploading photo:', uploadError);
+        continue;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('inquiry-photos')
+        .getPublicUrl(filePath);
+
+      uploadedUrls.push(publicUrl);
+    }
+
+    return uploadedUrls;
+  };
+
   // Create inquiry mutation
   const createInquiry = useMutation({
     mutationFn: async () => {
-      if (!venue?.id || !formData.space_id) {
+      if (!venue?.id) {
         throw new Error('Dados incompletos');
       }
 
-      const startDateTime = new Date(`${formData.start_date}T${formData.start_time}`);
-      const endDateTime = new Date(`${formData.start_date}T${formData.end_time}`);
+      setUploadingPhotos(true);
+      let photoUrls: string[] = [];
 
-      const { data, error } = await supabase.rpc('create_public_inquiry', {
+      try {
+        photoUrls = await uploadPhotos();
+      } catch (err) {
+        console.error('Error uploading photos:', err);
+      } finally {
+        setUploadingPhotos(false);
+      }
+
+      const { data, error } = await supabase.rpc('create_service_inquiry', {
         p_venue_id: venue.id,
-        p_space_id: formData.space_id,
         p_customer_name: formData.customer_name,
         p_customer_email: formData.customer_email,
         p_customer_phone: formData.customer_phone || null,
-        p_start_time: startDateTime.toISOString(),
-        p_end_time: endDateTime.toISOString(),
-        p_notes: formData.notes || null,
+        p_problem_description: formData.problem_description || null,
+        p_photo_urls: photoUrls,
       });
 
       if (error) throw error;
@@ -201,7 +243,6 @@ export default function PublicPageVenue() {
     const externalUrl = venue.public_settings?.external_link_url;
 
     if (externalUrl) {
-      // Auto redirect after showing brief message
       return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full text-center shadow-lg">
@@ -270,7 +311,7 @@ export default function PublicPageVenue() {
   // Inquiry mode - show form
   const settings = venue.public_settings || {};
   const pageTitle = settings.page_title || `Solicite seu orçamento`;
-  const pageInstruction = settings.page_instruction || `Preencha o formulário abaixo e entraremos em contato para confirmar sua reserva.`;
+  const pageInstruction = settings.page_instruction || `Preencha o formulário abaixo e entraremos em contato.`;
 
   // Success state
   if (submitted) {
@@ -288,13 +329,13 @@ export default function PublicPageVenue() {
               </div>
             )}
             <div className="flex justify-center">
-              <div className="rounded-full bg-success-100 p-3">
-                <CheckCircle2 className="h-8 w-8 text-success-600" />
+              <div className="rounded-full bg-green-100 p-3">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
               </div>
             </div>
             <CardTitle>Solicitação Enviada!</CardTitle>
             <CardDescription>
-              Obrigado pelo interesse! Entraremos em contato em breve para confirmar sua reserva.
+              Obrigado pelo interesse! Entraremos em contato em breve.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -307,12 +348,9 @@ export default function PublicPageVenue() {
                   customer_name: '',
                   customer_email: '',
                   customer_phone: '',
-                  space_id: '',
-                  start_date: '',
-                  start_time: '',
-                  end_time: '',
-                  notes: '',
+                  problem_description: '',
                 });
+                setPhotos([]);
               }}
             >
               Fazer nova solicitação
@@ -322,6 +360,8 @@ export default function PublicPageVenue() {
       </div>
     );
   }
+
+  const isSubmitting = createInquiry.isPending || uploadingPhotos;
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
@@ -395,106 +435,72 @@ export default function PublicPageVenue() {
                 </div>
               </div>
 
-              {/* Space Selection */}
+              {/* Problem Description */}
               <div>
-                <Label htmlFor="space_id" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Espaço desejado *
+                <Label htmlFor="problem_description" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Descrição do problema *
                 </Label>
-                {spacesLoading ? (
-                  <div className="flex items-center justify-center p-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                ) : (
-                  <Select
-                    value={formData.space_id}
-                    onValueChange={(value) => setFormData({ ...formData, space_id: value })}
-                    required
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Selecione um espaço" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {spaces?.map((space) => (
-                        <SelectItem key={space.id} value={space.id}>
-                          <div className="flex flex-col">
-                            <span>{space.name}</span>
-                            {space.price_per_hour && (
-                              <span className="text-xs text-muted-foreground">
-                                R$ {space.price_per_hour.toFixed(2)}/hora
-                                {space.capacity && ` • Até ${space.capacity} pessoas`}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-
-              {/* Date and Time */}
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="start_date" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Data desejada *
-                  </Label>
-                  <Input
-                    id="start_date"
-                    type="date"
-                    required
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    min={format(new Date(), 'yyyy-MM-dd')}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="start_time" className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Início *
-                    </Label>
-                    <Input
-                      id="start_time"
-                      type="time"
-                      required
-                      value={formData.start_time}
-                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="end_time" className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Término *
-                    </Label>
-                    <Input
-                      id="end_time"
-                      type="time"
-                      required
-                      value={formData.end_time}
-                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <Label htmlFor="notes">Observações</Label>
                 <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Detalhes adicionais sobre sua reserva..."
-                  rows={3}
+                  id="problem_description"
+                  required
+                  value={formData.problem_description}
+                  onChange={(e) => setFormData({ ...formData, problem_description: e.target.value })}
+                  placeholder="Descreva o problema ou serviço que você precisa..."
+                  rows={4}
                   className="mt-1"
                 />
+              </div>
+
+              {/* Photo Upload */}
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <ImagePlus className="h-4 w-4" />
+                  Fotos (opcional - máx. 5)
+                </Label>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+
+                {/* Photo previews */}
+                {photos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {photos.map((photo, index) => (
+                      <div key={index} className="relative aspect-square">
+                        <img
+                          src={photo.preview}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {photos.length < 5 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    {photos.length === 0 ? 'Adicionar fotos' : 'Adicionar mais fotos'}
+                  </Button>
+                )}
               </div>
 
               {/* Submit */}
@@ -502,12 +508,12 @@ export default function PublicPageVenue() {
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={createInquiry.isPending}
+                disabled={isSubmitting}
               >
-                {createInquiry.isPending ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enviando...
+                    {uploadingPhotos ? 'Enviando fotos...' : 'Enviando...'}
                   </>
                 ) : (
                   'Enviar Solicitação'

@@ -1075,6 +1075,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_service_inquiry: {
+        Args: {
+          p_venue_id: string
+          p_customer_name: string
+          p_customer_email: string
+          p_customer_phone?: string | null
+          p_problem_description?: string | null
+          p_photo_urls?: string[]
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "staff" | "superadmin"
