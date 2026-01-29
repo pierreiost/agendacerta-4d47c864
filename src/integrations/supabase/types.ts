@@ -1122,6 +1122,7 @@ export type Database = {
           logo_url: string
           name: string
           primary_color: string
+          public_page_sections: Json
           public_settings: Json
           slug: string
         }[]
