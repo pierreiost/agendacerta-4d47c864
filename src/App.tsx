@@ -110,9 +110,6 @@ function AppRoutes() {
     <Routes>
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      {/* Public page - accessible without authentication */}
-      <Route path="/v/:slug" element={<PublicPageVenue />} />
       <Route
         path="/onboarding"
         element={
@@ -145,7 +142,13 @@ function AppRoutes() {
 function AppWithProviders() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <Routes>
+        {/* Public routes - outside of auth/venue providers */}
+        <Route path="/v/:slug" element={<PublicPageVenue />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        {/* All other routes go through the providers */}
+        <Route path="/*" element={<AppRoutes />} />
+      </Routes>
     </BrowserRouter>
   );
 }
