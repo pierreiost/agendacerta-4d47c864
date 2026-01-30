@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,17 +32,45 @@ import { useSpaces, useCategories, type Space } from '@/hooks/useSpaces';
 import { useVenue } from '@/contexts/VenueContext';
 import { SpaceFormDialog } from '@/components/spaces/SpaceFormDialog';
 import { CategoryFormDialog } from '@/components/spaces/CategoryFormDialog';
+import { useModalPersist } from '@/hooks/useModalPersist';
 import { Plus, MoreHorizontal, Pencil, Trash2, Tag, Loader2 } from 'lucide-react';
 
 export default function Espacos() {
   const { currentVenue } = useVenue();
   const { spaces, isLoading, updateSpace, deleteSpace } = useSpaces();
   const { categories } = useCategories();
+  const { isReady, registerModal, setModalState, clearModal } = useModalPersist('espacos');
 
   const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [deletingSpace, setDeletingSpace] = useState<Space | null>(null);
+
+  // Restore modal state on mount
+  useEffect(() => {
+    if (isReady) {
+      const wasSpaceDialogOpen = registerModal('spaceForm', false);
+      if (wasSpaceDialogOpen) {
+        setSpaceDialogOpen(true);
+        setEditingSpace(null);
+      }
+    }
+  }, [isReady, registerModal]);
+
+  // Track modal state changes
+  useEffect(() => {
+    if (isReady) {
+      setModalState('spaceForm', spaceDialogOpen);
+    }
+  }, [spaceDialogOpen, isReady, setModalState]);
+
+  const handleSpaceDialogChange = (open: boolean) => {
+    setSpaceDialogOpen(open);
+    if (!open) {
+      setEditingSpace(null);
+      clearModal('spaceForm');
+    }
+  };
 
   const handleEditSpace = (space: Space) => {
     setEditingSpace(space);
@@ -187,7 +215,7 @@ export default function Espacos() {
 
       <SpaceFormDialog
         open={spaceDialogOpen}
-        onOpenChange={setSpaceDialogOpen}
+        onOpenChange={handleSpaceDialogChange}
         space={editingSpace}
         venueId={currentVenue?.id ?? ''}
         categories={categories}

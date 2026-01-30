@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,17 +32,45 @@ import { useProducts, useProductCategories, type Product } from '@/hooks/useProd
 import { useVenue } from '@/contexts/VenueContext';
 import { ProductFormDialog } from '@/components/products/ProductFormDialog';
 import { ProductCategoryFormDialog } from '@/components/products/ProductCategoryFormDialog';
+import { useModalPersist } from '@/hooks/useModalPersist';
 import { Plus, MoreHorizontal, Pencil, Trash2, Tag, Loader2, Package } from 'lucide-react';
 
 export default function Produtos() {
   const { currentVenue } = useVenue();
   const { products, isLoading, updateProduct, deleteProduct } = useProducts();
   const { categories } = useProductCategories();
+  const { isReady, registerModal, setModalState, clearModal } = useModalPersist('produtos');
 
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+
+  // Restore modal state on mount
+  useEffect(() => {
+    if (isReady) {
+      const wasProductDialogOpen = registerModal('productForm', false);
+      if (wasProductDialogOpen) {
+        setProductDialogOpen(true);
+        setEditingProduct(null);
+      }
+    }
+  }, [isReady, registerModal]);
+
+  // Track modal state changes
+  useEffect(() => {
+    if (isReady) {
+      setModalState('productForm', productDialogOpen);
+    }
+  }, [productDialogOpen, isReady, setModalState]);
+
+  const handleProductDialogChange = (open: boolean) => {
+    setProductDialogOpen(open);
+    if (!open) {
+      setEditingProduct(null);
+      clearModal('productForm');
+    }
+  };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
@@ -179,7 +207,7 @@ export default function Produtos() {
 
       <ProductFormDialog
         open={productDialogOpen}
-        onOpenChange={setProductDialogOpen}
+        onOpenChange={handleProductDialogChange}
         product={editingProduct}
         venueId={currentVenue?.id ?? ''}
         categories={categories}

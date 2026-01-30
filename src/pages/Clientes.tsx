@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,12 +30,15 @@ import {
 import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { CustomerHistorySheet } from '@/components/customers/CustomerHistorySheet';
+import { useModalPersist } from '@/hooks/useModalPersist';
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Clientes() {
   const { customers, isLoading, deleteCustomer } = useCustomers();
+  const { isReady, registerModal, setModalState, clearModal } = useModalPersist('clientes');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -43,6 +46,32 @@ export default function Clientes() {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
+
+  // Restore modal state on mount
+  useEffect(() => {
+    if (isReady) {
+      const wasFormOpen = registerModal('customerForm', false);
+      if (wasFormOpen) {
+        setFormOpen(true);
+        setSelectedCustomer(null); // Restore as new customer form
+      }
+    }
+  }, [isReady, registerModal]);
+
+  // Track modal state changes
+  useEffect(() => {
+    if (isReady) {
+      setModalState('customerForm', formOpen);
+    }
+  }, [formOpen, isReady, setModalState]);
+
+  const handleFormOpenChange = (open: boolean) => {
+    setFormOpen(open);
+    if (!open) {
+      setSelectedCustomer(null);
+      clearModal('customerForm');
+    }
+  };
 
   const filteredCustomers = customers.filter(
     (customer) =>
@@ -213,7 +242,7 @@ export default function Clientes() {
       {/* Form Dialog */}
       <CustomerFormDialog
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={handleFormOpenChange}
         customer={selectedCustomer}
       />
 
