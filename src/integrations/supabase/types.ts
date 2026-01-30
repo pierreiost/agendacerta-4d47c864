@@ -1041,6 +1041,7 @@ export type Database = {
           business_category: string | null
           created_at: string
           dark_mode: boolean | null
+          dashboard_mode: string | null
           email: string | null
           id: string
           logo_url: string | null
@@ -1070,6 +1071,7 @@ export type Database = {
           business_category?: string | null
           created_at?: string
           dark_mode?: boolean | null
+          dashboard_mode?: string | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -1099,6 +1101,7 @@ export type Database = {
           business_category?: string | null
           created_at?: string
           dark_mode?: boolean | null
+          dashboard_mode?: string | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -1278,6 +1281,7 @@ export type Database = {
           business_category: string | null
           created_at: string
           dark_mode: boolean | null
+          dashboard_mode: string | null
           email: string | null
           id: string
           logo_url: string | null

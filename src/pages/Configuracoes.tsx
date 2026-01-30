@@ -443,6 +443,62 @@ export default function Configuracoes() {
                       />
                     )}
 
+                    {/* Dashboard Mode Selector */}
+                    {isAdmin && (
+                      <div className="space-y-2 pt-4 border-t">
+                        <Label htmlFor="dashboard_mode">Modo de Visualização do Dashboard</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Escolha quais métricas são mais relevantes para o seu negócio
+                        </p>
+                        <Select
+                          value={(currentVenue as { dashboard_mode?: string })?.dashboard_mode || 'bookings'}
+                          onValueChange={async (value) => {
+                            if (!currentVenue?.id) return;
+                            setIsLoading(true);
+                            const { error } = await supabase
+                              .from('venues')
+                              .update({ dashboard_mode: value })
+                              .eq('id', currentVenue.id);
+                            setIsLoading(false);
+                            if (error) {
+                              toast({
+                                title: 'Erro ao atualizar',
+                                description: error.message,
+                                variant: 'destructive',
+                              });
+                            } else {
+                              toast({ title: 'Modo do dashboard atualizado!' });
+                              refetchVenues();
+                            }
+                          }}
+                        >
+                          <SelectTrigger id="dashboard_mode">
+                            <SelectValue placeholder="Selecione o modo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bookings">
+                              <div className="flex flex-col">
+                                <span>Reservas / Espaços</span>
+                                <span className="text-xs text-muted-foreground">Quadras, salas, locais</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="appointments">
+                              <div className="flex flex-col">
+                                <span>Atendimentos / Profissionais</span>
+                                <span className="text-xs text-muted-foreground">Barbearias, salões, clínicas</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="service_orders">
+                              <div className="flex flex-col">
+                                <span>Ordens de Serviço</span>
+                                <span className="text-xs text-muted-foreground">Assistência técnica, manutenção</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
                     <Button type="submit" disabled={isLoading}>
                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Salvar
