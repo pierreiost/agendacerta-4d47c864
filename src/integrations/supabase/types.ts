@@ -87,6 +87,7 @@ export type Database = {
           grand_total: number | null
           id: string
           items_total: number | null
+          metadata: Json | null
           notes: string | null
           professional_id: string | null
           reminder_sent: boolean | null
@@ -111,6 +112,7 @@ export type Database = {
           grand_total?: number | null
           id?: string
           items_total?: number | null
+          metadata?: Json | null
           notes?: string | null
           professional_id?: string | null
           reminder_sent?: boolean | null
@@ -135,6 +137,7 @@ export type Database = {
           grand_total?: number | null
           id?: string
           items_total?: number | null
+          metadata?: Json | null
           notes?: string | null
           professional_id?: string | null
           reminder_sent?: boolean | null
