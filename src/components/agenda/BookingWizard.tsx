@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { useBookings } from '@/hooks/useBookings';
 import { useVenue } from '@/contexts/VenueContext';
+import { useFormPersist } from '@/hooks/useFormPersist';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import type { Tables } from '@/integrations/supabase/types';
 import { getSpaceColor } from './AgendaSidebar';
@@ -154,6 +155,15 @@ export function BookingWizard({
 
   const { watch, setValue, reset, handleSubmit, formState: { errors } } = form;
 
+  // Form persistence - only active when dialog is open
+  const { clearDraft } = useFormPersist({
+    form,
+    key: `booking_wizard_${currentVenue?.id || 'default'}`,
+    exclude: ['customerId'], // Don't persist customerId as it may be invalid
+    debounceMs: 300,
+    showRecoveryToast: open, // Only show toast when dialog opens
+  });
+
   const selectedSpaceId = watch('spaceId');
   const selectedDate = watch('date');
   const startHour = watch('startHour');
@@ -163,11 +173,15 @@ export function BookingWizard({
   const recurrenceType = watch('recurrenceType');
   const recurrenceCount = watch('recurrenceCount');
 
-  // Reset form when dialog opens
+  // Track if we should restore from draft or use defaultSlot
+  const initialLoadRef = useRef(true);
+
+  // Reset form when dialog opens with defaultSlot
   useEffect(() => {
     if (open) {
       setStep(1);
-      if (defaultSlot) {
+      // Only reset with defaultSlot values if this is a fresh open with a slot
+      if (defaultSlot && initialLoadRef.current) {
         reset({
           customerName: '',
           customerEmail: '',
@@ -178,20 +192,13 @@ export function BookingWizard({
           endHour: (defaultSlot.hour + 1).toString(),
           notes: '',
         });
-      } else {
-        reset({
-          customerName: '',
-          customerEmail: '',
-          customerPhone: '',
-          spaceId: '',
-          date: new Date(),
-          startHour: '',
-          endHour: '',
-          notes: '',
-        });
+        clearDraft(); // Clear any existing draft when using defaultSlot
       }
+      initialLoadRef.current = false;
+    } else {
+      initialLoadRef.current = true;
     }
-  }, [open, defaultSlot, reset]);
+  }, [open, defaultSlot, reset, clearDraft]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers.slice(0, 10);
@@ -327,6 +334,7 @@ export function BookingWizard({
     }
 
     if (successCount > 0) {
+      clearDraft(); // Clear draft on successful submission
       onOpenChange(false);
     }
   };

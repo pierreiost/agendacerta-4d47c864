@@ -29,6 +29,7 @@ import {
 import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useFormPersist } from '@/hooks/useFormPersist';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import {
@@ -114,6 +115,14 @@ export default function Configuracoes() {
     },
   });
 
+  // Form persistence for venue settings
+  const { clearDraft: clearVenueDraft } = useFormPersist({
+    form: venueForm,
+    key: `venue_settings_${currentVenue?.id || 'default'}`,
+    debounceMs: 500,
+    showRecoveryToast: true,
+  });
+
   useEffect(() => {
     if (currentVenue) {
       venueForm.reset({
@@ -131,6 +140,14 @@ export default function Configuracoes() {
     defaultValues: {
       reminder_hours_before: currentVenue?.reminder_hours_before ?? 24,
     },
+  });
+
+  // Form persistence for reminder settings
+  const { clearDraft: clearReminderDraft } = useFormPersist({
+    form: reminderForm,
+    key: `reminder_settings_${currentVenue?.id || 'default'}`,
+    debounceMs: 500,
+    showRecoveryToast: false, // Avoid multiple toasts
   });
 
   const onVenueSubmit = async (data: VenueFormData) => {
@@ -158,6 +175,7 @@ export default function Configuracoes() {
       });
     } else {
       toast({ title: 'Configurações salvas!' });
+      clearVenueDraft(); // Clear draft on successful save
       refetchVenues();
     }
   };
@@ -183,6 +201,7 @@ export default function Configuracoes() {
       });
     } else {
       toast({ title: 'Configuração de lembrete salva!' });
+      clearReminderDraft(); // Clear draft on successful save
       refetchVenues();
     }
   };
