@@ -14,8 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_services: {
+        Row: {
+          booking_id: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          price: number
+          professional_id: string | null
+          service_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          price: number
+          professional_id?: string | null
+          service_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          price?: number
+          professional_id?: string | null
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_services_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "venue_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
+          booking_type: string | null
           created_at: string
           created_by: string | null
           customer_email: string | null
@@ -28,15 +88,18 @@ export type Database = {
           id: string
           items_total: number | null
           notes: string | null
+          professional_id: string | null
           reminder_sent: boolean | null
           space_id: string
           space_total: number | null
           start_time: string
           status: Database["public"]["Enums"]["booking_status"]
+          total_duration_minutes: number | null
           updated_at: string
           venue_id: string
         }
         Insert: {
+          booking_type?: string | null
           created_at?: string
           created_by?: string | null
           customer_email?: string | null
@@ -49,15 +112,18 @@ export type Database = {
           id?: string
           items_total?: number | null
           notes?: string | null
+          professional_id?: string | null
           reminder_sent?: boolean | null
           space_id: string
           space_total?: number | null
           start_time: string
           status?: Database["public"]["Enums"]["booking_status"]
+          total_duration_minutes?: number | null
           updated_at?: string
           venue_id: string
         }
         Update: {
+          booking_type?: string | null
           created_at?: string
           created_by?: string | null
           customer_email?: string | null
@@ -70,11 +136,13 @@ export type Database = {
           id?: string
           items_total?: number | null
           notes?: string | null
+          professional_id?: string | null
           reminder_sent?: boolean | null
           space_id?: string
           space_total?: number | null
           start_time?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          total_duration_minutes?: number | null
           updated_at?: string
           venue_id?: string
         }
@@ -84,6 +152,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "venue_members"
             referencedColumns: ["id"]
           },
           {
@@ -452,6 +527,48 @@ export type Database = {
           },
         ]
       }
+      professional_services: {
+        Row: {
+          created_at: string
+          custom_duration: number | null
+          custom_price: number | null
+          id: string
+          member_id: string
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_duration?: number | null
+          custom_price?: number | null
+          id?: string
+          member_id: string
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_duration?: number | null
+          custom_price?: number | null
+          id?: string
+          member_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_services_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "venue_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -722,6 +839,53 @@ export type Database = {
           },
         ]
       }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          duration_minutes: number
+          id: string
+          is_active: boolean | null
+          price: number
+          title: string
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          title: string
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          title?: string
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spaces: {
         Row: {
           capacity: number | null
@@ -799,22 +963,34 @@ export type Database = {
       }
       venue_members: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
           created_at: string
+          display_name: string | null
           id: string
+          is_bookable: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
           venue_id: string
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
+          is_bookable?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
           venue_id: string
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
+          is_bookable?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
           venue_id?: string
@@ -862,6 +1038,7 @@ export type Database = {
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
           booking_mode: string | null
+          business_category: string | null
           created_at: string
           dark_mode: boolean | null
           email: string | null
@@ -876,6 +1053,8 @@ export type Database = {
           public_settings: Json | null
           reminder_hours_before: number | null
           secondary_color: string | null
+          segment: Database["public"]["Enums"]["venue_segment"] | null
+          slot_interval_minutes: number | null
           slug: string | null
           subscription_ends_at: string | null
           subscription_status: string | null
@@ -888,6 +1067,7 @@ export type Database = {
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           booking_mode?: string | null
+          business_category?: string | null
           created_at?: string
           dark_mode?: boolean | null
           email?: string | null
@@ -902,6 +1082,8 @@ export type Database = {
           public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
+          segment?: Database["public"]["Enums"]["venue_segment"] | null
+          slot_interval_minutes?: number | null
           slug?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
@@ -914,6 +1096,7 @@ export type Database = {
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           booking_mode?: string | null
+          business_category?: string | null
           created_at?: string
           dark_mode?: boolean | null
           email?: string | null
@@ -928,6 +1111,8 @@ export type Database = {
           public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
+          segment?: Database["public"]["Enums"]["venue_segment"] | null
+          slot_interval_minutes?: number | null
           slug?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
@@ -1058,6 +1243,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_service_booking: {
+        Args: {
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_notes?: string
+          p_professional_id: string
+          p_service_ids: string[]
+          p_start_time: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
       create_service_inquiry: {
         Args: {
           p_customer_email: string
@@ -1077,6 +1275,7 @@ export type Database = {
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
           booking_mode: string | null
+          business_category: string | null
           created_at: string
           dark_mode: boolean | null
           email: string | null
@@ -1091,6 +1290,8 @@ export type Database = {
           public_settings: Json | null
           reminder_hours_before: number | null
           secondary_color: string | null
+          segment: Database["public"]["Enums"]["venue_segment"] | null
+          slot_interval_minutes: number | null
           slug: string | null
           subscription_ends_at: string | null
           subscription_status: string | null
@@ -1103,6 +1304,19 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_professional_availability: {
+        Args: {
+          p_date: string
+          p_professional_id?: string
+          p_service_ids: string[]
+          p_venue_id: string
+        }
+        Returns: {
+          available_slots: string[]
+          professional_id: string
+          professional_name: string
+        }[]
       }
       get_public_spaces_by_venue: {
         Args: { p_venue_id: string }
@@ -1168,6 +1382,7 @@ export type Database = {
         | "cancelled"
       service_order_status_simple: "open" | "finished" | "invoiced"
       service_order_type: "simple" | "complete"
+      venue_segment: "sports" | "beauty" | "health" | "custom"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1308,6 +1523,7 @@ export const Constants = {
       ],
       service_order_status_simple: ["open", "finished", "invoiced"],
       service_order_type: ["simple", "complete"],
+      venue_segment: ["sports", "beauty", "health", "custom"],
     },
   },
 } as const

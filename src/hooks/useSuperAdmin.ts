@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export type SubscriptionStatus = 'trial' | 'active' | 'suspended' | 'cancelled';
+export type VenueSegment = 'sports' | 'beauty' | 'health' | 'custom';
 
 export interface VenueWithSubscription {
   id: string;
@@ -16,6 +17,8 @@ export interface VenueWithSubscription {
   subscription_ends_at: string | null;
   asaas_customer_id: string | null;
   asaas_subscription_id: string | null;
+  segment: VenueSegment;
+  business_category: string | null;
   members: {
     user_id: string;
     role: string;
@@ -91,6 +94,8 @@ export function useSuperAdmin() {
             subscription_ends_at: venue.subscription_ends_at || null,
             asaas_customer_id: venue.asaas_customer_id || null,
             asaas_subscription_id: venue.asaas_subscription_id || null,
+            segment: ((venue as { segment?: string }).segment || 'sports') as VenueSegment,
+            business_category: (venue as { business_category?: string }).business_category || null,
             members: membersWithProfiles,
           } as VenueWithSubscription;
         })
@@ -133,6 +138,35 @@ export function useSuperAdmin() {
     },
   });
 
+  const updateVenueSegment = useMutation({
+    mutationFn: async ({ venueId, segment, business_category }: { venueId: string; segment: VenueSegment; business_category?: string }) => {
+      // Use raw SQL approach to handle the enum type properly
+      const { error } = await supabase
+        .from('venues')
+        .update({ 
+          segment: segment,
+          business_category: business_category || null,
+        } as Record<string, unknown>)
+        .eq('id', venueId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] });
+      toast({
+        title: 'Segmento atualizado',
+        description: 'O tipo de negócio foi alterado com sucesso.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao atualizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Filter venues by status
   const activeVenues = venues.filter(v => v.subscription_status === 'active');
   const trialVenues = venues.filter(v => v.subscription_status === 'trial');
@@ -156,5 +190,6 @@ export function useSuperAdmin() {
     cancelledVenues,
     expiredTrials,
     updateSubscriptionStatus,
+    updateVenueSegment,
   };
 }

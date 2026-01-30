@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import {
   Form,
@@ -26,12 +27,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useFormPersist } from '@/hooks/useFormPersist';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useProfessionals } from '@/hooks/useProfessionals';
+import { useServices } from '@/hooks/useServices';
+import { ProfessionalFormDialog } from '@/components/team/ProfessionalFormDialog';
+import type { BookableMember } from '@/types/services';
 import {
   Loader2,
   Building2,
@@ -44,6 +57,8 @@ import {
   Upload,
   Link,
   X,
+  Settings2,
+  Scissors,
 } from 'lucide-react';
 
 const venueFormSchema = z.object({
@@ -67,7 +82,12 @@ export default function Configuracoes() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
+  const [selectedMember, setSelectedMember] = useState<BookableMember | null>(null);
+  const [professionalDialogOpen, setProfessionalDialogOpen] = useState(false);
+  
   const { upload, isUploading } = useFileUpload();
+  const { professionals, isLoading: loadingProfessionals } = useProfessionals();
+  const { services } = useServices();
   const {
     isConnected,
     connection,
@@ -79,6 +99,10 @@ export default function Configuracoes() {
   } = useGoogleCalendar();
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
+  
+  // Check venue segment for conditional UI
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const isServiceVenue = venueSegment && venueSegment !== 'sports';
 
   useEffect(() => {
     const googleSuccess = searchParams.get('google_success');
@@ -554,24 +578,135 @@ export default function Configuracoes() {
               <CardHeader>
                 <CardTitle>Gerenciar Equipe</CardTitle>
                 <CardDescription>
-                  Convide membros para ajudar a gerenciar a unidade
+                  {isServiceVenue 
+                    ? 'Configure quais membros realizam atendimentos e seus serviços'
+                    : 'Membros que podem acessar o sistema'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <div className="rounded-full bg-muted p-4 mb-4">
-                    <Users className="h-8 w-8 text-muted-foreground" />
+                {loadingProfessionals ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
-                  <h3 className="font-semibold">Em breve</h3>
-                  <p className="text-muted-foreground mt-1 text-sm max-w-sm">
-                    A funcionalidade de convite de membros estará disponível em uma próxima atualização
-                  </p>
-                </div>
+                ) : professionals.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <Users className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="font-semibold">Nenhum membro</h3>
+                    <p className="text-muted-foreground mt-1 text-sm max-w-sm">
+                      Convide membros para ajudar a gerenciar a unidade
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Membro</TableHead>
+                        <TableHead>Função</TableHead>
+                        {isServiceVenue && (
+                          <>
+                            <TableHead>Atende Clientes</TableHead>
+                            <TableHead>Serviços</TableHead>
+                          </>
+                        )}
+                        <TableHead className="w-[100px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {professionals.map((member) => (
+                        <TableRow key={member.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                {member.avatar_url ? (
+                                  <AvatarImage src={member.avatar_url} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {(member.display_name || member.profile?.full_name || 'M')[0].toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">
+                                  {member.display_name || member.profile?.full_name || 'Membro'}
+                                </p>
+                                {member.profile?.phone && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {member.profile.phone}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="capitalize">
+                              {member.role === 'admin' ? 'Administrador' : 
+                               member.role === 'manager' ? 'Gerente' : 'Funcionário'}
+                            </Badge>
+                          </TableCell>
+                          {isServiceVenue && (
+                            <>
+                              <TableCell>
+                                <Badge variant={member.is_bookable ? 'default' : 'outline'}>
+                                  {member.is_bookable ? (
+                                    <><CheckCircle2 className="h-3 w-3 mr-1" /> Sim</>
+                                  ) : (
+                                    <><XCircle className="h-3 w-3 mr-1" /> Não</>
+                                  )}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {member.services && member.services.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {member.services.slice(0, 2).map((s) => (
+                                      <Badge key={s.id} variant="outline" className="text-xs">
+                                        <Scissors className="h-2 w-2 mr-1" />
+                                        {s.title}
+                                      </Badge>
+                                    ))}
+                                    {member.services.length > 2 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        +{member.services.length - 2}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )}
+                              </TableCell>
+                            </>
+                          )}
+                          <TableCell>
+                            {isServiceVenue && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedMember(member);
+                                  setProfessionalDialogOpen(true);
+                                }}
+                              >
+                                <Settings2 className="h-4 w-4 mr-1" />
+                                Configurar
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      <ProfessionalFormDialog
+        open={professionalDialogOpen}
+        onOpenChange={setProfessionalDialogOpen}
+        member={selectedMember}
+      />
     </AppLayout>
   );
 }

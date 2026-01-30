@@ -13,6 +13,7 @@ import {
   Home,
   Shield,
   Globe,
+  Scissors,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -48,6 +49,10 @@ export function AppSidebar() {
 
   // Check if venue is on max plan
   const isMaxPlan = currentVenue?.plan_type === 'max';
+  
+  // Check venue segment for conditional menu items
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const isServiceVenue = venueSegment && venueSegment !== 'sports';
 
   // Check if user is superadmin from database
   const { data: isSuperAdmin } = useQuery({
@@ -109,7 +114,10 @@ export function AppSidebar() {
       label: "CADASTROS",
       items: [
         { title: "Clientes", href: "/clientes", icon: Users },
-        { title: "Espaços", href: "/espacos", icon: MapPin },
+        ...(isServiceVenue 
+          ? [{ title: "Serviços", href: "/servicos", icon: Scissors }]
+          : [{ title: "Espaços", href: "/espacos", icon: MapPin }]
+        ),
         { title: "Produtos", href: "/produtos", icon: Package },
       ],
     },
