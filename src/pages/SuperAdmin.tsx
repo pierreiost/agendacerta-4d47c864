@@ -1,9 +1,9 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSuperAdmin, SubscriptionStatus, VenueWithSubscription } from '@/hooks/useSuperAdmin';
+import { useSuperAdmin, SubscriptionStatus, VenueWithSubscription, VenueSegment } from '@/hooks/useSuperAdmin';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/AppSidebar';
-import { Loader2, Building2, Users, AlertTriangle, CheckCircle2, XCircle, Clock, Ban } from 'lucide-react';
+import { Loader2, Building2, Users, AlertTriangle, CheckCircle2, XCircle, Clock, Ban, Scissors, Dumbbell, Heart, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -34,13 +37,22 @@ const statusConfig: Record<SubscriptionStatus, { label: string; variant: 'defaul
   cancelled: { label: 'Cancelado', variant: 'outline', icon: XCircle },
 };
 
+const segmentConfig: Record<VenueSegment, { label: string; icon: typeof Dumbbell }> = {
+  sports: { label: 'Esportes', icon: Dumbbell },
+  beauty: { label: 'Barbearia/Beleza', icon: Scissors },
+  health: { label: 'Clínica/Saúde', icon: Heart },
+  custom: { label: 'Personalizado', icon: Sparkles },
+};
+
 function VenueTable({ 
   venues, 
   onStatusChange,
+  onSegmentChange,
   isUpdating,
 }: { 
   venues: VenueWithSubscription[];
   onStatusChange: (venueId: string, status: SubscriptionStatus) => void;
+  onSegmentChange: (venueId: string, segment: VenueSegment) => void;
   isUpdating: boolean;
 }) {
   if (venues.length === 0) {
@@ -56,6 +68,7 @@ function VenueTable({
       <TableHeader>
         <TableRow>
           <TableHead>Cliente</TableHead>
+          <TableHead>Segmento</TableHead>
           <TableHead>Contato</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Período</TableHead>
@@ -85,6 +98,18 @@ function VenueTable({
                     </p>
                   </div>
                 </div>
+              </TableCell>
+              <TableCell>
+                {(() => {
+                  const segConfig = segmentConfig[venue.segment] || segmentConfig.sports;
+                  const SegIcon = segConfig.icon;
+                  return (
+                    <Badge variant="outline" className="gap-1">
+                      <SegIcon className="h-3 w-3" />
+                      {segConfig.label}
+                    </Badge>
+                  );
+                })()}
               </TableCell>
               <TableCell>
                 <div className="text-sm">
@@ -125,12 +150,11 @@ function VenueTable({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" disabled={isUpdating}>
-                      Alterar Status
+                      Ações
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Alterar para</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Status da Assinatura</DropdownMenuLabel>
                     <DropdownMenuItem 
                       onClick={() => onStatusChange(venue.id, 'active')}
                       disabled={venue.subscription_status === 'active'}
@@ -152,6 +176,30 @@ function VenueTable({
                       <Ban className="mr-2 h-4 w-4 text-destructive" />
                       Cancelar
                     </DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Building2 className="mr-2 h-4 w-4" />
+                        Alterar Segmento
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {(Object.keys(segmentConfig) as VenueSegment[]).map((seg) => {
+                          const segCfg = segmentConfig[seg];
+                          const SegIcon = segCfg.icon;
+                          return (
+                            <DropdownMenuItem
+                              key={seg}
+                              onClick={() => onSegmentChange(venue.id, seg)}
+                              disabled={venue.segment === seg}
+                            >
+                              <SegIcon className="mr-2 h-4 w-4" />
+                              {segCfg.label}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -176,6 +224,7 @@ export default function SuperAdmin() {
     cancelledVenues,
     expiredTrials,
     updateSubscriptionStatus,
+    updateVenueSegment,
   } = useSuperAdmin();
 
   if (authLoading || checkingRole) {
@@ -196,6 +245,10 @@ export default function SuperAdmin() {
 
   const handleStatusChange = (venueId: string, status: SubscriptionStatus) => {
     updateSubscriptionStatus.mutate({ venueId, status });
+  };
+
+  const handleSegmentChange = (venueId: string, segment: VenueSegment) => {
+    updateVenueSegment.mutate({ venueId, segment });
   };
 
   return (
@@ -297,35 +350,40 @@ export default function SuperAdmin() {
                       <VenueTable 
                         venues={venues} 
                         onStatusChange={handleStatusChange}
-                        isUpdating={updateSubscriptionStatus.isPending}
+                        onSegmentChange={handleSegmentChange}
+                        isUpdating={updateSubscriptionStatus.isPending || updateVenueSegment.isPending}
                       />
                     </TabsContent>
                     <TabsContent value="active">
                       <VenueTable 
                         venues={activeVenues} 
                         onStatusChange={handleStatusChange}
-                        isUpdating={updateSubscriptionStatus.isPending}
+                        onSegmentChange={handleSegmentChange}
+                        isUpdating={updateSubscriptionStatus.isPending || updateVenueSegment.isPending}
                       />
                     </TabsContent>
                     <TabsContent value="trial">
                       <VenueTable 
                         venues={trialVenues} 
                         onStatusChange={handleStatusChange}
-                        isUpdating={updateSubscriptionStatus.isPending}
+                        onSegmentChange={handleSegmentChange}
+                        isUpdating={updateSubscriptionStatus.isPending || updateVenueSegment.isPending}
                       />
                     </TabsContent>
                     <TabsContent value="suspended">
                       <VenueTable 
                         venues={suspendedVenues} 
                         onStatusChange={handleStatusChange}
-                        isUpdating={updateSubscriptionStatus.isPending}
+                        onSegmentChange={handleSegmentChange}
+                        isUpdating={updateSubscriptionStatus.isPending || updateVenueSegment.isPending}
                       />
                     </TabsContent>
                     <TabsContent value="cancelled">
                       <VenueTable 
                         venues={cancelledVenues} 
                         onStatusChange={handleStatusChange}
-                        isUpdating={updateSubscriptionStatus.isPending}
+                        onSegmentChange={handleSegmentChange}
+                        isUpdating={updateSubscriptionStatus.isPending || updateVenueSegment.isPending}
                       />
                     </TabsContent>
                   </Tabs>
