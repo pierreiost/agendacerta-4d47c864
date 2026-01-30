@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useStatePersist } from '@/hooks/useStatePersist';
 import {
   Loader2, Globe, Image, MessageSquare, BarChart3, HelpCircle,
   MapPin, Clock, Share2, Plus, Trash2, Upload, X, ExternalLink, 
@@ -58,13 +59,36 @@ export default function PublicPageConfig() {
   const [primaryColor, setPrimaryColor] = useState<string>('');
   const [publicLogoUrl, setPublicLogoUrl] = useState<string>('');
   const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const hasLoadedFromDbRef = useRef(false);
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
 
-  // Load sections and branding from venue
+  // Use state persistence for sections
+  const { clearDraft } = useStatePersist({
+    key: `public_page_${currentVenue?.id}`,
+    state: sections,
+    setState: setSections,
+    isReady: isDataLoaded && !!currentVenue?.id,
+  });
+
+  // Load sections and branding from venue (only on first mount)
   useEffect(() => {
-    if (currentVenue?.id) {
+    if (currentVenue?.id && !hasLoadedFromDbRef.current) {
+      hasLoadedFromDbRef.current = true;
+      
       const loadData = async () => {
+        // Check if there's a draft first
+        const storageKey = `state_draft_public_page_${currentVenue.id}`;
+        const hasDraft = localStorage.getItem(storageKey);
+        
+        if (hasDraft) {
+          // If there's a draft, the useStatePersist hook will handle restoration
+          setIsDataLoaded(true);
+          return;
+        }
+
+        // No draft, load from database
         const { data } = await supabase
           .from('venues')
           .select('public_page_sections, primary_color, logo_url')
@@ -80,6 +104,8 @@ export default function PublicPageConfig() {
         if (data?.logo_url) {
           setPublicLogoUrl(data.logo_url);
         }
+        
+        setIsDataLoaded(true);
       };
       loadData();
     }
@@ -102,6 +128,8 @@ export default function PublicPageConfig() {
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
     } else {
+      // Clear draft on successful save
+      clearDraft();
       toast({ title: 'Configurações salvas!' });
       refetchVenues();
     }
