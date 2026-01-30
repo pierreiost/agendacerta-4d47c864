@@ -11,6 +11,7 @@ import { DayView } from '@/components/agenda/DayView';
 import { WeekViewNew } from '@/components/agenda/WeekViewNew';
 import { MonthView } from '@/components/agenda/MonthView';
 import { BookingWizard } from '@/components/agenda/BookingWizard';
+import { ServiceBookingWizard } from '@/components/agenda/ServiceBookingWizard';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import {
@@ -25,6 +26,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Calendar, Loader2, Filter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+
+// Check if venue uses service-based booking (beauty/health segments)
+const isServiceMode = (segment?: string | null) => {
+  return segment === 'beauty' || segment === 'health';
+};
 
 export default function Agenda() {
   const { currentVenue } = useVenue();
@@ -337,14 +343,22 @@ export default function Agenda() {
         </div>
       </div>
 
-      {/* Booking Wizard */}
-      <BookingWizard
-        open={wizardOpen}
-        onOpenChange={handleWizardOpenChange}
-        spaces={filteredSpaces}
-        allSpaces={activeSpaces}
-        defaultSlot={defaultSlot}
-      />
+      {/* Booking Wizard - Show different wizard based on venue segment */}
+      {isServiceMode(currentVenue?.segment) ? (
+        <ServiceBookingWizard
+          open={wizardOpen}
+          onOpenChange={handleWizardOpenChange}
+          defaultDate={defaultSlot?.date || currentDate}
+        />
+      ) : (
+        <BookingWizard
+          open={wizardOpen}
+          onOpenChange={handleWizardOpenChange}
+          spaces={filteredSpaces}
+          allSpaces={activeSpaces}
+          defaultSlot={defaultSlot}
+        />
+      )}
 
       {/* Booking Details Sheet */}
       <BookingOrderSheet
