@@ -16,7 +16,7 @@ import {
   isWithinInterval,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { User } from 'lucide-react';
+import { User, MapPin } from 'lucide-react';
 
 type Space = Tables<'spaces'> & {
   category?: Tables<'categories'> | null;
@@ -222,7 +222,12 @@ export function WeekViewNew({
                                   {booking.customer_name || 'Cliente'}
                                 </span>
                               </div>
-                              {height >= 28 && (
+                              {/* Space name with MapPin */}
+                              <div className="flex items-center gap-0.5 text-[7px] md:text-[9px] text-muted-foreground mt-0.5">
+                                <MapPin className="h-2 w-2 flex-shrink-0" />
+                                <span className="truncate">{space.name}</span>
+                              </div>
+                              {height >= 36 && (
                                 <div className="text-[8px] md:text-[10px] text-muted-foreground mt-0.5 hidden sm:block">
                                   {format(new Date(booking.start_time), 'HH:mm')} -{' '}
                                   {format(new Date(booking.end_time), 'HH:mm')}

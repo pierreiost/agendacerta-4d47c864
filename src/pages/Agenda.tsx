@@ -7,6 +7,7 @@ import { useSpaces } from '@/hooks/useSpaces';
 import { useVenue } from '@/contexts/VenueContext';
 import { AgendaHeader, ViewMode } from '@/components/agenda/AgendaHeader';
 import { AgendaSidebar } from '@/components/agenda/AgendaSidebar';
+import { SpaceFilterHeader } from '@/components/agenda/SpaceFilterHeader';
 import { DayView } from '@/components/agenda/DayView';
 import { WeekViewNew } from '@/components/agenda/WeekViewNew';
 import { MonthView } from '@/components/agenda/MonthView';
@@ -43,6 +44,7 @@ export default function Agenda() {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
+  const [primarySpaceId, setPrimarySpaceId] = useState<string | null>(null);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['CONFIRMED']);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
@@ -95,12 +97,15 @@ export default function Agenda() {
     return spaces.filter((s) => s.is_active);
   }, [spaces]);
 
-  // Initialize selected spaces when spaces load
-  useMemo(() => {
+  // Initialize selected spaces and primary space when spaces load
+  useEffect(() => {
     if (activeSpaces.length > 0 && selectedSpaceIds.length === 0) {
       setSelectedSpaceIds(activeSpaces.map((s) => s.id));
     }
-  }, [activeSpaces]);
+    if (activeSpaces.length > 0 && !primarySpaceId) {
+      setPrimarySpaceId(activeSpaces[0].id);
+    }
+  }, [activeSpaces, selectedSpaceIds.length, primarySpaceId]);
 
   // Filter spaces based on selection
   const filteredSpaces = useMemo(() => {
@@ -156,9 +161,11 @@ export default function Agenda() {
   }, []);
 
   const handleSlotClick = useCallback((spaceId: string, date: Date, hour: number) => {
-    setDefaultSlot({ spaceId, date, hour });
+    // Use the primary space if a slot click comes from the grid, otherwise use the clicked space
+    const targetSpaceId = primarySpaceId || spaceId;
+    setDefaultSlot({ spaceId: targetSpaceId, date, hour });
     setWizardOpen(true);
-  }, []);
+  }, [primarySpaceId]);
 
   const handleBookingClick = useCallback((booking: Booking) => {
     setSelectedBooking(booking);
@@ -234,7 +241,7 @@ export default function Agenda() {
     <AppLayout>
       <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] -m-3 md:-m-6">
         {/* Header */}
-        <div className="p-2 md:p-3 pb-0">
+        <div className="p-2 md:p-3 pb-0 space-y-2">
           <AgendaHeader
             currentDate={currentDate}
             onDateChange={setCurrentDate}
@@ -244,6 +251,17 @@ export default function Agenda() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
           />
+          
+          {/* Space Filter Header - visible on all screens */}
+          {activeSpaces.length > 0 && (
+            <SpaceFilterHeader
+              spaces={activeSpaces}
+              primarySpaceId={primarySpaceId}
+              onPrimarySpaceChange={setPrimarySpaceId}
+              visibleSpaceIds={selectedSpaceIds}
+              onSpaceVisibilityToggle={handleSpaceToggle}
+            />
+          )}
         </div>
 
         {/* Main content */}
