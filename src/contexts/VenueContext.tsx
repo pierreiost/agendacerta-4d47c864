@@ -4,7 +4,9 @@ import { useAuth } from './AuthContext';
 import { Tables } from '@/integrations/supabase/types';
 
 type Venue = Tables<'venues'>;
-type VenueMember = Tables<'venue_members'>;
+
+export type VenueStatus = 'trialing' | 'active' | 'overdue' | 'suspended';
+export type PlanType = 'basic' | 'max';
 
 interface VenueWithRole extends Venue {
   role: 'admin' | 'manager' | 'staff' | 'superadmin';
@@ -68,7 +70,7 @@ export function VenueProvider({ children }: { children: ReactNode }) {
         const membership = memberships.find(m => m.venue_id === venue.id);
         return {
           ...venue,
-          role: membership?.role || 'staff'
+          role: membership?.role || 'staff',
         };
       });
 

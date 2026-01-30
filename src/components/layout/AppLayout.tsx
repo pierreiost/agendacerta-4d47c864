@@ -2,6 +2,9 @@ import { ReactNode } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useDynamicTheme } from '@/hooks/useDynamicTheme';
+import { useVenue } from '@/contexts/VenueContext';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { SubscriptionBlockScreen, SubscriptionBanner } from '@/components/subscription';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -11,9 +14,20 @@ interface AppLayoutProps {
 export function AppLayout({ children, title }: AppLayoutProps) {
   // Aplica a cor primária dinâmica baseada nas configurações do venue
   useDynamicTheme();
+  
+  const { currentVenue } = useVenue();
+  const { isBlocked, daysRemaining, status, showBanner } = useSubscriptionStatus(currentVenue);
+
+  // Support WhatsApp - pode ser configurado via env ou hardcoded
+  const supportWhatsapp = '5551999999999';
 
   return (
     <SidebarProvider>
+      {/* Subscription expiration banner */}
+      {showBanner && (
+        <SubscriptionBanner daysRemaining={daysRemaining} status={status} />
+      )}
+      
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col w-full overflow-x-hidden">
@@ -28,6 +42,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
           </main>
         </SidebarInset>
       </div>
+      
+      {/* Fullscreen block when subscription expired */}
+      {isBlocked && <SubscriptionBlockScreen supportWhatsapp={supportWhatsapp} />}
     </SidebarProvider>
   );
 }

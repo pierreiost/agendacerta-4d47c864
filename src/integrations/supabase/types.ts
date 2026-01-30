@@ -1042,6 +1042,7 @@ export type Database = {
           asaas_subscription_id: string | null
           booking_mode: string | null
           business_category: string | null
+          cnpj_cpf: string | null
           created_at: string
           dark_mode: boolean | null
           dashboard_mode: string | null
@@ -1060,10 +1061,12 @@ export type Database = {
           segment: Database["public"]["Enums"]["venue_segment"] | null
           slot_interval_minutes: number | null
           slug: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
           updated_at: string
+          whatsapp: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -1072,6 +1075,7 @@ export type Database = {
           asaas_subscription_id?: string | null
           booking_mode?: string | null
           business_category?: string | null
+          cnpj_cpf?: string | null
           created_at?: string
           dark_mode?: boolean | null
           dashboard_mode?: string | null
@@ -1090,10 +1094,12 @@ export type Database = {
           segment?: Database["public"]["Enums"]["venue_segment"] | null
           slot_interval_minutes?: number | null
           slug?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -1102,6 +1108,7 @@ export type Database = {
           asaas_subscription_id?: string | null
           booking_mode?: string | null
           business_category?: string | null
+          cnpj_cpf?: string | null
           created_at?: string
           dark_mode?: boolean | null
           dashboard_mode?: string | null
@@ -1120,10 +1127,12 @@ export type Database = {
           segment?: Database["public"]["Enums"]["venue_segment"] | null
           slot_interval_minutes?: number | null
           slug?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
@@ -1314,45 +1323,97 @@ export type Database = {
         }
         Returns: string
       }
-      create_venue_with_admin: {
-        Args: { _address?: string; _name: string; _phone?: string }
-        Returns: {
-          accent_color: string | null
-          address: string | null
-          asaas_customer_id: string | null
-          asaas_subscription_id: string | null
-          booking_mode: string | null
-          business_category: string | null
-          created_at: string
-          dark_mode: boolean | null
-          dashboard_mode: string | null
-          email: string | null
-          id: string
-          logo_url: string | null
-          name: string
-          phone: string | null
-          plan_type: string | null
-          primary_color: string | null
-          public_page_enabled: boolean | null
-          public_page_sections: Json | null
-          public_settings: Json | null
-          reminder_hours_before: number | null
-          secondary_color: string | null
-          segment: Database["public"]["Enums"]["venue_segment"] | null
-          slot_interval_minutes: number | null
-          slug: string | null
-          subscription_ends_at: string | null
-          subscription_status: string | null
-          trial_ends_at: string | null
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "venues"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      create_venue_with_admin:
+        | {
+            Args: { _address?: string; _name: string; _phone?: string }
+            Returns: {
+              accent_color: string | null
+              address: string | null
+              asaas_customer_id: string | null
+              asaas_subscription_id: string | null
+              booking_mode: string | null
+              business_category: string | null
+              cnpj_cpf: string | null
+              created_at: string
+              dark_mode: boolean | null
+              dashboard_mode: string | null
+              email: string | null
+              id: string
+              logo_url: string | null
+              name: string
+              phone: string | null
+              plan_type: string | null
+              primary_color: string | null
+              public_page_enabled: boolean | null
+              public_page_sections: Json | null
+              public_settings: Json | null
+              reminder_hours_before: number | null
+              secondary_color: string | null
+              segment: Database["public"]["Enums"]["venue_segment"] | null
+              slot_interval_minutes: number | null
+              slug: string | null
+              status: Database["public"]["Enums"]["subscription_status"] | null
+              subscription_ends_at: string | null
+              subscription_status: string | null
+              trial_ends_at: string | null
+              updated_at: string
+              whatsapp: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "venues"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _address?: string
+              _cnpj_cpf?: string
+              _name: string
+              _phone?: string
+              _whatsapp?: string
+            }
+            Returns: {
+              accent_color: string | null
+              address: string | null
+              asaas_customer_id: string | null
+              asaas_subscription_id: string | null
+              booking_mode: string | null
+              business_category: string | null
+              cnpj_cpf: string | null
+              created_at: string
+              dark_mode: boolean | null
+              dashboard_mode: string | null
+              email: string | null
+              id: string
+              logo_url: string | null
+              name: string
+              phone: string | null
+              plan_type: string | null
+              primary_color: string | null
+              public_page_enabled: boolean | null
+              public_page_sections: Json | null
+              public_settings: Json | null
+              reminder_hours_before: number | null
+              secondary_color: string | null
+              segment: Database["public"]["Enums"]["venue_segment"] | null
+              slot_interval_minutes: number | null
+              slug: string | null
+              status: Database["public"]["Enums"]["subscription_status"] | null
+              subscription_ends_at: string | null
+              subscription_status: string | null
+              trial_ends_at: string | null
+              updated_at: string
+              whatsapp: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "venues"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       get_dashboard_metrics: {
         Args: { p_venue_id: string }
         Returns: {
@@ -1408,6 +1469,10 @@ export type Database = {
           start_time: string
         }[]
       }
+      get_venue_days_until_expiration: {
+        Args: { _venue_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1420,6 +1485,7 @@ export type Database = {
         Args: { _user_id: string; _venue_id: string }
         Returns: boolean
       }
+      is_venue_blocked: { Args: { _venue_id: string }; Returns: boolean }
       is_venue_member: {
         Args: { _user_id: string; _venue_id: string }
         Returns: boolean
@@ -1433,6 +1499,7 @@ export type Database = {
       app_role: "admin" | "manager" | "staff" | "superadmin"
       booking_status: "PENDING" | "CONFIRMED" | "CANCELLED" | "FINALIZED"
       payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX"
+      plan_type: "basic" | "max"
       service_order_status_complete:
         | "draft"
         | "approved"
@@ -1442,6 +1509,7 @@ export type Database = {
         | "cancelled"
       service_order_status_simple: "open" | "finished" | "invoiced"
       service_order_type: "simple" | "complete"
+      subscription_status: "trialing" | "active" | "overdue" | "suspended"
       venue_segment: "sports" | "beauty" | "health" | "custom"
     }
     CompositeTypes: {
@@ -1573,6 +1641,7 @@ export const Constants = {
       app_role: ["admin", "manager", "staff", "superadmin"],
       booking_status: ["PENDING", "CONFIRMED", "CANCELLED", "FINALIZED"],
       payment_method: ["CASH", "CREDIT", "DEBIT", "PIX"],
+      plan_type: ["basic", "max"],
       service_order_status_complete: [
         "draft",
         "approved",
@@ -1583,6 +1652,7 @@ export const Constants = {
       ],
       service_order_status_simple: ["open", "finished", "invoiced"],
       service_order_type: ["simple", "complete"],
+      subscription_status: ["trialing", "active", "overdue", "suspended"],
       venue_segment: ["sports", "beauty", "health", "custom"],
     },
   },

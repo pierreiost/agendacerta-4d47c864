@@ -2,8 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export type SubscriptionStatus = 'trial' | 'active' | 'suspended' | 'cancelled';
+export type SubscriptionStatus = 'trialing' | 'active' | 'overdue' | 'suspended';
 export type VenueSegment = 'sports' | 'beauty' | 'health' | 'custom';
+export type PlanType = 'basic' | 'max';
 
 export interface VenueWithSubscription {
   id: string;
@@ -12,13 +13,17 @@ export interface VenueWithSubscription {
   phone: string | null;
   address: string | null;
   created_at: string;
-  subscription_status: SubscriptionStatus;
+  status: SubscriptionStatus;
+  subscription_status: string | null;
   trial_ends_at: string | null;
   subscription_ends_at: string | null;
   asaas_customer_id: string | null;
   asaas_subscription_id: string | null;
   segment: VenueSegment;
   business_category: string | null;
+  plan_type: PlanType;
+  cnpj_cpf: string | null;
+  whatsapp: string | null;
   members: {
     user_id: string;
     role: string;
@@ -82,6 +87,21 @@ export function useSuperAdmin() {
             })
           );
 
+          // Map status from new enum or fallback to subscription_status
+          const rawStatus = (venue as { status?: string }).status;
+          const legacyStatus = venue.subscription_status;
+          let status: SubscriptionStatus = 'trialing';
+          
+          if (rawStatus) {
+            status = rawStatus as SubscriptionStatus;
+          } else if (legacyStatus === 'trial') {
+            status = 'trialing';
+          } else if (legacyStatus === 'active') {
+            status = 'active';
+          } else if (legacyStatus === 'suspended' || legacyStatus === 'cancelled') {
+            status = 'suspended';
+          }
+
           return {
             id: venue.id,
             name: venue.name,
@@ -89,13 +109,17 @@ export function useSuperAdmin() {
             phone: venue.phone,
             address: venue.address,
             created_at: venue.created_at,
-            subscription_status: (venue.subscription_status || 'trial') as SubscriptionStatus,
+            status,
+            subscription_status: venue.subscription_status,
             trial_ends_at: venue.trial_ends_at || null,
             subscription_ends_at: venue.subscription_ends_at || null,
             asaas_customer_id: venue.asaas_customer_id || null,
             asaas_subscription_id: venue.asaas_subscription_id || null,
             segment: ((venue as { segment?: string }).segment || 'sports') as VenueSegment,
             business_category: (venue as { business_category?: string }).business_category || null,
+            plan_type: ((venue.plan_type as string) || 'basic') as PlanType,
+            cnpj_cpf: (venue as { cnpj_cpf?: string }).cnpj_cpf || null,
+            whatsapp: (venue as { whatsapp?: string }).whatsapp || null,
             members: membersWithProfiles,
           } as VenueWithSubscription;
         })
@@ -108,7 +132,10 @@ export function useSuperAdmin() {
 
   const updateSubscriptionStatus = useMutation({
     mutationFn: async ({ venueId, status }: { venueId: string; status: SubscriptionStatus }) => {
-      const updateData: Record<string, unknown> = { subscription_status: status };
+      const updateData: Record<string, unknown> = { 
+        status: status,
+        subscription_status: status === 'trialing' ? 'trial' : status,
+      };
       
       // If activating, set subscription_ends_at to 30 days from now
       if (status === 'active') {
@@ -140,7 +167,6 @@ export function useSuperAdmin() {
 
   const updateVenueSegment = useMutation({
     mutationFn: async ({ venueId, segment, business_category }: { venueId: string; segment: VenueSegment; business_category?: string }) => {
-      // Use raw SQL approach to handle the enum type properly
       const { error } = await supabase
         .from('venues')
         .update({ 
@@ -167,11 +193,68 @@ export function useSuperAdmin() {
     },
   });
 
+  const updateVenuePlan = useMutation({
+    mutationFn: async ({ venueId, plan }: { venueId: string; plan: PlanType }) => {
+      const { error } = await supabase
+        .from('venues')
+        .update({ plan_type: plan } as Record<string, unknown>)
+        .eq('id', venueId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] });
+      toast({
+        title: 'Plano atualizado',
+        description: 'O plano foi alterado com sucesso.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao atualizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateVenueExpiration = useMutation({
+    mutationFn: async ({ venueId, trialEndsAt, subscriptionEndsAt }: { 
+      venueId: string; 
+      trialEndsAt: string | null; 
+      subscriptionEndsAt: string | null;
+    }) => {
+      const { error } = await supabase
+        .from('venues')
+        .update({ 
+          trial_ends_at: trialEndsAt,
+          subscription_ends_at: subscriptionEndsAt,
+        })
+        .eq('id', venueId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] });
+      toast({
+        title: 'Datas atualizadas',
+        description: 'As datas de expiração foram atualizadas com sucesso.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao atualizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Filter venues by status
-  const activeVenues = venues.filter(v => v.subscription_status === 'active');
-  const trialVenues = venues.filter(v => v.subscription_status === 'trial');
-  const suspendedVenues = venues.filter(v => v.subscription_status === 'suspended');
-  const cancelledVenues = venues.filter(v => v.subscription_status === 'cancelled');
+  const activeVenues = venues.filter(v => v.status === 'active');
+  const trialVenues = venues.filter(v => v.status === 'trialing');
+  const overdueVenues = venues.filter(v => v.status === 'overdue');
+  const suspendedVenues = venues.filter(v => v.status === 'suspended');
 
   // Check expired trials
   const expiredTrials = trialVenues.filter(v => {
@@ -186,10 +269,12 @@ export function useSuperAdmin() {
     loadingVenues,
     activeVenues,
     trialVenues,
+    overdueVenues,
     suspendedVenues,
-    cancelledVenues,
     expiredTrials,
     updateSubscriptionStatus,
     updateVenueSegment,
+    updateVenuePlan,
+    updateVenueExpiration,
   };
 }
