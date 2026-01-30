@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -12,6 +12,7 @@ import { WeekViewNew } from '@/components/agenda/WeekViewNew';
 import { MonthView } from '@/components/agenda/MonthView';
 import { BookingWizard } from '@/components/agenda/BookingWizard';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
+import { useModalPersist } from '@/hooks/useModalPersist';
 import {
   startOfWeek,
   endOfWeek,
@@ -29,6 +30,7 @@ export default function Agenda() {
   const { currentVenue } = useVenue();
   const { spaces, isLoading: spacesLoading } = useSpaces();
   const { toast } = useToast();
+  const { isReady, registerModal, setModalState, clearModal } = useModalPersist('agenda');
 
   // State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -41,6 +43,32 @@ export default function Agenda() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [defaultSlot, setDefaultSlot] = useState<{ spaceId: string; date: Date; hour: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Restore modal state on mount
+  useEffect(() => {
+    if (isReady) {
+      const wasWizardOpen = registerModal('bookingWizard', false);
+      if (wasWizardOpen) {
+        setWizardOpen(true);
+        setDefaultSlot(null);
+      }
+    }
+  }, [isReady, registerModal]);
+
+  // Track wizard state changes
+  useEffect(() => {
+    if (isReady) {
+      setModalState('bookingWizard', wizardOpen);
+    }
+  }, [wizardOpen, isReady, setModalState]);
+
+  const handleWizardOpenChange = useCallback((open: boolean) => {
+    setWizardOpen(open);
+    if (!open) {
+      setDefaultSlot(null);
+      clearModal('bookingWizard');
+    }
+  }, [clearModal]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -312,7 +340,7 @@ export default function Agenda() {
       {/* Booking Wizard */}
       <BookingWizard
         open={wizardOpen}
-        onOpenChange={setWizardOpen}
+        onOpenChange={handleWizardOpenChange}
         spaces={filteredSpaces}
         allSpaces={activeSpaces}
         defaultSlot={defaultSlot}
