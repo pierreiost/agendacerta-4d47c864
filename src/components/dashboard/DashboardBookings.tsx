@@ -226,7 +226,7 @@ export function DashboardBookings() {
                 onClick={() => setShowPending(!showPending)}
                 className="text-xs gap-1.5"
               >
-                {showPending ? "Ocultando Pendentes" : "Mostrar Pendentes"}
+                {showPending ? "Ocultar Pendentes" : "Mostrar Pendentes"}
               </Button>
               <ToggleGroup 
                 type="single" 
