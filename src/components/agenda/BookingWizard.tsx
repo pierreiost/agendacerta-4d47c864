@@ -40,7 +40,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
-import { useBookings } from '@/hooks/useBookings';
+import { useBookingRPC } from '@/hooks/useBookingRPC';
 import { useVenue } from '@/contexts/VenueContext';
 import { useFormPersist } from '@/hooks/useFormPersist';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
@@ -50,11 +50,8 @@ import {
   format,
   setHours,
   setMinutes,
-  differenceInHours,
   isBefore,
   startOfDay,
-  addWeeks,
-  addMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -138,7 +135,7 @@ export function BookingWizard({
 
   const { currentVenue } = useVenue();
   const { customers } = useCustomers();
-  const { createBooking, checkConflict } = useBookings();
+  const { createBookingAtomic, createRecurringBookings } = useBookingRPC();
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -251,91 +248,59 @@ export function BookingWizard({
     if (!currentVenue?.id || !data.date) return;
 
     const space = spaces.find((s) => s.id === data.spaceId);
-    const count = data.isRecurring && data.recurrenceCount ? parseInt(data.recurrenceCount) : 1;
+    const isRecurringBooking = data.isRecurring && data.recurrenceCount && parseInt(data.recurrenceCount) > 1;
     
-    // Generate all booking dates
-    const bookingDates: Date[] = [];
-    for (let i = 0; i < count; i++) {
-      let bookingDate = data.date;
-      if (i > 0) {
-        if (data.recurrenceType === 'weekly') {
-          bookingDate = addWeeks(data.date, i);
-        } else if (data.recurrenceType === 'monthly') {
-          bookingDate = addMonths(data.date, i);
+    if (isRecurringBooking) {
+      // Use atomic recurring bookings RPC function
+      createRecurringBookings.mutate(
+        {
+          venue_id: currentVenue.id,
+          space_id: data.spaceId,
+          customer_name: data.customerName,
+          base_date: format(data.date, 'yyyy-MM-dd'),
+          start_hour: parseInt(data.startHour),
+          end_hour: parseInt(data.endHour),
+          customer_email: data.customerEmail || null,
+          customer_phone: data.customerPhone || null,
+          customer_id: data.customerId || null,
+          notes: data.notes || null,
+          space_price_per_hour: space?.price_per_hour ?? 0,
+          recurrence_type: data.recurrenceType || 'weekly',
+          recurrence_count: parseInt(data.recurrenceCount || '1'),
+        },
+        {
+          onSuccess: () => {
+            clearDraft();
+            onOpenChange(false);
+          },
         }
-      }
-      bookingDates.push(bookingDate);
-    }
-
-    // Check for conflicts on all dates
-    for (const bookingDate of bookingDates) {
-      const startTime = setMinutes(setHours(bookingDate, parseInt(data.startHour)), 0);
-      const endTime = setMinutes(setHours(bookingDate, parseInt(data.endHour)), 0);
-
-      // Check for past dates (only for first booking)
-      if (isBefore(startOfDay(startTime), startOfDay(new Date()))) {
-        continue; // Skip past dates
-      }
-
-      const hasConflict = await checkConflict(data.spaceId, startTime, endTime);
-      if (hasConflict) {
-        // Skip dates with conflicts for recurrent bookings
-        continue;
-      }
-    }
-
-    // Create all bookings
-    let successCount = 0;
-    for (const bookingDate of bookingDates) {
-      const startTime = setMinutes(setHours(bookingDate, parseInt(data.startHour)), 0);
-      const endTime = setMinutes(setHours(bookingDate, parseInt(data.endHour)), 0);
-
-      // Skip past dates
-      if (isBefore(startOfDay(startTime), startOfDay(new Date()))) {
-        continue;
-      }
-
-      // Check conflict again before creating
-      const hasConflict = await checkConflict(data.spaceId, startTime, endTime);
-      if (hasConflict) {
-        continue;
-      }
-
-      const recurrenceNote = data.isRecurring
-        ? `[Reserva Recorrente ${successCount + 1}/${count}] `
-        : '';
-
-      try {
-        await new Promise<void>((resolve, reject) => {
-          createBooking.mutate(
-            {
-              venue_id: currentVenue.id,
-              space_id: data.spaceId,
-              customer_id: data.customerId || null,
-              customer_name: data.customerName,
-              customer_email: data.customerEmail || null,
-              customer_phone: data.customerPhone || null,
-              start_time: startTime.toISOString(),
-              end_time: endTime.toISOString(),
-              notes: recurrenceNote + (data.notes || ''),
-              status: 'CONFIRMED',
-              space_price_per_hour: space?.price_per_hour ?? 0,
-            },
-            {
-              onSuccess: () => resolve(),
-              onError: () => reject(),
-            }
-          );
-        });
-        successCount++;
-      } catch {
-        // Continue to next booking even if one fails
-      }
-    }
-
-    if (successCount > 0) {
-      clearDraft(); // Clear draft on successful submission
-      onOpenChange(false);
+      );
+    } else {
+      // Use atomic single booking RPC function
+      const startTime = setMinutes(setHours(data.date, parseInt(data.startHour)), 0);
+      const endTime = setMinutes(setHours(data.date, parseInt(data.endHour)), 0);
+      
+      createBookingAtomic.mutate(
+        {
+          venue_id: currentVenue.id,
+          space_id: data.spaceId,
+          customer_name: data.customerName,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          customer_email: data.customerEmail || null,
+          customer_phone: data.customerPhone || null,
+          customer_id: data.customerId || null,
+          notes: data.notes || null,
+          status: 'CONFIRMED',
+          space_price_per_hour: space?.price_per_hour ?? 0,
+        },
+        {
+          onSuccess: () => {
+            clearDraft();
+            onOpenChange(false);
+          },
+        }
+      );
     }
   };
 
@@ -854,10 +819,10 @@ export function BookingWizard({
               ) : (
                 <Button
                   type="submit"
-                  disabled={createBooking.isPending}
+                  disabled={createBookingAtomic.isPending || createRecurringBookings.isPending}
                   className="bg-success-600 hover:bg-success-700"
                 >
-                  {createBooking.isPending ? 'Criando...' : 'Confirmar Reserva'}
+                  {(createBookingAtomic.isPending || createRecurringBookings.isPending) ? 'Criando...' : 'Confirmar Reserva'}
                   <Check className="h-4 w-4 ml-1" />
                 </Button>
               )}

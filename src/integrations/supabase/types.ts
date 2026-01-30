@@ -1220,6 +1220,24 @@ export type Database = {
         }[]
       }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      create_booking_atomic: {
+        Args: {
+          p_booking_type?: string
+          p_customer_email?: string
+          p_customer_id?: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_end_time: string
+          p_notes?: string
+          p_professional_id?: string
+          p_space_id: string
+          p_space_price_per_hour?: number
+          p_start_time: string
+          p_status?: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
       create_public_booking: {
         Args: {
           p_customer_email: string
@@ -1245,6 +1263,29 @@ export type Database = {
           p_venue_id: string
         }
         Returns: string
+      }
+      create_recurring_bookings: {
+        Args: {
+          p_base_date: string
+          p_customer_email?: string
+          p_customer_id?: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_end_hour: number
+          p_notes?: string
+          p_recurrence_count?: number
+          p_recurrence_type?: string
+          p_space_id: string
+          p_space_price_per_hour?: number
+          p_start_hour: number
+          p_venue_id: string
+        }
+        Returns: {
+          booking_date: string
+          booking_id: string
+          error_message: string
+          success: boolean
+        }[]
       }
       create_service_booking: {
         Args: {
@@ -1308,6 +1349,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_dashboard_metrics: {
+        Args: { p_venue_id: string }
+        Returns: {
+          confirmed_today: number
+          month_bookings: number
+          month_revenue: number
+          occupancy_rate: number
+          pending_today: number
+          revenue_sparkline: number[]
+          total_today: number
+        }[]
       }
       get_professional_availability: {
         Args: {

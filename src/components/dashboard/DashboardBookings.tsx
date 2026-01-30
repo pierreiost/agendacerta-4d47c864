@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useBookings } from "@/hooks/useBookings";
-import { useSpaces } from "@/hooks/useSpaces";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { Calendar, DollarSign, TrendingUp, Clock, MapPin, User, ArrowRight, Plus } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,12 +16,27 @@ type DateFilter = "today" | "tomorrow";
 
 export function DashboardBookings() {
   const navigate = useNavigate();
-  const { bookings, isLoading } = useBookings();
-  const { spaces } = useSpaces();
+  const { bookings, isLoading: bookingsLoading } = useBookings();
+  const { data: serverMetrics, isLoading: metricsLoading } = useDashboardMetrics();
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
   const [showPending, setShowPending] = useState(false);
 
+  // Use server-side metrics when available, fallback to client-side calculation
   const metrics = useMemo(() => {
+    // If we have server metrics, use them (much faster)
+    if (serverMetrics) {
+      return {
+        confirmedToday: serverMetrics.confirmed_today,
+        pendingToday: serverMetrics.pending_today,
+        totalToday: serverMetrics.total_today,
+        monthRevenue: serverMetrics.month_revenue,
+        occupancyRate: `${serverMetrics.occupancy_rate}%`,
+        revenueSparkline: serverMetrics.revenue_sparkline,
+        occupancySparkline: [0, 0, 0, 0, 0, 0, 0], // Simplified for now
+      };
+    }
+
+    // Fallback: calculate on client (for backwards compatibility)
     if (!bookings || bookings.length === 0) {
       return {
         confirmedToday: 0,
@@ -35,7 +50,6 @@ export function DashboardBookings() {
     }
 
     const today = startOfDay(new Date());
-    const tomorrow = addDays(today, 1);
 
     const todayBookings = bookings.filter((b) => {
       const bookingDate = startOfDay(new Date(b.start_time));
@@ -63,45 +77,16 @@ export function DashboardBookings() {
       return sum;
     }, 0);
 
-    const totalSpaces = spaces?.length || 1;
-    const occupiedSlots = todayBookings.length;
-    const occupancyRate = Math.round((occupiedSlots / (totalSpaces * 8)) * 100);
-
-    // Sparkline data - últimos 7 dias
-    const revenueSparkline: number[] = [];
-    const occupancySparkline: number[] = [];
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = startOfDay(addDays(today, -i));
-      const nextDate = addDays(date, 1);
-      
-      const dayBookings = bookings.filter((b) => {
-        const bookingDate = new Date(b.start_time);
-        return bookingDate >= date && bookingDate < nextDate && b.status !== "CANCELLED";
-      });
-      
-      const dayRevenue = dayBookings.reduce((sum, b) => {
-        if (b.status === 'FINALIZED') {
-          return sum + (Number(b.grand_total) || 0);
-        }
-        return sum;
-      }, 0);
-      revenueSparkline.push(dayRevenue);
-      
-      const dayOccupancy = Math.round((dayBookings.length / (totalSpaces * 8)) * 100);
-      occupancySparkline.push(dayOccupancy);
-    }
-
     return {
       confirmedToday,
       pendingToday,
       totalToday: todayBookings.length,
       monthRevenue,
-      occupancyRate: `${occupancyRate}%`,
-      revenueSparkline,
-      occupancySparkline,
+      occupancyRate: "0%",
+      revenueSparkline: [0, 0, 0, 0, 0, 0, 0],
+      occupancySparkline: [0, 0, 0, 0, 0, 0, 0],
     };
-  }, [bookings, spaces]);
+  }, [serverMetrics, bookings]);
 
   const filteredBookings = useMemo(() => {
     if (!bookings || bookings.length === 0) return [];
@@ -150,7 +135,7 @@ export function DashboardBookings() {
     return labels[status as keyof typeof labels] || status;
   };
 
-  if (isLoading) {
+  if (bookingsLoading || metricsLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
