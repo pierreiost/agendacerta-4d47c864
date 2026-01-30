@@ -16,7 +16,7 @@ import {
   addMinutes,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { User, Clock, DollarSign, GripVertical } from 'lucide-react';
+import { User, Clock, DollarSign, GripVertical, MapPin } from 'lucide-react';
 
 type Space = Tables<'spaces'> & {
   category?: Tables<'categories'> | null;
@@ -470,7 +470,13 @@ export function DayView({
                         <span className="truncate">{booking.customer_name || 'Cliente'}</span>
                       </div>
 
-                      {height >= 32 && (
+                      {/* Space name with MapPin - always visible */}
+                      <div className="flex items-center gap-0.5 text-[8px] md:text-[10px] text-muted-foreground mt-0.5">
+                        <MapPin className="h-2 w-2 md:h-2.5 md:w-2.5 flex-shrink-0" />
+                        <span className="truncate">{space.name}</span>
+                      </div>
+
+                      {height >= 40 && (
                         <div className="flex items-center gap-1 text-[9px] md:text-xs text-muted-foreground mt-0.5">
                           <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0 hidden sm:block" />
                           <span>
@@ -480,14 +486,14 @@ export function DayView({
                         </div>
                       )}
 
-                      {height >= 44 && booking.grand_total && (
+                      {height >= 52 && booking.grand_total && (
                         <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                           <DollarSign className="h-3 w-3 flex-shrink-0" />
                           <span>{formatCurrency(booking.grand_total)}</span>
                         </div>
                       )}
 
-                      {height >= 56 && (
+                      {height >= 64 && (
                         <div className="mt-auto pt-0.5 hidden sm:block">
                         <Badge
                             variant="outline"
