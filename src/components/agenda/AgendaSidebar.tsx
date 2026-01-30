@@ -95,50 +95,6 @@ export function AgendaSidebar({
 
           <Separator />
 
-          {/* Space Filters */}
-          <div>
-            <h3 className="text-xs md:text-sm font-semibold text-foreground mb-2 md:mb-3">Espaços</h3>
-            <div className="space-y-1 md:space-y-2">
-              {spaces.map((space, index) => {
-                const colors = getSpaceColor(index);
-                const isChecked = selectedSpaceIds.includes(space.id);
-                const bookingCount = bookings.filter((b) => b.space_id === space.id).length;
-
-                return (
-                  <div
-                    key={space.id}
-                    className={cn(
-                      'flex items-center gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50',
-                      isChecked && 'bg-muted/30'
-                    )}
-                    onClick={() => onSpaceToggle(space.id)}
-                  >
-                    <Checkbox
-                      id={`space-${space.id}`}
-                      checked={isChecked}
-                      onCheckedChange={() => onSpaceToggle(space.id)}
-                      className="pointer-events-none h-4 w-4"
-                    />
-                    <div className={cn('w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0', colors.dot)} />
-                    <Label
-                      htmlFor={`space-${space.id}`}
-                      className="flex-1 text-xs md:text-sm cursor-pointer truncate"
-                    >
-                      {space.name}
-                    </Label>
-                    {bookingCount > 0 && (
-                      <Badge variant="secondary" className="text-[10px] md:text-xs px-1 md:px-1.5">
-                        {bookingCount}
-                      </Badge>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <Separator />
-
           {/* Status Filters */}
           <div>
             <h3 className="text-xs md:text-sm font-semibold text-foreground mb-2 md:mb-3">Status</h3>
