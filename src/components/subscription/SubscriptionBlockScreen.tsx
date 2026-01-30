@@ -1,15 +1,34 @@
-import { AlertTriangle, MessageCircle } from 'lucide-react';
+import { AlertTriangle, MessageCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useVenue } from '@/contexts/VenueContext';
 
 interface SubscriptionBlockScreenProps {
   supportWhatsapp?: string;
 }
 
 export function SubscriptionBlockScreen({ supportWhatsapp = '5551999999999' }: SubscriptionBlockScreenProps) {
+  const { venues, setCurrentVenue } = useVenue();
+  
+  // Filter venues that are NOT blocked (active or trialing with valid dates)
+  const availableVenues = venues.filter(v => {
+    if (v.status === 'active') return true;
+    if (v.status === 'trialing' && v.trial_ends_at) {
+      return new Date(v.trial_ends_at) > new Date();
+    }
+    return false;
+  });
+
   const handleContactSupport = () => {
     const message = encodeURIComponent('Olá! Preciso regularizar minha assinatura do Agenda Certa.');
     window.open(`https://wa.me/${supportWhatsapp.replace(/\D/g, '')}?text=${message}`, '_blank');
+  };
+
+  const handleSwitchVenue = (venueId: string) => {
+    const venue = venues.find(v => v.id === venueId);
+    if (venue) {
+      setCurrentVenue(venue);
+    }
   };
 
   return (
@@ -40,6 +59,28 @@ export function SubscriptionBlockScreen({ supportWhatsapp = '5551999999999' }: S
             <MessageCircle className="h-5 w-5" />
             Falar com Suporte via WhatsApp
           </Button>
+          
+          {/* Switch Venue Button - only show if user has other accessible venues */}
+          {availableVenues.length > 0 && (
+            <div className="pt-4 border-t space-y-3">
+              <p className="text-sm text-center text-muted-foreground">
+                Você tem outras unidades disponíveis:
+              </p>
+              <div className="space-y-2">
+                {availableVenues.map((venue) => (
+                  <Button
+                    key={venue.id}
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    onClick={() => handleSwitchVenue(venue.id)}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Acessar {venue.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

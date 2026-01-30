@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSuperAdmin, SubscriptionStatus, VenueWithSubscription, VenueSegment, PlanType } from '@/hooks/useSuperAdmin';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/AppSidebar';
-import { Loader2, Building2, Users, AlertTriangle, CheckCircle2, XCircle, Clock, Ban, Scissors, Dumbbell, Heart, Sparkles, Send, Edit2, Phone, Mail, FileText, Calendar, Crown, Star } from 'lucide-react';
+import { Loader2, Building2, Users, AlertTriangle, CheckCircle2, XCircle, Clock, Ban, Scissors, Dumbbell, Heart, Sparkles, Send, Edit2, Phone, Mail, FileText, Calendar, Crown, Star, Copy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -148,6 +148,25 @@ function InvoiceModal({
     onClose();
   };
 
+  const handleCopyWhatsAppMessage = async () => {
+    const paymentLink = 'https://pay.agendacerta.com/invoice'; // Placeholder link
+    const message = `Olá ${venue.name}, identificamos que a sua assinatura do Agenda Certa expirou. Para evitar bloqueios, regularize em ${paymentLink}. Dados: ${venue.cnpj_cpf || 'Não informado'}`;
+    
+    try {
+      await navigator.clipboard.writeText(message);
+      toast({
+        title: 'Mensagem copiada!',
+        description: 'Agora é só colar no WhatsApp.',
+      });
+    } catch {
+      toast({
+        title: 'Erro ao copiar',
+        description: 'Não foi possível copiar a mensagem.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const planPrice = venue.plan_type === 'max' ? 'R$ 199,00' : 'R$ 99,00';
 
   return (
@@ -206,8 +225,16 @@ function InvoiceModal({
             </p>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button 
+            variant="secondary" 
+            onClick={handleCopyWhatsAppMessage}
+            className="gap-2"
+          >
+            <Copy className="h-4 w-4" />
+            Copiar Mensagem WhatsApp
+          </Button>
           <Button onClick={handleSendInvoice} className="gap-2">
             <Send className="h-4 w-4" />
             Simular Envio
