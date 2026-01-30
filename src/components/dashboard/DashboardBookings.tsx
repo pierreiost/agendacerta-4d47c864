@@ -19,6 +19,7 @@ export function DashboardBookings() {
   const { bookings, isLoading } = useBookings();
   const { spaces } = useSpaces();
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
+  const [showPending, setShowPending] = useState(false);
 
   const metrics = useMemo(() => {
     if (!bookings || bookings.length === 0) {
@@ -112,10 +113,15 @@ export function DashboardBookings() {
     return bookings
       .filter((b) => {
         const startTime = new Date(b.start_time);
-        return startTime >= targetDate && startTime < nextDate && b.status !== "CANCELLED";
+        const inDateRange = startTime >= targetDate && startTime < nextDate;
+        const notCancelled = b.status !== "CANCELLED";
+        const statusFilter = showPending 
+          ? (b.status === "CONFIRMED" || b.status === "PENDING")
+          : b.status === "CONFIRMED";
+        return inDateRange && notCancelled && statusFilter;
       })
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-  }, [bookings, dateFilter]);
+  }, [bookings, dateFilter, showPending]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -213,7 +219,15 @@ export function DashboardBookings() {
         <CardHeader className="border-b bg-muted/30">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-xl font-semibold">Próximas Reservas</CardTitle>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                variant={showPending ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowPending(!showPending)}
+                className="text-xs gap-1.5"
+              >
+                {showPending ? "Ocultando Pendentes" : "Mostrar Pendentes"}
+              </Button>
               <ToggleGroup 
                 type="single" 
                 value={dateFilter} 
