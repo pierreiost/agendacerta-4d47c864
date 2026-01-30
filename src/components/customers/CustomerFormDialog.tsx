@@ -23,6 +23,7 @@ import { Loader2 } from 'lucide-react';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/use-toast';
 import { maskCPFCNPJ, maskPhone, isValidCPFCNPJ, unmask } from '@/lib/masks';
+import { useFormPersist } from '@/hooks/useFormPersist';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
@@ -73,8 +74,16 @@ export function CustomerFormDialog({
     },
   });
 
+  // Form persistence - only for new customers
+  const { clearDraft } = useFormPersist({
+    form,
+    key: 'customer_form',
+    showRecoveryToast: !isEditing && open,
+  });
+
   useEffect(() => {
     if (customer) {
+      clearDraft();
       form.reset({
         name: customer.name,
         email: customer.email ?? '',
@@ -83,7 +92,7 @@ export function CustomerFormDialog({
         address: customer.address ?? '',
         notes: customer.notes ?? '',
       });
-    } else {
+    } else if (!open) {
       form.reset({
         name: '',
         email: '',
@@ -93,7 +102,7 @@ export function CustomerFormDialog({
         notes: '',
       });
     }
-  }, [customer, form, open]);
+  }, [customer, form, open, clearDraft]);
 
   const checkDuplicates = (data: FormData): string | null => {
     const otherCustomers = customers?.filter(c => c.id !== customer?.id) || [];
@@ -170,6 +179,7 @@ export function CustomerFormDialog({
         await createCustomer.mutateAsync(payload);
       }
 
+      clearDraft();
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
