@@ -43,7 +43,9 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useServices } from '@/hooks/useServices';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { ProfessionalFormDialog } from '@/components/team/ProfessionalFormDialog';
+import { PremiumFeatureOverlay } from '@/components/subscription';
 import type { BookableMember } from '@/types/services';
 import {
   Loader2,
@@ -59,6 +61,7 @@ import {
   X,
   Settings2,
   Scissors,
+  Palette,
 } from 'lucide-react';
 
 const venueFormSchema = z.object({
@@ -103,6 +106,9 @@ export default function Configuracoes() {
   // Check venue segment for conditional UI
   const venueSegment = (currentVenue as { segment?: string })?.segment;
   const isServiceVenue = venueSegment && venueSegment !== 'sports';
+  
+  // Check plan type for premium features
+  const { isPlanMax } = useSubscriptionStatus(currentVenue);
 
   useEffect(() => {
     const googleSuccess = searchParams.get('google_success');
@@ -258,6 +264,12 @@ export default function Configuracoes() {
               <Users className="mr-2 h-4 w-4" />
               Equipe
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="branding">
+                <Palette className="mr-2 h-4 w-4" />
+                Identidade Visual
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* TAB: UNIDADE */}
@@ -755,6 +767,128 @@ export default function Configuracoes() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* TAB: IDENTIDADE VISUAL (Premium) */}
+          {isAdmin && (
+            <TabsContent value="branding">
+              <Card className="relative overflow-hidden">
+                {/* Premium Overlay for Basic plan */}
+                {!isPlanMax && <PremiumFeatureOverlay featureName="Identidade Visual" />}
+                
+                <CardHeader>
+                  <CardTitle>Identidade Visual</CardTitle>
+                  <CardDescription>
+                    Personalize as cores e a aparência do sistema e da sua página pública
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="primary_color">Cor Primária</Label>
+                      <div className="flex items-center gap-3 mt-2">
+                        <Input
+                          id="primary_color"
+                          type="color"
+                          className="w-16 h-10 p-1 cursor-pointer"
+                          value={currentVenue?.primary_color || '#7c3aed'}
+                          disabled={!isPlanMax}
+                          onChange={async (e) => {
+                            if (!currentVenue?.id || !isPlanMax) return;
+                            const { error } = await supabase
+                              .from('venues')
+                              .update({ primary_color: e.target.value })
+                              .eq('id', currentVenue.id);
+                            if (!error) {
+                              toast({ title: 'Cor primária atualizada!' });
+                              refetchVenues();
+                            }
+                          }}
+                        />
+                        <Input
+                          value={currentVenue?.primary_color || '#7c3aed'}
+                          className="w-32 font-mono text-sm"
+                          disabled
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Usada em botões, links e elementos de destaque
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="secondary_color">Cor Secundária</Label>
+                      <div className="flex items-center gap-3 mt-2">
+                        <Input
+                          id="secondary_color"
+                          type="color"
+                          className="w-16 h-10 p-1 cursor-pointer"
+                          value={currentVenue?.secondary_color || '#e5e7eb'}
+                          disabled={!isPlanMax}
+                          onChange={async (e) => {
+                            if (!currentVenue?.id || !isPlanMax) return;
+                            const { error } = await supabase
+                              .from('venues')
+                              .update({ secondary_color: e.target.value })
+                              .eq('id', currentVenue.id);
+                            if (!error) {
+                              toast({ title: 'Cor secundária atualizada!' });
+                              refetchVenues();
+                            }
+                          }}
+                        />
+                        <Input
+                          value={currentVenue?.secondary_color || '#e5e7eb'}
+                          className="w-32 font-mono text-sm"
+                          disabled
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Usada em fundos e elementos secundários
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="accent_color">Cor de Destaque</Label>
+                      <div className="flex items-center gap-3 mt-2">
+                        <Input
+                          id="accent_color"
+                          type="color"
+                          className="w-16 h-10 p-1 cursor-pointer"
+                          value={currentVenue?.accent_color || '#facc15'}
+                          disabled={!isPlanMax}
+                          onChange={async (e) => {
+                            if (!currentVenue?.id || !isPlanMax) return;
+                            const { error } = await supabase
+                              .from('venues')
+                              .update({ accent_color: e.target.value })
+                              .eq('id', currentVenue.id);
+                            if (!error) {
+                              toast({ title: 'Cor de destaque atualizada!' });
+                              refetchVenues();
+                            }
+                          }}
+                        />
+                        <Input
+                          value={currentVenue?.accent_color || '#facc15'}
+                          className="w-32 font-mono text-sm"
+                          disabled
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Usada em avisos e chamadas para ação
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      As cores serão aplicadas na sua página pública e em elementos do sistema.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
