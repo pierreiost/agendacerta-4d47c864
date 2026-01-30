@@ -14,6 +14,7 @@ import { MonthView } from '@/components/agenda/MonthView';
 import { BookingWizard } from '@/components/agenda/BookingWizard';
 import { ServiceBookingWizard } from '@/components/agenda/ServiceBookingWizard';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
+import { DayViewSkeleton, WeekViewSkeleton, MonthViewSkeleton } from '@/components/agenda/AgendaSkeletons';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import {
   startOfWeek,
@@ -310,9 +311,11 @@ export default function Agenda() {
 
           {/* Calendar View */}
           {isLoading ? (
-            <Card className="flex-1 flex items-center justify-center">
-              <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary" />
-            </Card>
+            <>
+              {viewMode === 'day' && <DayViewSkeleton />}
+              {viewMode === 'week' && <WeekViewSkeleton />}
+              {viewMode === 'month' && <MonthViewSkeleton />}
+            </>
           ) : activeSpaces.length === 0 ? (
             <Card className="flex-1 flex flex-col items-center justify-center text-center p-4 md:p-8">
               <div className="rounded-full bg-muted p-3 md:p-4 mb-3 md:mb-4">
