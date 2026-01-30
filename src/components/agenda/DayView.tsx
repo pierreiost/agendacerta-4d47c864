@@ -33,20 +33,17 @@ interface DayViewProps {
   onBookingResize?: (bookingId: string, newStart: Date, newEnd: Date) => void;
 }
 
-// Horários visíveis na agenda (8:00 a 22:00) - mais espaço útil
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 to 22:00
-const HOUR_HEIGHT = 48; // pixels per hour (reduced for better visibility)
-const SLOT_INCREMENT = 30; // minutes
-const BUSINESS_HOURS_START = 8; // Scroll to 8:00 by default
+// Horários visíveis na agenda (8:00 a 22:00)
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
+const HOUR_HEIGHT = 56;
+const SLOT_INCREMENT = 30;
+const BUSINESS_HOURS_START = 8;
 
-/**
- * Arredonda minutos para o slot mais próximo (30 min)
- */
 function snapMinutesToSlot(minutes: number): number {
   return Math.round(minutes / SLOT_INCREMENT) * SLOT_INCREMENT;
 }
 
-// Cores de fundo do card baseadas no status - com suporte a dark mode
+// Cores de fundo do card baseadas no status
 const STATUS_CARD_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   PENDING: { 
     bg: 'bg-amber-50 dark:bg-amber-950/50', 
@@ -76,6 +73,78 @@ const STATUS_LABELS: Record<string, string> = {
   FINALIZED: 'Finalizado',
   CANCELLED: 'Cancelado',
 };
+
+// Função para calcular posições horizontais evitando sobreposição
+function calculateBookingColumns(bookings: Booking[]): Map<string, { column: number; totalColumns: number }> {
+  const result = new Map<string, { column: number; totalColumns: number }>();
+  
+  if (bookings.length === 0) return result;
+  
+  const sorted = [...bookings].sort((a, b) => 
+    new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+  );
+  
+  const groups: Booking[][] = [];
+  let currentGroup: Booking[] = [];
+  
+  sorted.forEach((booking) => {
+    const bookingStart = new Date(booking.start_time);
+    const bookingEnd = new Date(booking.end_time);
+    
+    const overlapsWithGroup = currentGroup.some((b) => {
+      const bStart = new Date(b.start_time);
+      const bEnd = new Date(b.end_time);
+      return bookingStart < bEnd && bookingEnd > bStart;
+    });
+    
+    if (currentGroup.length === 0 || overlapsWithGroup) {
+      currentGroup.push(booking);
+    } else {
+      groups.push(currentGroup);
+      currentGroup = [booking];
+    }
+  });
+  
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
+  }
+  
+  groups.forEach((group) => {
+    const columns: Booking[][] = [];
+    
+    group.forEach((booking) => {
+      const bookingStart = new Date(booking.start_time);
+      
+      let columnIndex = 0;
+      while (true) {
+        if (!columns[columnIndex]) {
+          columns[columnIndex] = [];
+        }
+        
+        const canFit = columns[columnIndex].every((b) => {
+          const bEnd = new Date(b.end_time);
+          return bookingStart >= bEnd;
+        });
+        
+        if (canFit) {
+          columns[columnIndex].push(booking);
+          break;
+        }
+        columnIndex++;
+      }
+      
+      result.set(booking.id, { column: columnIndex, totalColumns: 0 });
+    });
+    
+    const totalColumns = columns.length;
+    group.forEach((booking) => {
+      const current = result.get(booking.id)!;
+      result.set(booking.id, { ...current, totalColumns });
+    });
+  });
+  
+  return result;
+}
 
 interface DragState {
   bookingId: string;
@@ -110,29 +179,24 @@ export function DayView({
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
 
-  // Scroll para horário comercial ou horário atual ao carregar
   useEffect(() => {
     if (hasScrolledRef.current) return;
 
     const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (!scrollContainer) return;
 
-    // Se for hoje e estiver dentro do horário comercial, scroll para hora atual
-    // Caso contrário, scroll para início do expediente
     const targetHour = isToday && currentHour >= BUSINESS_HOURS_START && currentHour <= 22
       ? currentHour
       : BUSINESS_HOURS_START;
 
     const scrollPosition = (targetHour - 8) * HOUR_HEIGHT;
 
-    // Pequeno delay para garantir que o DOM está renderizado
     setTimeout(() => {
       scrollContainer.scrollTop = Math.max(0, scrollPosition - 20);
       hasScrolledRef.current = true;
     }, 100);
   }, [isToday, currentHour]);
 
-  // Reset scroll flag quando a data muda
   useEffect(() => {
     hasScrolledRef.current = false;
   }, [date]);
@@ -144,6 +208,11 @@ export function DayView({
     });
   }, [bookings, date]);
 
+  // Calcular colunas para evitar sobreposição
+  const bookingColumns = useMemo(() => {
+    return calculateBookingColumns(dayBookings);
+  }, [dayBookings]);
+
   const getBookingPosition = (booking: Booking) => {
     const start = new Date(booking.start_time);
     const end = new Date(booking.end_time);
@@ -154,20 +223,13 @@ export function DayView({
     const top = ((startMinutes - 8 * 60) / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
 
-    return { top, height: Math.max(height, 24) };
+    return { top, height: Math.max(height, 28) };
   };
 
   const snapToGrid = (y: number) => {
     const minutes = Math.round((y / HOUR_HEIGHT) * 60);
     const snapped = Math.round(minutes / SLOT_INCREMENT) * SLOT_INCREMENT;
     return (snapped / 60) * HOUR_HEIGHT;
-  };
-
-  const yToTime = (y: number, baseDate: Date) => {
-    const minutesFromStart = (y / HOUR_HEIGHT) * 60 + 8 * 60;
-    const hours = Math.floor(minutesFromStart / 60);
-    const minutes = Math.round((minutesFromStart % 60) / SLOT_INCREMENT) * SLOT_INCREMENT;
-    return setMinutes(setHours(baseDate, hours), minutes);
   };
 
   const handleMouseDown = useCallback(
@@ -219,7 +281,6 @@ export function DayView({
         }
       }
 
-      // Clamp to valid hours (visual: 8-22, but bookings can still be 6-23)
       const startHour = newStart.getHours();
       const endHour = newEnd.getHours();
       if (startHour < 8) return;
@@ -264,8 +325,7 @@ export function DayView({
     }
   }, [dragState, handleMouseMove, handleMouseUp]);
 
-  const handleSlotClick = (spaceId: string, hour: number, event?: React.MouseEvent) => {
-    // Calcular minutos baseado na posição do clique dentro do slot
+  const handleSlotClick = (hour: number, event?: React.MouseEvent) => {
     let minutes = 0;
     if (event) {
       const rect = event.currentTarget.getBoundingClientRect();
@@ -274,13 +334,15 @@ export function DayView({
       minutes = snapMinutesToSlot(rawMinutes);
     }
 
-    // Arredondar hora para o slot mais próximo
     const finalHour = hour + Math.floor(minutes / 60);
     const finalMinutes = minutes % 60;
-
-    // Criar data com hora arredondada
     const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
-    onSlotClick(spaceId, slotDate, finalHour);
+    
+    // Usar o primeiro espaço visível como padrão
+    const primarySpaceId = spaces.length > 0 ? spaces[0].id : '';
+    if (primarySpaceId) {
+      onSlotClick(primarySpaceId, slotDate, finalHour);
+    }
   };
 
   const isCurrentTimeSlot = (hour: number) => {
@@ -309,37 +371,22 @@ export function DayView({
   return (
     <Card className="flex-1 overflow-hidden shadow-soft">
       <ScrollArea className="h-full" ref={scrollAreaRef}>
-        <div className="min-w-[320px] md:min-w-[600px] lg:min-w-[800px]">
-          {/* Header with space names */}
+        <div className="min-w-[320px]">
+          {/* Header com data */}
           <div className="sticky top-0 z-20 bg-card border-b border-border">
-            <div className="flex">
-              <div className="w-12 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2" />
-              {spaces.map((space, index) => {
-                const colors = getSpaceColor(allSpaces.findIndex((s) => s.id === space.id));
-                return (
-                  <div
-                    key={space.id}
-                    className={cn(
-                      'flex-1 min-w-[100px] md:min-w-[140px] lg:min-w-[180px] p-2 md:p-3 border-r border-border last:border-r-0',
-                      'bg-gradient-to-b from-muted/30 to-transparent'
-                    )}
-                  >
-                    <div className="flex items-center gap-1 md:gap-2">
-                      <div className={cn('w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0', colors.dot)} />
-                      <span className="font-medium text-xs md:text-sm truncate">{space.name}</span>
-                    </div>
-                    {space.category && (
-                      <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">{space.category.name}</span>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="flex items-center justify-center p-3 md:p-4">
+              <div className={cn(
+                'text-lg md:text-xl font-semibold capitalize',
+                isToday && 'text-primary'
+              )}>
+                {format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}
+              </div>
             </div>
           </div>
 
-          {/* Time grid */}
+          {/* Grade de horários única */}
           <div className="relative">
-            {/* Current time indicator */}
+            {/* Indicador de hora atual */}
             {isToday && currentHour >= 8 && currentHour <= 22 && (
               <div
                 className="absolute left-0 right-0 z-30 pointer-events-none"
@@ -348,18 +395,18 @@ export function DayView({
                 }}
               >
                 <div className="flex items-center">
-                  <div className="w-16 flex justify-end pr-1">
-                    <div className="w-2 h-2 rounded-full bg-error-500" />
+                  <div className="w-14 md:w-16 flex justify-end pr-1">
+                    <div className="w-2 h-2 rounded-full bg-destructive" />
                   </div>
-                  <div className="flex-1 h-[2px] bg-error-500" />
+                  <div className="flex-1 h-[2px] bg-destructive" />
                 </div>
               </div>
             )}
 
             {HOURS.map((hour) => (
               <div key={hour} className="flex" style={{ height: HOUR_HEIGHT }}>
-                {/* Time label */}
-                <div className="w-12 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2 text-right flex items-start justify-end">
+                {/* Label da hora */}
+                <div className="w-14 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2 text-right flex items-start justify-end">
                   <span
                     className={cn(
                       'text-[10px] md:text-xs',
@@ -370,149 +417,150 @@ export function DayView({
                   </span>
                 </div>
 
-                {/* Space columns */}
-                {spaces.map((space) => (
-                  <div
-                    key={`${space.id}-${hour}`}
-                    className={cn(
-                      'flex-1 min-w-[100px] md:min-w-[140px] lg:min-w-[180px] border-r border-b border-border last:border-r-0 relative cursor-pointer',
-                      'transition-colors duration-150',
-                      'hover:bg-primary/5',
-                      isCurrentTimeSlot(hour) && 'bg-destructive/5'
-                    )}
-                    onClick={(e) => handleSlotClick(space.id, hour, e)}
-                  />
-                ))}
+                {/* Área clicável única */}
+                <div
+                  className={cn(
+                    'flex-1 border-b border-border relative cursor-pointer',
+                    'transition-colors duration-150',
+                    'hover:bg-primary/5',
+                    isCurrentTimeSlot(hour) && 'bg-destructive/5'
+                  )}
+                  onClick={(e) => handleSlotClick(hour, e)}
+                />
               </div>
             ))}
 
-            {/* Bookings overlay */}
-            {spaces.map((space) => {
-              const spaceBookings = dayBookings.filter((b) => b.space_id === space.id);
-              const spaceIndex = allSpaces.findIndex((s) => s.id === space.id);
-              const colors = getSpaceColor(spaceIndex);
-              const columnIndex = spaces.findIndex((s) => s.id === space.id);
+            {/* Reservas overlay */}
+            {dayBookings.map((booking) => {
+              const { top, height } = getBookingPosition(booking);
+              const columnInfo = bookingColumns.get(booking.id) || { column: 0, totalColumns: 1 };
+              const widthPercent = 100 / columnInfo.totalColumns;
+              const leftPercent = columnInfo.column * widthPercent;
+              
+              const isDragging = dragState?.bookingId === booking.id;
+              const previewPos =
+                isDragging && dragPreview
+                  ? getBookingPosition({
+                      ...booking,
+                      start_time: dragPreview.start.toISOString(),
+                      end_time: dragPreview.end.toISOString(),
+                    })
+                  : null;
 
-              return spaceBookings.map((booking) => {
-                const { top, height } = getBookingPosition(booking);
-                const isDragging = dragState?.bookingId === booking.id;
-                const previewPos =
-                  isDragging && dragPreview
-                    ? getBookingPosition({
-                        ...booking,
-                        start_time: dragPreview.start.toISOString(),
-                        end_time: dragPreview.end.toISOString(),
-                      })
-                    : null;
+              const isNow =
+                isToday &&
+                isWithinInterval(now, {
+                  start: new Date(booking.start_time),
+                  end: new Date(booking.end_time),
+                });
 
-                const isNow =
-                  isToday &&
-                  isWithinInterval(now, {
-                    start: new Date(booking.start_time),
-                    end: new Date(booking.end_time),
-                  });
+              const statusStyles = STATUS_CARD_STYLES[booking.status] || STATUS_CARD_STYLES.PENDING;
+              const spaceIndex = allSpaces.findIndex((s) => s.id === booking.space_id);
+              const spaceColors = getSpaceColor(spaceIndex);
+              const space = allSpaces.find((s) => s.id === booking.space_id);
 
-                // Usar cores baseadas no status
-                const statusStyles = STATUS_CARD_STYLES[booking.status] || STATUS_CARD_STYLES.PENDING;
+              return (
+                <div
+                  key={booking.id}
+                  className={cn(
+                    'absolute rounded-md md:rounded-lg border-l-4 p-1.5 md:p-2 cursor-pointer',
+                    'transition-all duration-200',
+                    'hover:scale-[1.01] hover:shadow-lg hover:z-20',
+                    statusStyles.bg,
+                    statusStyles.text,
+                    isDragging && 'opacity-50',
+                    isNow && 'animate-pulse-subtle ring-2 ring-primary/50'
+                  )}
+                  style={{
+                    top: previewPos ? previewPos.top : top,
+                    height: previewPos ? previewPos.height : height,
+                    left: `calc(56px + ${leftPercent}% * (100% - 56px) / 100 + 4px)`,
+                    width: `calc((100% - 56px - 8px) * ${widthPercent} / 100 - 4px)`,
+                    borderLeftColor: undefined,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBookingClick(booking);
+                  }}
+                >
+                  {/* Borda colorida do espaço */}
+                  <div 
+                    className={cn('absolute left-0 top-0 bottom-0 w-1 rounded-l-md', spaceColors.dot)}
+                  />
 
-                return (
-                  <div
-                    key={booking.id}
-                    className={cn(
-                      'absolute rounded-md md:rounded-lg border-l-2 md:border-l-4 p-1 md:p-2 cursor-pointer',
-                      'transition-all duration-200',
-                      'hover:scale-[1.01] md:hover:scale-[1.02] hover:shadow-lg hover:z-20',
-                      statusStyles.bg,
-                      statusStyles.border,
-                      statusStyles.text,
-                      isDragging && 'opacity-50',
-                      isNow && 'animate-pulse-subtle ring-2 ring-primary/50'
-                    )}
-                    style={{
-                      top: previewPos ? previewPos.top : top,
-                      height: previewPos ? previewPos.height : height,
-                      left: `calc(48px + ${columnIndex} * (100% - 48px) / ${spaces.length} + 1px)`,
-                      width: `calc((100% - 48px) / ${spaces.length} - 2px)`,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onBookingClick(booking);
-                    }}
-                  >
-                    {/* Resize handles */}
-                    {onBookingResize && (
-                      <>
-                        <div
-                          className="absolute top-0 left-0 right-0 h-2 cursor-n-resize hover:bg-foreground/10 rounded-t-lg"
-                          onMouseDown={(e) => handleMouseDown(e, booking, 'resize-top')}
-                        />
-                        <div
-                          className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-foreground/10 rounded-b-lg"
-                          onMouseDown={(e) => handleMouseDown(e, booking, 'resize-bottom')}
-                        />
-                      </>
-                    )}
-
-                    {/* Move handle */}
-                    {onBookingMove && height >= 60 && (
+                  {/* Resize handles */}
+                  {onBookingResize && (
+                    <>
                       <div
-                        className="absolute top-1 right-1 p-1 cursor-move hover:bg-foreground/10 rounded"
-                        onMouseDown={(e) => handleMouseDown(e, booking, 'move')}
-                      >
-                        <GripVertical className="h-3 w-3 text-muted-foreground" />
+                        className="absolute top-0 left-0 right-0 h-2 cursor-n-resize hover:bg-foreground/10 rounded-t-lg"
+                        onMouseDown={(e) => handleMouseDown(e, booking, 'resize-top')}
+                      />
+                      <div
+                        className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-foreground/10 rounded-b-lg"
+                        onMouseDown={(e) => handleMouseDown(e, booking, 'resize-bottom')}
+                      />
+                    </>
+                  )}
+
+                  {/* Move handle */}
+                  {onBookingMove && height >= 60 && (
+                    <div
+                      className="absolute top-1 right-1 p-1 cursor-move hover:bg-foreground/10 rounded"
+                      onMouseDown={(e) => handleMouseDown(e, booking, 'move')}
+                    >
+                      <GripVertical className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="flex flex-col h-full overflow-hidden pl-1">
+                    <div className="flex items-center gap-1 text-foreground font-medium text-[10px] md:text-sm truncate">
+                      <User className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0" />
+                      <span className="truncate">{booking.customer_name || 'Cliente'}</span>
+                    </div>
+
+                    {/* Nome do espaço */}
+                    <div className="flex items-center gap-0.5 text-[8px] md:text-[10px] text-muted-foreground mt-0.5">
+                      <MapPin className="h-2 w-2 md:h-2.5 md:w-2.5 flex-shrink-0" />
+                      <span className="truncate">{space?.name || 'Espaço'}</span>
+                    </div>
+
+                    {height >= 48 && (
+                      <div className="flex items-center gap-1 text-[9px] md:text-xs text-muted-foreground mt-0.5">
+                        <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0 hidden sm:block" />
+                        <span>
+                          {format(new Date(booking.start_time), 'HH:mm')} -{' '}
+                          {format(new Date(booking.end_time), 'HH:mm')}
+                        </span>
                       </div>
                     )}
 
-                    {/* Content */}
-                    <div className="flex flex-col h-full overflow-hidden">
-                      <div className="flex items-center gap-1 text-foreground font-medium text-[10px] md:text-sm truncate">
-                        <User className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0" />
-                        <span className="truncate">{booking.customer_name || 'Cliente'}</span>
+                    {height >= 64 && booking.grand_total && (
+                      <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <DollarSign className="h-3 w-3 flex-shrink-0" />
+                        <span>{formatCurrency(booking.grand_total)}</span>
                       </div>
+                    )}
 
-                      {/* Space name with MapPin - always visible */}
-                      <div className="flex items-center gap-0.5 text-[8px] md:text-[10px] text-muted-foreground mt-0.5">
-                        <MapPin className="h-2 w-2 md:h-2.5 md:w-2.5 flex-shrink-0" />
-                        <span className="truncate">{space.name}</span>
-                      </div>
-
-                      {height >= 40 && (
-                        <div className="flex items-center gap-1 text-[9px] md:text-xs text-muted-foreground mt-0.5">
-                          <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 flex-shrink-0 hidden sm:block" />
-                          <span>
-                            {format(new Date(booking.start_time), 'HH:mm')} -{' '}
-                            {format(new Date(booking.end_time), 'HH:mm')}
-                          </span>
-                        </div>
-                      )}
-
-                      {height >= 52 && booking.grand_total && (
-                        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                          <DollarSign className="h-3 w-3 flex-shrink-0" />
-                          <span>{formatCurrency(booking.grand_total)}</span>
-                        </div>
-                      )}
-
-                      {height >= 64 && (
-                        <div className="mt-auto pt-0.5 hidden sm:block">
+                    {height >= 80 && (
+                      <div className="mt-auto pt-0.5 hidden sm:block">
                         <Badge
-                            variant="outline"
-                            className={cn(
-                              'text-[8px] md:text-[10px] px-1 md:px-1.5 py-0 border',
-                              booking.status === 'PENDING' && 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700',
-                              booking.status === 'CONFIRMED' && 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-700',
-                              booking.status === 'FINALIZED' && 'bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-900/50 dark:text-indigo-200 dark:border-indigo-700',
-                              booking.status === 'CANCELLED' && 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-200 dark:border-red-700'
-                            )}
-                          >
-                            {STATUS_LABELS[booking.status]}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
+                          variant="outline"
+                          className={cn(
+                            'text-[8px] md:text-[10px] px-1 md:px-1.5 py-0 border',
+                            booking.status === 'PENDING' && 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700',
+                            booking.status === 'CONFIRMED' && 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-700',
+                            booking.status === 'FINALIZED' && 'bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-900/50 dark:text-indigo-200 dark:border-indigo-700',
+                            booking.status === 'CANCELLED' && 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-200 dark:border-red-700'
+                          )}
+                        >
+                          {STATUS_LABELS[booking.status]}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
-                );
-              });
+                </div>
+              );
             })}
           </div>
         </div>
