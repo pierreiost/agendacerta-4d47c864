@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
+import { useFormPersist } from '@/hooks/useFormPersist';
 
 const formSchema = z.object({
   customer_id: z.string().optional(),
@@ -110,6 +111,13 @@ export function BookingFormDialog({
     },
   });
 
+  // Form persistence - only for new bookings
+  const { clearDraft } = useFormPersist({
+    form,
+    key: `booking_form_${venueId}`,
+    showRecoveryToast: !isEditing && open && !defaultSlot,
+  });
+
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
     if (!customerSearch) return customers;
@@ -144,6 +152,7 @@ export function BookingFormDialog({
 
   useEffect(() => {
     if (booking) {
+      clearDraft();
       const startDate = parseISO(booking.start_time);
       const endDate = parseISO(booking.end_time);
       
@@ -159,6 +168,7 @@ export function BookingFormDialog({
         notes: booking.notes ?? '',
       });
     } else if (defaultSlot) {
+      clearDraft();
       form.reset({
         customer_id: '',
         customer_name: '',
@@ -170,7 +180,7 @@ export function BookingFormDialog({
         end_hour: `${defaultSlot.hour + 1}:00`,
         notes: '',
       });
-    } else {
+    } else if (!open) {
       form.reset({
         customer_id: '',
         customer_name: '',
@@ -185,7 +195,7 @@ export function BookingFormDialog({
     }
     setConflictError(null);
     setCustomerSearch('');
-  }, [booking, defaultSlot, form, spaces]);
+  }, [booking, defaultSlot, form, spaces, open, clearDraft]);
 
   const onSubmit = async (data: FormData) => {
     setConflictError(null);
@@ -257,6 +267,7 @@ export function BookingFormDialog({
       await createBooking.mutateAsync(payload);
     }
 
+    clearDraft();
     onOpenChange(false);
   };
 

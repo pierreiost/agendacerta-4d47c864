@@ -31,6 +31,7 @@ import { useVenue } from '@/contexts/VenueContext';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useServiceOrders, type ServiceOrder } from '@/hooks/useServiceOrders';
 import { maskPhone, maskCPFCNPJ, maskCEP } from '@/lib/masks';
+import { useFormPersist } from '@/hooks/useFormPersist';
 
 const formSchema = z.object({
   order_type: z.enum(['simple', 'complete']),
@@ -86,8 +87,18 @@ export function ServiceOrderFormDialog({
     },
   });
 
+  const isEditing = !!order;
+
+  // Form persistence - only for new orders
+  const { clearDraft } = useFormPersist({
+    form,
+    key: `service_order_form_${currentVenue?.id}`,
+    showRecoveryToast: !isEditing && open,
+  });
+
   useEffect(() => {
     if (order) {
+      clearDraft();
       form.reset({
         order_type: order.order_type as 'simple' | 'complete',
         customer_id: order.customer_id ?? undefined,
@@ -105,11 +116,11 @@ export function ServiceOrderFormDialog({
         tax_rate: Number(order.tax_rate) || 0.05,
       });
       setOrderType(order.order_type as 'simple' | 'complete');
-    } else {
+    } else if (!open) {
       form.reset();
       setOrderType('simple');
     }
-  }, [order, form]);
+  }, [order, form, open, clearDraft]);
 
   const handleCustomerSelect = (customerId: string) => {
     const customer = customers.find((c) => c.id === customerId);
@@ -152,6 +163,7 @@ export function ServiceOrderFormDialog({
       } else {
         await createOrder(payload);
       }
+      clearDraft();
       onOpenChange(false);
     } catch (error) {
       // Error handled by hook
