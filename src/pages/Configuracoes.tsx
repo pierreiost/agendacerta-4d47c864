@@ -40,12 +40,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useFormPersist } from '@/hooks/useFormPersist';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import { useFileUpload } from '@/hooks/useFileUpload';
 import { useProfessionals } from '@/hooks/useProfessionals';
-import { useServices } from '@/hooks/useServices';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { ProfessionalFormDialog } from '@/components/team/ProfessionalFormDialog';
 import { PremiumFeatureOverlay } from '@/components/subscription';
+import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
 import type { BookableMember } from '@/types/services';
 import {
   Loader2,
@@ -55,28 +54,15 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  ImageIcon,
-  Upload,
-  Link,
-  X,
   Settings2,
   Scissors,
   Palette,
 } from 'lucide-react';
 
-const venueFormSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
-  logo_url: z.string().url('URL inválida').optional().or(z.literal('')),
-});
-
 const reminderFormSchema = z.object({
   reminder_hours_before: z.coerce.number().min(1).max(72),
 });
 
-type VenueFormData = z.infer<typeof venueFormSchema>;
 type ReminderFormData = z.infer<typeof reminderFormSchema>;
 
 export default function Configuracoes() {
@@ -84,13 +70,10 @@ export default function Configuracoes() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
   const [selectedMember, setSelectedMember] = useState<BookableMember | null>(null);
   const [professionalDialogOpen, setProfessionalDialogOpen] = useState(false);
   
-  const { upload, isUploading } = useFileUpload();
   const { professionals, isLoading: loadingProfessionals } = useProfessionals();
-  const { services } = useServices();
   const {
     isConnected,
     connection,
@@ -134,43 +117,21 @@ export default function Configuracoes() {
     }
   }, [searchParams, setSearchParams, toast]);
 
-  const venueForm = useForm<VenueFormData>({
-    resolver: zodResolver(venueFormSchema),
-    defaultValues: {
-      name: currentVenue?.name ?? '',
-      address: currentVenue?.address ?? '',
-      phone: currentVenue?.phone ?? '',
-      email: currentVenue?.email ?? '',
-      logo_url: currentVenue?.logo_url ?? '',
-    },
-  });
-
-  // Form persistence for venue settings
-  const { clearDraft: clearVenueDraft } = useFormPersist({
-    form: venueForm,
-    key: `venue_settings_${currentVenue?.id || 'default'}`,
-    debounceMs: 500,
-    showRecoveryToast: true,
-  });
-
-  useEffect(() => {
-    if (currentVenue) {
-      venueForm.reset({
-        name: currentVenue.name ?? '',
-        address: currentVenue.address ?? '',
-        phone: currentVenue.phone ?? '',
-        email: currentVenue.email ?? '',
-        logo_url: currentVenue.logo_url ?? '',
-      });
-    }
-  }, [currentVenue, venueForm]);
-
   const reminderForm = useForm<ReminderFormData>({
     resolver: zodResolver(reminderFormSchema),
     defaultValues: {
       reminder_hours_before: currentVenue?.reminder_hours_before ?? 24,
     },
   });
+
+  // Reset reminder form when venue changes
+  useEffect(() => {
+    if (currentVenue) {
+      reminderForm.reset({
+        reminder_hours_before: currentVenue.reminder_hours_before ?? 24,
+      });
+    }
+  }, [currentVenue?.id, currentVenue, reminderForm]);
 
   // Form persistence for reminder settings
   const { clearDraft: clearReminderDraft } = useFormPersist({
@@ -179,36 +140,6 @@ export default function Configuracoes() {
     debounceMs: 500,
     showRecoveryToast: false, // Avoid multiple toasts
   });
-
-  const onVenueSubmit = async (data: VenueFormData) => {
-    if (!currentVenue?.id) return;
-    setIsLoading(true);
-
-    const { error } = await supabase
-      .from('venues')
-      .update({
-        name: data.name,
-        address: data.address || null,
-        phone: data.phone || null,
-        email: data.email || null,
-        logo_url: data.logo_url || null,
-      })
-      .eq('id', currentVenue.id);
-
-    setIsLoading(false);
-
-    if (error) {
-      toast({
-        title: 'Erro ao atualizar',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      toast({ title: 'Configurações salvas!' });
-      clearVenueDraft(); // Clear draft on successful save
-      refetchVenues();
-    }
-  };
 
   const onReminderSubmit = async (data: ReminderFormData) => {
     if (!currentVenue?.id) return;
@@ -274,251 +205,7 @@ export default function Configuracoes() {
 
           {/* TAB: UNIDADE */}
           <TabsContent value="venue">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dados da Unidade</CardTitle>
-                <CardDescription>
-                  Informações básicas sobre sua unidade
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...venueForm}>
-                  <form onSubmit={venueForm.handleSubmit(onVenueSubmit)} className="space-y-4">
-                    <FormField
-                      control={venueForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nome da unidade" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={venueForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Endereço</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Endereço completo" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={venueForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Telefone</FormLabel>
-                            <FormControl>
-                              <Input placeholder="(11) 99999-9999" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={venueForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="contato@exemplo.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Logo - apenas para header do sistema */}
-                    {isAdmin && (
-                      <FormField
-                        control={venueForm.control}
-                        name="logo_url"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Logotipo do Sistema</FormLabel>
-                            <FormDescription>
-                              Aparece no header da sidebar do sistema administrativo
-                            </FormDescription>
-                            <div className="flex items-start gap-4">
-                              <div className="relative">
-                                <Avatar className="h-16 w-16 border">
-                                  <AvatarImage src={field.value || undefined} alt="Logo" />
-                                  <AvatarFallback>
-                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                                  </AvatarFallback>
-                                </Avatar>
-                                {field.value && (
-                                  <button
-                                    type="button"
-                                    onClick={() => field.onChange('')}
-                                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
-                                    title="Remover logo"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                )}
-                              </div>
-                              <div className="flex-1 space-y-2">
-                                <div className="flex gap-2">
-                                  <Button
-                                    type="button"
-                                    variant={logoInputMode === 'url' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setLogoInputMode('url')}
-                                  >
-                                    <Link className="h-4 w-4 mr-1" />
-                                    URL
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant={logoInputMode === 'file' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setLogoInputMode('file')}
-                                  >
-                                    <Upload className="h-4 w-4 mr-1" />
-                                    Arquivo
-                                  </Button>
-                                </div>
-
-                                {logoInputMode === 'url' ? (
-                                  <FormControl>
-                                    <Input
-                                      placeholder="https://exemplo.com/logo.png"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                ) : (
-                                  <div>
-                                    <Label
-                                      htmlFor="logo-upload"
-                                      className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                                        isUploading ? 'opacity-50 pointer-events-none' : ''
-                                      }`}
-                                    >
-                                      {isUploading ? (
-                                        <div className="flex items-center gap-2">
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          <span className="text-xs">Enviando...</span>
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <Upload className="h-4 w-4 text-muted-foreground" />
-                                          <span className="text-xs text-muted-foreground">
-                                            PNG, JPG ou SVG
-                                          </span>
-                                        </>
-                                      )}
-                                    </Label>
-                                    <Input
-                                      id="logo-upload"
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      disabled={isUploading}
-                                      onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file || !currentVenue?.id) return;
-
-                                        const result = await upload(file, {
-                                          bucket: 'venue-logos',
-                                          folder: currentVenue.id,
-                                        });
-
-                                        if (result) {
-                                          field.onChange(result.url);
-                                          toast({ title: 'Logo enviado!' });
-                                        }
-                                        e.target.value = '';
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {/* Dashboard Mode Selector */}
-                    {isAdmin && (
-                      <div className="space-y-2 pt-4 border-t">
-                        <Label htmlFor="dashboard_mode">Modo de Visualização do Dashboard</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Escolha quais métricas são mais relevantes para o seu negócio
-                        </p>
-                        <Select
-                          value={(currentVenue as { dashboard_mode?: string })?.dashboard_mode || 'bookings'}
-                          onValueChange={async (value) => {
-                            if (!currentVenue?.id) return;
-                            setIsLoading(true);
-                            const { error } = await supabase
-                              .from('venues')
-                              .update({ dashboard_mode: value })
-                              .eq('id', currentVenue.id);
-                            setIsLoading(false);
-                            if (error) {
-                              toast({
-                                title: 'Erro ao atualizar',
-                                description: error.message,
-                                variant: 'destructive',
-                              });
-                            } else {
-                              toast({ title: 'Modo do dashboard atualizado!' });
-                              refetchVenues();
-                            }
-                          }}
-                        >
-                          <SelectTrigger id="dashboard_mode">
-                            <SelectValue placeholder="Selecione o modo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="bookings">
-                              <div className="flex flex-col">
-                                <span>Reservas / Espaços</span>
-                                <span className="text-xs text-muted-foreground">Quadras, salas, locais</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="appointments">
-                              <div className="flex flex-col">
-                                <span>Atendimentos / Profissionais</span>
-                                <span className="text-xs text-muted-foreground">Barbearias, salões, clínicas</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="service_orders">
-                              <div className="flex flex-col">
-                                <span>Ordens de Serviço</span>
-                                <span className="text-xs text-muted-foreground">Assistência técnica, manutenção</span>
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Salvar
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+            <VenueSettingsTab />
           </TabsContent>
 
           {/* TAB: INTEGRAÇÕES */}
