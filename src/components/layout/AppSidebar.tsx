@@ -1,4 +1,5 @@
 // src/components/layout/AppSidebar.tsx
+import { useEffect, useState } from "react";
 import {
   Calendar,
   FileText,
@@ -14,6 +15,8 @@ import {
   Shield,
   Globe,
   Scissors,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -46,6 +49,41 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { currentVenue, venues, setCurrentVenue } = useVenue();
+
+  // Dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  // Initialize theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    }
+  }, []);
 
   // Check if venue is on max plan
   const isMaxPlan = currentVenue?.plan_type === 'max';
@@ -243,8 +281,27 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* Footer - User Menu */}
-      <SidebarFooter className="border-t border-sidebar-border bg-sidebar-accent/30 p-4">
+      {/* Footer - Theme Toggle & User Menu */}
+      <SidebarFooter className="border-t border-sidebar-border bg-sidebar-accent/30 p-4 space-y-3">
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={toggleDarkMode}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl p-3 transition-all",
+            "hover:bg-sidebar-accent active:scale-[0.98]",
+            "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+          )}
+          title={isDarkMode ? "Modo Claro" : "Modo Escuro"}
+        >
+          {isDarkMode ? (
+            <Sun className="size-5 text-amber-400" />
+          ) : (
+            <Moon className="size-5" />
+          )}
+          <span className="text-sm font-medium">
+            {isDarkMode ? "Modo Claro" : "Modo Escuro"}
+          </span>
+        </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98] min-h-[56px]">
