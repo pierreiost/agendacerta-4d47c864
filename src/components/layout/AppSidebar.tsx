@@ -127,51 +127,60 @@ export function AppSidebar() {
     return name[0].toUpperCase();
   };
 
-  // Build menu items conditionally based on plan
-  const gestaoItems = [
-    { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
-    ...(isMaxPlan ? [
-      { title: "Página Pública", href: "/pagina-publica", icon: Globe },
-    ] : []),
-    { title: "Configurações", href: "/configuracoes", icon: Settings },
-  ];
-
-  const menuGroups = [
-    {
-      label: "PRINCIPAL",
-      items: [
-        { title: "Dashboard", href: "/", icon: Home },
-        { title: "Agenda", href: "/agenda", icon: Calendar },
-      ],
-    },
-    {
-      label: "OPERACIONAL",
-      items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText }],
-    },
-    {
-      label: "CADASTROS",
-      items: [
-        { title: "Clientes", href: "/clientes", icon: Users },
-        ...(isServiceVenue 
-          ? [{ title: "Serviços", href: "/servicos", icon: Scissors }]
-          : [{ title: "Espaços", href: "/espacos", icon: MapPin }]
-        ),
-        { title: "Produtos", href: "/produtos", icon: Package },
-      ],
-    },
-    {
-      label: "GESTÃO",
-      items: gestaoItems,
-    },
-  ];
-
-  // Add SuperAdmin menu for superadmins
-  if (isSuperAdmin) {
-    menuGroups.push({
-      label: "ADMINISTRAÇÃO",
-      items: [{ title: "Super Admin", href: "/superadmin", icon: Shield }],
-    });
-  }
+  // Build menu items based on whether user is superadmin or regular user
+  const menuGroups = isSuperAdmin
+    ? [
+        // SuperAdmin specific menu
+        {
+          label: "PRINCIPAL",
+          items: [
+            { title: "Dashboard", href: "/", icon: Home },
+          ],
+        },
+        {
+          label: "ADMINISTRAÇÃO",
+          items: [
+            { title: "Super Admin", href: "/superadmin", icon: Shield },
+            { title: "Clientes", href: "/clientes", icon: Users },
+            { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+          ],
+        },
+      ]
+    : [
+        // Regular venue user menu
+        {
+          label: "PRINCIPAL",
+          items: [
+            { title: "Dashboard", href: "/", icon: Home },
+            { title: "Agenda", href: "/agenda", icon: Calendar },
+          ],
+        },
+        {
+          label: "OPERACIONAL",
+          items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText }],
+        },
+        {
+          label: "CADASTROS",
+          items: [
+            { title: "Clientes", href: "/clientes", icon: Users },
+            ...(isServiceVenue 
+              ? [{ title: "Serviços", href: "/servicos", icon: Scissors }]
+              : [{ title: "Espaços", href: "/espacos", icon: MapPin }]
+            ),
+            { title: "Produtos", href: "/produtos", icon: Package },
+          ],
+        },
+        {
+          label: "GESTÃO",
+          items: [
+            { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+            ...(isMaxPlan ? [
+              { title: "Página Pública", href: "/pagina-publica", icon: Globe },
+            ] : []),
+            { title: "Configurações", href: "/configuracoes", icon: Settings },
+          ],
+        },
+      ];
 
   return (
     <Sidebar className="border-r border-sidebar-border">
