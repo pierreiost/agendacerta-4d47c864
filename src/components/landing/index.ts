@@ -3,7 +3,7 @@ export { LandingHero } from './LandingHero';
 export { LandingSegments } from './LandingSegments';
 export { LandingFeatures } from './LandingFeatures';
 export { LandingTestimonials } from './LandingTestimonials';
-export { LandingROICalculator } from './LandingROICalculator';
+export { LandingBenefits } from './LandingBenefits';
 export { LandingPricing } from './LandingPricing';
 export { LandingCTA } from './LandingCTA';
 export { LandingFooter } from './LandingFooter';

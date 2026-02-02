@@ -59,11 +59,11 @@ export function LandingSegments() {
           {segments.map((segment) => (
             <div
               key={segment.title}
-              className="group bg-background rounded-2xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-primary/20 transition-all duration-300"
+              className="group bg-background rounded-2xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-primary/20 transition-all duration-300 flex flex-col h-full"
             >
               {/* Icon */}
               <div className={cn(
-                "h-14 w-14 rounded-xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110",
+                "h-14 w-14 rounded-xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110 flex-shrink-0",
                 segment.lightColor
               )}>
                 <segment.icon className={cn("h-7 w-7", segment.color.replace('bg-', 'text-'))} />
@@ -73,16 +73,16 @@ export function LandingSegments() {
               <h3 className="text-xl font-bold text-foreground mb-3">
                 {segment.title}
               </h3>
-              <p className="text-muted-foreground text-sm mb-4">
+              <p className="text-muted-foreground text-sm mb-4 flex-grow">
                 {segment.description}
               </p>
 
               {/* Features */}
-              <ul className="space-y-2">
+              <ul className="space-y-2 mt-auto">
                 {segment.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className={cn("h-1.5 w-1.5 rounded-full", segment.color)} />
-                    {feature}
+                    <span className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", segment.color)} />
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>

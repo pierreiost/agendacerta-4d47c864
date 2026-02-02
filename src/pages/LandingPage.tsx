@@ -3,7 +3,7 @@ import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingSegments } from '@/components/landing/LandingSegments';
 import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import { LandingTestimonials } from '@/components/landing/LandingTestimonials';
-import { LandingROICalculator } from '@/components/landing/LandingROICalculator';
+import { LandingBenefits } from '@/components/landing/LandingBenefits';
 import { LandingPricing } from '@/components/landing/LandingPricing';
 import { LandingCTA } from '@/components/landing/LandingCTA';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -23,7 +23,7 @@ export default function LandingPage() {
       <LandingSegments />
       <LandingFeatures />
       <LandingTestimonials />
-      <LandingROICalculator />
+      <LandingBenefits />
       <LandingPricing onCTA={handleCTA} />
       <LandingCTA onCTA={handleCTA} />
       <LandingFooter />
