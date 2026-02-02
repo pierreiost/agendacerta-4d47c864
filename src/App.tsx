@@ -19,6 +19,7 @@ import Espacos from "./pages/Espacos";
 import Produtos from "./pages/Produtos";
 import Servicos from "./pages/Servicos";
 import Relatorios from "./pages/Relatorios";
+import Financeiro from "./pages/Financeiro";
 import OrdensServico from "./pages/OrdensServico";
 import OrdemServicoForm from "./pages/OrdemServicoForm";
 import Configuracoes from "./pages/Configuracoes";
@@ -138,6 +139,7 @@ function AppRoutesWithPersist() {
         <Route path="/ordens-servico/nova" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
         <Route path="/ordens-servico/:id" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
         <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+        <Route path="/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
         <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
         
         <Route path="/pagina-publica" element={<ProtectedRoute><PublicPageConfig /></ProtectedRoute>} />

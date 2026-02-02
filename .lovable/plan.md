@@ -1,6 +1,32 @@
 
 # Plano: Módulo Financeiro + Sistema de Permissões por Operador
 
+## Progresso
+
+### ✅ Fase 1 - Database (CONCLUÍDO)
+- [x] Criado enum `expense_category`
+- [x] Criado tabela `expenses` com RLS
+- [x] Criado tabela `role_permissions` com RLS
+- [x] Criado função `check_permission`
+- [x] Criado função `get_user_venue_role`
+
+### ✅ Fase 2 - Módulo Financeiro (CONCLUÍDO)
+- [x] Hook `useExpenses` (CRUD completo)
+- [x] Hook `useFinancialMetrics` (métricas agregadas)
+- [x] Hook `usePermissions` (controle de acesso)
+- [x] Página `/financeiro` com abas
+- [x] Componentes: FinancialSummary, CashFlowChart, ExpenseList, RevenueList, ExpenseFormDialog
+- [x] Rota adicionada no App.tsx
+- [x] Link no sidebar
+
+### 🔄 Fase 3 - Permissões UI (PENDENTE)
+- [ ] PermissionsDialog para configurar permissões individuais
+- [ ] Expandir aba Equipe em Configurações
+- [ ] InviteMemberDialog para convidar membros
+- [ ] Filtrar menu da sidebar por permissões
+
+---
+
 ## Visão Geral
 
 Este plano aborda duas funcionalidades críticas para a operação comercial do sistema:
