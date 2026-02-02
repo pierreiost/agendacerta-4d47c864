@@ -100,13 +100,13 @@ export function MetricCard({
         )}
       />
 
-      {/* Conteúdo */}
-      <div className="relative p-5 md:p-6">
-        <div className="flex items-start justify-between gap-3">
+      {/* Conteúdo - Compacto */}
+      <div className="relative p-3 md:p-4">
+        <div className="flex items-start justify-between gap-2">
           {/* Texto */}
-          <div className="flex-1 space-y-1">
+          <div className="flex-1 space-y-0.5">
             <div className="flex items-center gap-1">
-              <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {title}
               </p>
               {tooltip && (
@@ -120,17 +120,17 @@ export function MetricCard({
                 </Tooltip>
               )}
             </div>
-            <p className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            <p className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
               {value}
             </p>
 
             {/* Sparkline ou Trend */}
             {sparklineData && sparklineData.length > 0 ? (
-              <div className="pt-2">
+              <div className="pt-1">
                 <Sparkline 
                   data={sparklineData} 
                   color={colors.sparkline} 
-                  height={28}
+                  height={22}
                 />
               </div>
             ) : trend && (
@@ -148,14 +148,14 @@ export function MetricCard({
             )}
           </div>
 
-          {/* Ícone premium */}
+          {/* Ícone premium - compacto */}
           <div
             className={cn(
-              'rounded-xl p-2.5 md:p-3 shadow-sm',
+              'rounded-lg p-2 md:p-2.5 shadow-sm',
               colors.iconBg
             )}
           >
-            <Icon className={cn('h-5 w-5 md:h-6 md:w-6', colors.icon)} />
+            <Icon className={cn('h-4 w-4 md:h-5 md:w-5', colors.icon)} />
           </div>
         </div>
       </div>

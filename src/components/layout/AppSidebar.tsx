@@ -183,34 +183,34 @@ export function AppSidebar() {
       ];
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
+    <Sidebar className="border-r border-sidebar-border h-screen max-h-screen overflow-hidden">
       {/* Header - Venue Selector with logo */}
-      <SidebarHeader className="border-b border-sidebar-border bg-gradient-to-br from-sidebar-accent to-sidebar-background p-4">
+      <SidebarHeader className="border-b border-sidebar-border bg-gradient-to-br from-sidebar-accent to-sidebar-background p-3 flex-shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98]">
+            <button className="flex w-full items-center gap-2 rounded-lg p-2 transition-all hover:bg-sidebar-accent active:scale-[0.98]">
               {/* Logo ou Ícone da Venue */}
               {currentVenue?.logo_url ? (
-                <Avatar className="size-11 rounded-xl shadow-md ring-2 ring-brand/30">
+                <Avatar className="size-9 rounded-lg shadow-md ring-2 ring-brand/30">
                   <AvatarImage 
                     src={currentVenue.logo_url} 
                     alt={currentVenue.name} 
                     className="object-cover"
                   />
-                  <AvatarFallback className="rounded-xl bg-brand text-brand-foreground font-semibold">
+                  <AvatarFallback className="rounded-lg bg-brand text-brand-foreground font-semibold text-sm">
                     {getVenueInitials(currentVenue.name)}
                   </AvatarFallback>
                 </Avatar>
               ) : (
-                <div className="flex size-11 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-md ring-2 ring-brand/30">
-                  <Building2 className="size-5" />
+                <div className="flex size-9 items-center justify-center rounded-lg bg-brand text-brand-foreground shadow-md ring-2 ring-brand/30">
+                  <Building2 className="size-4" />
                 </div>
               )}
-              <div className="flex flex-1 flex-col gap-0.5 text-left">
-                <span className="truncate text-sm font-semibold text-sidebar-foreground">
+              <div className="flex flex-1 flex-col text-left min-w-0">
+                <span className="truncate text-xs font-semibold text-sidebar-foreground">
                   {currentVenue?.name || "Selecione..."}
                 </span>
-                <span className="text-xs text-sidebar-foreground/60">{venues?.length || 0} locais</span>
+                <span className="text-[10px] text-sidebar-foreground/60">{venues?.length || 0} locais</span>
               </div>
               <ChevronDown className="size-4 text-sidebar-foreground/60 flex-shrink-0" />
             </button>
@@ -241,11 +241,11 @@ export function AppSidebar() {
         </DropdownMenu>
       </SidebarHeader>
 
-      {/* Navigation */}
-      <SidebarContent className="p-3">
+      {/* Navigation - Compacto com scroll invisível */}
+      <SidebarContent className="p-2 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
         {menuGroups.map((group, groupIdx) => (
-          <SidebarGroup key={groupIdx}>
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40 px-3 mb-1">
+          <SidebarGroup key={groupIdx} className="mb-1">
+            <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 px-2 mb-0.5">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -260,25 +260,25 @@ export function AppSidebar() {
                         asChild
                         isActive={active}
                         className={cn(
-                          "min-h-[48px] md:min-h-[44px] rounded-xl px-3 py-3.5 md:py-3",
+                          "min-h-[36px] md:min-h-[32px] rounded-lg px-2 py-2 md:py-1.5",
                           "transition-all duration-200 active:scale-[0.98]",
                           active && [
                             "bg-gradient-to-r from-brand/20 to-brand/10",
                             "text-brand font-semibold",
-                            "border-l-4 border-brand pl-[10px]",
+                            "border-l-3 border-brand pl-[8px]",
                             "shadow-sm shadow-brand/10",
                           ],
                           !active && "hover:bg-sidebar-accent"
                         )}
                       >
-                        <Link to={item.href} className="flex items-center gap-3">
+                        <Link to={item.href} className="flex items-center gap-2">
                           <Icon
                             className={cn(
-                              "size-5 flex-shrink-0 transition-transform",
-                              active ? "text-brand scale-110" : "text-sidebar-foreground/70"
+                              "size-4 flex-shrink-0 transition-transform",
+                              active ? "text-brand scale-105" : "text-sidebar-foreground/70"
                             )}
                           />
-                          <span className="truncate">{item.title}</span>
+                          <span className="truncate text-sm">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -290,57 +290,57 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* Footer - Theme Toggle & User Menu */}
-      <SidebarFooter className="border-t border-sidebar-border bg-sidebar-accent/30 p-4 space-y-3">
+      {/* Footer - Theme Toggle & User Menu - Compacto */}
+      <SidebarFooter className="border-t border-sidebar-border bg-sidebar-accent/30 p-2 space-y-1 flex-shrink-0">
         {/* Dark Mode Toggle */}
         <button
           onClick={toggleDarkMode}
           className={cn(
-            "flex w-full items-center gap-3 rounded-xl p-3 transition-all",
+            "flex w-full items-center gap-2 rounded-lg p-2 transition-all",
             "hover:bg-sidebar-accent active:scale-[0.98]",
             "text-sidebar-foreground/70 hover:text-sidebar-foreground"
           )}
           title={isDarkMode ? "Modo Claro" : "Modo Escuro"}
         >
           {isDarkMode ? (
-            <Sun className="size-5 text-amber-400" />
+            <Sun className="size-4 text-amber-400" />
           ) : (
-            <Moon className="size-5" />
+            <Moon className="size-4" />
           )}
-          <span className="text-sm font-medium">
+          <span className="text-xs font-medium">
             {isDarkMode ? "Modo Claro" : "Modo Escuro"}
           </span>
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-xl p-2.5 transition-all hover:bg-sidebar-accent active:scale-[0.98] min-h-[56px]">
-              <Avatar className="h-10 w-10 border-2 border-brand/40 ring-2 ring-brand/20">
-                <AvatarFallback className="bg-brand text-sm font-semibold text-brand-foreground">
+            <button className="flex w-full items-center gap-2 rounded-lg p-2 transition-all hover:bg-sidebar-accent active:scale-[0.98] min-h-[44px]">
+              <Avatar className="h-8 w-8 border-2 border-brand/40 ring-1 ring-brand/20">
+                <AvatarFallback className="bg-brand text-xs font-semibold text-brand-foreground">
                   {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-1 flex-col gap-0.5 text-left min-w-0">
-                <span className="truncate text-sm font-semibold text-sidebar-foreground">
+              <div className="flex flex-1 flex-col text-left min-w-0">
+                <span className="truncate text-xs font-semibold text-sidebar-foreground">
                   {user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuário"}
                 </span>
-                <span className="truncate text-xs text-sidebar-foreground/60">{user?.email}</span>
+                <span className="truncate text-[10px] text-sidebar-foreground/60">{user?.email}</span>
               </div>
-              <ChevronDown className="size-4 flex-shrink-0 text-sidebar-foreground/60" />
+              <ChevronDown className="size-3 flex-shrink-0 text-sidebar-foreground/60" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="start" side="top" sideOffset={8}>
-            <DropdownMenuItem asChild className="cursor-pointer py-3">
+          <DropdownMenuContent className="w-48" align="start" side="top" sideOffset={4}>
+            <DropdownMenuItem asChild className="cursor-pointer py-2 text-sm">
               <Link to="/configuracoes" className="flex items-center gap-2">
-                <Settings className="size-4" />
+                <Settings className="size-3.5" />
                 <span>Configurações</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={signOut}
-              className="cursor-pointer py-3 text-red-600 focus:bg-red-50 focus:text-red-600"
+              className="cursor-pointer py-2 text-sm text-red-600 focus:bg-red-50 focus:text-red-600"
             >
-              <LogOut className="mr-2 size-4" />
+              <LogOut className="mr-2 size-3.5" />
               <span>Sair</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
