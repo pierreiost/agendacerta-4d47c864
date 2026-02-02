@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Loader2, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.svg';
 
 export default function Onboarding() {
   const { user } = useAuth();

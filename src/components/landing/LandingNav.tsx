@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.svg';
 import { cn } from '@/lib/utils';
 
 interface LandingNavProps {
@@ -29,7 +29,7 @@ export function LandingNav({ onCTA }: LandingNavProps) {
     { label: 'Segmentos', id: 'segmentos' },
     { label: 'Funcionalidades', id: 'funcionalidades' },
     { label: 'Depoimentos', id: 'depoimentos' },
-    { label: 'Calculadora', id: 'calculadora' },
+    { label: 'Benefícios', id: 'beneficios' },
     { label: 'Preços', id: 'precos' },
   ];
 

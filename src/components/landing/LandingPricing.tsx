@@ -12,49 +12,53 @@ const plans = [
   {
     name: 'Basic',
     icon: Zap,
-    description: 'Para pequenos negócios começando a organizar sua agenda.',
-    monthlyPrice: 49,
-    yearlyPrice: 39,
+    description: 'Tudo que você precisa para organizar seu negócio.',
+    monthlyPrice: 59.90,
+    yearlyPrice: 47.92, // 20% discount
     popular: false,
     features: [
-      { name: 'Até 3 espaços/profissionais', included: true },
       { name: 'Agenda online ilimitada', included: true },
-      { name: 'Gestão de clientes', included: true },
-      { name: 'Dashboard básico', included: true },
-      { name: 'Relatórios simples', included: true },
-      { name: 'Suporte por email', included: true },
+      { name: 'Gestão de clientes completa', included: true },
+      { name: 'Dashboard e relatórios', included: true },
+      { name: 'Ordens de serviço + PDF', included: true },
+      { name: 'Personalização por segmento', included: true },
+      { name: 'Admin + 3 colaboradores', included: true },
+      { name: 'Suporte via WhatsApp', included: true },
+      { name: 'Suporte via email', included: true },
+      { name: 'Mini guia de uso', included: true },
       { name: 'Página pública personalizada', included: false },
-      { name: 'Identidade visual', included: false },
-      { name: 'Ordens de serviço', included: false },
-      { name: 'Relatórios avançados', included: false },
-      { name: 'Suporte prioritário', included: false },
+      { name: 'Admin + 10 colaboradores', included: false },
     ],
   },
   {
     name: 'Max',
     icon: Crown,
-    description: 'Tudo liberado para escalar seu negócio sem limites.',
-    monthlyPrice: 99,
-    yearlyPrice: 79,
+    description: 'Para quem quer presença online e equipe maior.',
+    monthlyPrice: 89.90,
+    yearlyPrice: 71.92, // 20% discount
     popular: true,
     features: [
-      { name: 'Espaços/profissionais ilimitados', included: true },
       { name: 'Agenda online ilimitada', included: true },
-      { name: 'Gestão de clientes', included: true },
-      { name: 'Dashboard completo', included: true },
-      { name: 'Relatórios completos', included: true },
-      { name: 'Suporte por email', included: true },
-      { name: 'Página pública personalizada', included: true },
-      { name: 'Identidade visual', included: true },
+      { name: 'Gestão de clientes completa', included: true },
+      { name: 'Dashboard e relatórios', included: true },
       { name: 'Ordens de serviço + PDF', included: true },
-      { name: 'Relatórios avançados + Excel', included: true },
-      { name: 'Suporte prioritário WhatsApp', included: true },
+      { name: 'Personalização por segmento', included: true },
+      { name: 'Admin + 10 colaboradores', included: true },
+      { name: 'Suporte via WhatsApp', included: true },
+      { name: 'Suporte via email', included: true },
+      { name: 'Mini guia de uso', included: true },
+      { name: 'Página pública personalizada', included: true, highlight: true },
+      { name: 'Personalização por segmento online', included: true, highlight: true },
     ],
   },
 ];
 
 export function LandingPricing({ onCTA }: LandingPricingProps) {
   const [isYearly, setIsYearly] = useState(true);
+
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   return (
     <section id="precos" className="py-20 md:py-32 bg-muted/30">
@@ -127,13 +131,13 @@ export function LandingPricing({ onCTA }: LandingPricingProps) {
                 <div className="flex items-baseline justify-center gap-1">
                   <span className="text-2xl text-muted-foreground">R$</span>
                   <span className="text-5xl font-bold text-foreground">
-                    {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
+                    {formatPrice(isYearly ? plan.yearlyPrice : plan.monthlyPrice)}
                   </span>
                   <span className="text-muted-foreground">/mês</span>
                 </div>
                 {isYearly && (
                   <p className="text-sm text-muted-foreground mt-2">
-                    Cobrado anualmente (R$ {plan.yearlyPrice * 12}/ano)
+                    Cobrado anualmente (R$ {formatPrice(plan.yearlyPrice * 12)}/ano)
                   </p>
                 )}
               </div>
@@ -156,13 +160,20 @@ export function LandingPricing({ onCTA }: LandingPricingProps) {
                 {plan.features.map((feature) => (
                   <li key={feature.name} className="flex items-center gap-3">
                     {feature.included ? (
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      <Check className={cn(
+                        "h-5 w-5 flex-shrink-0",
+                        feature.highlight ? "text-primary" : "text-green-500"
+                      )} />
                     ) : (
                       <X className="h-5 w-5 text-muted-foreground/50 flex-shrink-0" />
                     )}
                     <span className={cn(
                       "text-sm",
-                      feature.included ? "text-foreground" : "text-muted-foreground/50"
+                      feature.included 
+                        ? feature.highlight 
+                          ? "text-primary font-medium" 
+                          : "text-foreground" 
+                        : "text-muted-foreground/50"
                     )}>
                       {feature.name}
                     </span>
@@ -173,13 +184,17 @@ export function LandingPricing({ onCTA }: LandingPricingProps) {
           ))}
         </div>
 
-        {/* Guarantee */}
-        <div className="text-center mt-12">
+        {/* Footer Notes */}
+        <div className="text-center mt-12 space-y-4">
           <p className="text-muted-foreground">
             💳 Não precisa de cartão de crédito para testar
           </p>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground">
             Garantia de 7 dias. Cancele a qualquer momento sem burocracia.
+          </p>
+          <p className="text-xs text-muted-foreground max-w-lg mx-auto">
+            Todos os planos incluem implementações futuras via demanda. 
+            Funcionalidades personalizadas disponíveis mediante solicitação.
           </p>
         </div>
       </div>

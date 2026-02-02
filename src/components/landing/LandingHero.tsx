@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, CheckCircle2, Play } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface LandingHeroProps {
   onCTA: () => void;
@@ -62,7 +62,7 @@ export function LandingHero({ onCTA }: LandingHeroProps) {
               ))}
             </div>
 
-            {/* CTA Buttons */}
+            {/* CTA Button */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button
                 size="lg"
@@ -71,15 +71,6 @@ export function LandingHero({ onCTA }: LandingHeroProps) {
               >
                 Começar Teste Grátis
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-6 rounded-full"
-                onClick={() => document.getElementById('funcionalidades')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                <Play className="mr-2 h-5 w-5" />
-                Ver Como Funciona
               </Button>
             </div>
           </div>
