@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { VenueProvider, useVenue } from "./contexts/VenueContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigationPersist, NavigationPersistContext } from "@/hooks/useNavigationPersist";
+import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
@@ -151,7 +152,8 @@ function AppWithProviders() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes - outside of auth/venue providers */}
+        {/* Public marketing routes - outside of auth/venue providers */}
+        <Route path="/inicio" element={<LandingPage />} />
         <Route path="/v/:slug" element={<PublicPageVenue />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         {/* All other routes go through the providers */}
