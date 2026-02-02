@@ -1,421 +1,236 @@
 
-# Plano: Módulo Financeiro + Sistema de Permissões por Operador
+# Plano: UI de Permissões Completa com Grupos Pré-definidos
 
-## Progresso
+## Objetivo
 
-### ✅ Fase 1 - Database (CONCLUÍDO)
-- [x] Criado enum `expense_category`
-- [x] Criado tabela `expenses` com RLS
-- [x] Criado tabela `role_permissions` com RLS
-- [x] Criado função `check_permission`
-- [x] Criado função `get_user_venue_role`
+Implementar a interface de gerenciamento de permissões na aba Equipe das Configurações, com:
 
-### ✅ Fase 2 - Módulo Financeiro (CONCLUÍDO)
-- [x] Hook `useExpenses` (CRUD completo)
-- [x] Hook `useFinancialMetrics` (métricas agregadas)
-- [x] Hook `usePermissions` (controle de acesso)
-- [x] Página `/financeiro` com abas
-- [x] Componentes: FinancialSummary, CashFlowChart, ExpenseList, RevenueList, ExpenseFormDialog
-- [x] Rota adicionada no App.tsx
-- [x] Link no sidebar
-
-### 🔄 Fase 3 - Permissões UI (PENDENTE)
-- [ ] PermissionsDialog para configurar permissões individuais
-- [ ] Expandir aba Equipe em Configurações
-- [ ] InviteMemberDialog para convidar membros
-- [ ] Filtrar menu da sidebar por permissões
+1. **Grupos pré-definidos** (templates) que o cliente pode usar para ter menos trabalho
+2. **Permissões totalmente customizáveis** por módulo e ação
+3. **Gestão visual** intuitiva para alterar role de membros
 
 ---
 
-## Visão Geral
+## 1. Grupos Pré-definidos (Templates)
 
-Este plano aborda duas funcionalidades críticas para a operação comercial do sistema:
+Criar templates de permissões prontas para uso:
 
-1. **Módulo Financeiro**: Controle completo de fluxo de caixa com receitas (faturamento) e despesas (compras, pagamentos, etc.)
-2. **Sistema de Permissões**: Controle granular de acesso por função (Admin, Gerente, Funcionário)
+```text
+GERENTE
+- Dashboard: Ver
+- Agenda: Completo
+- Clientes: Completo
+- Produtos: Ver, Criar, Editar
+- Financeiro: Ver
+- Ordens de Serviço: Completo
+- Relatórios: Ver
+
+CAIXA
+- Dashboard: Ver
+- Agenda: Ver
+- Clientes: Ver, Criar
+- Produtos: Ver
+- Financeiro: Ver, Criar (despesas)
+- Ordens de Serviço: Ver, Criar
+
+OPERADOR
+- Dashboard: Ver
+- Agenda: Ver, Criar, Editar
+- Clientes: Ver, Criar
+- Produtos: Ver
+- Ordens de Serviço: Ver, Criar, Editar
+
+RECEPÇÃO
+- Dashboard: Ver
+- Agenda: Completo
+- Clientes: Ver, Criar, Editar
+- Produtos: Ver
+- Ordens de Serviço: Ver
+```
 
 ---
 
-Lembre-se que o sistema é multisegmento, tente não especificar muito
+## 2. Estrutura de Componentes
 
-## Parte 1: Módulo de Controle Financeiro
+### 2.1 Novos Arquivos
 
-### 1.1 Nova Estrutura de Dados
+```text
+src/components/team/
+├── TeamMembersList.tsx        # Lista de membros com ações
+├── RolePermissionsDialog.tsx  # Dialog de edição de permissões
+├── RoleTemplateSelector.tsx   # Seletor de template pré-definido
+├── PermissionsGrid.tsx        # Grid de checkboxes por módulo
+├── InviteMemberDialog.tsx     # Dialog para convidar novo membro
+└── index.ts                   # Barrel export
 
-Criar tabela `expenses` para registrar despesas:
+src/hooks/
+├── useTeamMembers.ts          # Hook para CRUD de membros e roles
+└── useRolePermissions.ts      # Hook para CRUD de permissões
+```
+
+### 2.2 Fluxo de UI
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│ expenses                                                         │
+│ EQUIPE                                        [+ Convidar]      │
 ├─────────────────────────────────────────────────────────────────┤
-│ id              │ uuid (PK)                                     │
-│ venue_id        │ uuid (FK venues)                              │
-│ category        │ enum (material, salary, rent, utilities,      │
-│                 │       maintenance, marketing, other)          │
-│ description     │ text                                          │
-│ amount          │ numeric                                       │
-│ payment_method  │ enum (CASH, CREDIT, DEBIT, PIX, TRANSFER)    │
-│ expense_date    │ date                                          │
-│ due_date        │ date (nullable - para contas a pagar)        │
-│ paid_at         │ timestamp (nullable)                          │
-│ is_paid         │ boolean (default true)                        │
-│ supplier        │ text (nullable)                               │
-│ notes           │ text (nullable)                               │
-│ receipt_url     │ text (nullable - comprovante)                 │
-│ created_by      │ uuid (FK auth.users)                          │
-│ created_at      │ timestamp                                     │
-│ updated_at      │ timestamp                                     │
+│                                                                 │
+│ ┌───────────────────────────────────────────────────────────┐   │
+│ │ 👤 João Silva          │ Administrador │         -        │   │
+│ ├───────────────────────────────────────────────────────────┤   │
+│ │ 👤 Maria Santos        │ Gerente ▼     │ [⚙ Permissões]  │   │
+│ ├───────────────────────────────────────────────────────────┤   │
+│ │ 👤 Pedro Alves         │ Operador ▼    │ [⚙ Permissões]  │   │
+│ └───────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│ ┌───────────────────────────────────────────────────────────┐   │
+│ │ PERMISSÕES POR FUNÇÃO                    [Configurar]     │   │
+│ │                                                           │   │
+│ │ Configure as permissões padrão para cada função.         │   │
+│ │ Você também pode personalizar permissões individuais.    │   │
+│ └───────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
-
-Criar enum para categorias de despesa:
-
-```text
-expense_category: 
-  - material (Compra de material/produtos)
-  - salary (Pagamento funcionários)  
-  - rent (Aluguel)
-  - utilities (Água, luz, internet)
-  - maintenance (Manutenção/reparos)
-  - marketing (Marketing/publicidade)
-  - other (Outros)
-```
-
-### 1.2 Nova Página: Financeiro (/financeiro)
-
-Layout com abas:
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ FINANCEIRO                                         [+ Despesa]  │
-├─────────────────────────────────────────────────────────────────┤
-│ [Resumo] [Receitas] [Despesas] [Fluxo de Caixa]                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐            │
-│  │ RECEITAS     │ │ DESPESAS     │ │ SALDO        │            │
-│  │ R$ 15.420    │ │ R$ 8.350     │ │ R$ 7.070     │            │
-│  │ ↑ 12%        │ │ ↓ 5%         │ │ ↑ 25%        │            │
-│  └──────────────┘ └──────────────┘ └──────────────┘            │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────────┐
-│  │ GRÁFICO: Receitas vs Despesas (últimos 6 meses)             │
-│  │ [Barras empilhadas ou linha]                                │
-│  └─────────────────────────────────────────────────────────────┘
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 1.3 Tab: Receitas (somente leitura)
-
-Agregação automática de:
-- Reservas finalizadas (tabela `bookings` onde status = 'FINALIZED')
-- Ordens de serviço finalizadas (tabela `service_orders` onde status = 'finished' ou 'invoiced')
-
-Filtros: período, espaço/serviço, cliente
-
-### 1.4 Tab: Despesas (CRUD completo)
-
-Lista de despesas com:
-- Filtros: categoria, período, status (pago/pendente)
-- Ações: criar, editar, excluir, marcar como pago
-- Dialog de formulário para nova despesa
-
-### 1.5 Tab: Fluxo de Caixa
-
-Visualização combinada:
-- Gráfico de linha/barra mostrando entradas vs saídas
-- Saldo acumulado por período
-- Projeção de contas a pagar
-
-### 1.6 Arquivos a Criar/Modificar
-
-**Novos arquivos:**
-- `src/pages/Financeiro.tsx` - Página principal
-- `src/hooks/useExpenses.ts` - Hook de despesas (CRUD)
-- `src/hooks/useFinancialMetrics.ts` - Métricas agregadas
-- `src/components/financeiro/ExpenseFormDialog.tsx` - Formulário
-- `src/components/financeiro/RevenueList.tsx` - Lista de receitas
-- `src/components/financeiro/ExpenseList.tsx` - Lista de despesas
-- `src/components/financeiro/CashFlowChart.tsx` - Gráfico de fluxo
-- `src/components/financeiro/FinancialSummary.tsx` - Cards resumo
-
-**Modificar:**
-- `src/App.tsx` - Adicionar rota /financeiro
-- `src/components/layout/AppSidebar.tsx` - Adicionar link Financeiro
 
 ---
 
-## Parte 2: Sistema de Permissões por Operador
-
-### 2.1 Estrutura de Permissões
-
-Criar tabela `role_permissions` para configuração granular:
+## 3. Dialog de Permissões
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│ role_permissions                                                 │
+│ Configurar Permissões                                     [X]   │
 ├─────────────────────────────────────────────────────────────────┤
-│ id              │ uuid (PK)                                     │
-│ venue_id        │ uuid (FK venues)                              │
-│ role            │ app_role (admin, manager, staff)              │
-│ module          │ text (agenda, clientes, financeiro, etc.)     │
-│ can_view        │ boolean                                       │
-│ can_create      │ boolean                                       │
-│ can_edit        │ boolean                                       │
-│ can_delete      │ boolean                                       │
-│ created_at      │ timestamp                                     │
-│ updated_at      │ timestamp                                     │
+│                                                                 │
+│ Membro: Maria Santos                                           │
+│ Função atual: Gerente                                          │
+│                                                                 │
+│ ┌───────────────────────────────────────────────────────────┐   │
+│ │ 🎯 USAR TEMPLATE                                          │   │
+│ │                                                           │   │
+│ │ [Gerente] [Caixa] [Operador] [Recepção] [Personalizado]  │   │
+│ └───────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│ ┌──────────────┬───────┬────────┬─────────┬──────────┐         │
+│ │ Módulo       │  Ver  │ Criar  │ Editar  │ Excluir  │         │
+│ ├──────────────┼───────┼────────┼─────────┼──────────┤         │
+│ │ Dashboard    │  [✓]  │   -    │    -    │    -     │         │
+│ │ Agenda       │  [✓]  │  [✓]   │   [✓]   │   [✓]    │         │
+│ │ Clientes     │  [✓]  │  [✓]   │   [✓]   │   [✓]    │         │
+│ │ Espaços      │  [✓]  │  [✓]   │   [✓]   │   [ ]    │         │
+│ │ Serviços     │  [✓]  │  [✓]   │   [✓]   │   [ ]    │         │
+│ │ Produtos     │  [✓]  │  [✓]   │   [✓]   │   [ ]    │         │
+│ │ OS           │  [✓]  │  [✓]   │   [✓]   │   [✓]    │         │
+│ │ Financeiro   │  [✓]  │  [ ]   │   [ ]   │   [ ]    │         │
+│ │ Relatórios   │  [✓]  │   -    │    -    │    -     │         │
+│ │ Equipe       │  [✓]  │  [ ]   │   [ ]   │   [ ]    │         │
+│ │ Configurações│  [✓]  │  [ ]   │   [ ]   │   [ ]    │         │
+│ │ Pág. Pública │  [✓]  │  [ ]   │   [ ]   │   [ ]    │         │
+│ └──────────────┴───────┴────────┴─────────┴──────────┘         │
+│                                                                 │
+│                               [Cancelar]  [Salvar Permissões]   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Permissões Padrão por Função
+---
 
-```text
-┌────────────────┬──────────────────────────────────────────────────┐
-│ MÓDULO         │ ADMIN      │ GERENTE     │ FUNCIONÁRIO          │
-├────────────────┼────────────┼─────────────┼──────────────────────┤
-│ Dashboard      │ Completo   │ Completo    │ Visualizar           │
-│ Agenda         │ Completo   │ Completo    │ Criar/Editar próprias│
-│ Clientes       │ Completo   │ Completo    │ Visualizar/Criar     │
-│ Espaços        │ Completo   │ Completo    │ Visualizar           │
-│ Serviços       │ Completo   │ Completo    │ Visualizar           │
-│ Produtos       │ Completo   │ Completo    │ Visualizar           │
-│ Ordens Serviço │ Completo   │ Completo    │ Criar/Editar próprias│
-│ Financeiro     │ Completo   │ Visualizar  │ Sem acesso           │
-│ Relatórios     │ Completo   │ Visualizar  │ Sem acesso           │
-│ Equipe         │ Completo   │ Visualizar  │ Sem acesso           │
-│ Configurações  │ Completo   │ Parcial     │ Sem acesso           │
-└────────────────┴────────────┴─────────────┴──────────────────────┘
-```
+## 4. Detalhes Técnicos
 
-### 2.3 Hook de Permissões
-
-Criar `usePermissions` para verificação em tempo real:
+### 4.1 Hook useRolePermissions
 
 ```typescript
-// Uso no componente:
-const { canView, canCreate, canEdit, canDelete } = usePermissions('financeiro');
-
-if (!canView) return <AccessDenied />;
+// Funções:
+// - fetchPermissions(venueId, role) - Buscar permissões atuais
+// - savePermissions(venueId, role, permissions[]) - Salvar em lote
+// - applyTemplate(venueId, role, templateName) - Aplicar template
 ```
 
-### 2.4 Interface de Configuração (Aba Equipe)
+### 4.2 Hook useTeamMembers
 
-Melhorar a aba Equipe em Configurações:
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ GERENCIAR EQUIPE                                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ [+ Convidar Membro]                                            │
-│                                                                 │
-│ ┌─────────────────────────────────────────────────────────────┐
-│ │ João Silva           │ Administrador │ [Configurar]         │
-│ │ joao@email.com       │ Acesso total  │                      │
-│ ├─────────────────────────────────────────────────────────────┤
-│ │ Maria Santos         │ Gerente       │ [Configurar]         │
-│ │ maria@email.com      │ 8 módulos     │                      │
-│ ├─────────────────────────────────────────────────────────────┤
-│ │ Pedro Alves          │ Funcionário   │ [Configurar]         │
-│ │ pedro@email.com      │ 4 módulos     │                      │
-│ └─────────────────────────────────────────────────────────────┘
-│                                                                 │
-│ [Configurar Permissões Padrão por Função]                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```typescript
+// Funções:
+// - listMembers(venueId) - Listar membros com profile
+// - updateMemberRole(memberId, newRole) - Alterar função
+// - inviteMember(email, role) - Convidar novo membro (futuro)
+// - removeMember(memberId) - Remover membro
 ```
 
-### 2.5 Dialog de Permissões Individuais
+### 4.3 Templates de Permissão
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Permissões: Maria Santos (Gerente)                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ☑ Usar padrão da função "Gerente"                              │
-│   ou                                                            │
-│ ☐ Personalizar permissões                                      │
-│                                                                 │
-│ ┌──────────────┬──────┬───────┬────────┬─────────┐             │
-│ │ Módulo       │ Ver  │ Criar │ Editar │ Excluir │             │
-│ ├──────────────┼──────┼───────┼────────┼─────────┤             │
-│ │ Dashboard    │  ✓   │   -   │   -    │    -    │             │
-│ │ Agenda       │  ✓   │   ✓   │   ✓    │    ✓    │             │
-│ │ Clientes     │  ✓   │   ✓   │   ✓    │    ✓    │             │
-│ │ Financeiro   │  ✓   │   ✗   │   ✗    │    ✗    │             │
-│ │ Relatórios   │  ✓   │   -   │   -    │    -    │             │
-│ │ Equipe       │  ✓   │   ✗   │   ✗    │    ✗    │             │
-│ │ Configurações│  ✓   │   ✗   │   ✗    │    ✗    │             │
-│ └──────────────┴──────┴───────┴────────┴─────────┘             │
-│                                                                 │
-│                            [Cancelar]  [Salvar]                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 2.6 Fluxo de Convite de Novo Membro
-
-1. Admin clica em "Convidar Membro"
-2. Preenche: Email + Função inicial
-3. Sistema cria entrada em `venue_members` com o user_id quando o convidado aceitar
-4. Convidado recebe email com link de convite
-5. Ao criar conta ou fazer login, é vinculado automaticamente à venue
-
-### 2.7 Arquivos a Criar/Modificar
-
-**Novos arquivos:**
-- `src/hooks/usePermissions.ts` - Hook central de permissões
-- `src/hooks/useTeamMembers.ts` - Hook para gestão de equipe (CRUD)
-- `src/components/team/PermissionsDialog.tsx` - Dialog de permissões
-- `src/components/team/InviteMemberDialog.tsx` - Convite de membros
-- `src/components/team/RolePermissionsConfig.tsx` - Config padrão por função
-- `src/components/shared/AccessDenied.tsx` - Componente de acesso negado
-
-**Modificar:**
-- `src/pages/Configuracoes.tsx` - Expandir aba Equipe
-- `src/components/layout/AppSidebar.tsx` - Filtrar menu por permissões
-- Todas as páginas: Adicionar verificação de permissões
-
----
-
-## Parte 3: Migração de Banco de Dados
-
-### 3.1 SQL Necessário
-
-```sql
--- 1. Criar enum de categoria de despesa
-CREATE TYPE expense_category AS ENUM (
-  'material', 'salary', 'rent', 'utilities', 
-  'maintenance', 'marketing', 'other'
-);
-
--- 2. Criar tabela expenses
-CREATE TABLE expenses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
-  category expense_category NOT NULL,
-  description TEXT NOT NULL,
-  amount NUMERIC NOT NULL CHECK (amount > 0),
-  payment_method payment_method,
-  expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  due_date DATE,
-  paid_at TIMESTAMPTZ,
-  is_paid BOOLEAN NOT NULL DEFAULT true,
-  supplier TEXT,
-  notes TEXT,
-  receipt_url TEXT,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- 3. Criar tabela role_permissions  
-CREATE TABLE role_permissions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
-  role app_role NOT NULL,
-  module TEXT NOT NULL,
-  can_view BOOLEAN NOT NULL DEFAULT false,
-  can_create BOOLEAN NOT NULL DEFAULT false,
-  can_edit BOOLEAN NOT NULL DEFAULT false,
-  can_delete BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(venue_id, role, module)
-);
-
--- 4. RLS Policies para expenses
-ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Members can view expenses"
-ON expenses FOR SELECT
-USING (is_venue_member(auth.uid(), venue_id));
-
-CREATE POLICY "Admins/Managers can manage expenses"
-ON expenses FOR ALL
-USING (is_venue_admin(auth.uid(), venue_id) OR 
-       EXISTS (
-         SELECT 1 FROM venue_members 
-         WHERE venue_id = expenses.venue_id 
-         AND user_id = auth.uid() 
-         AND role IN ('admin', 'manager')
-       ));
-
--- 5. RLS Policies para role_permissions
-ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Admins can manage permissions"
-ON role_permissions FOR ALL
-USING (is_venue_admin(auth.uid(), venue_id));
-
-CREATE POLICY "Members can view permissions"
-ON role_permissions FOR SELECT
-USING (is_venue_member(auth.uid(), venue_id));
-
--- 6. Função para verificar permissão específica
-CREATE OR REPLACE FUNCTION check_permission(
-  _user_id UUID,
-  _venue_id UUID,
-  _module TEXT,
-  _action TEXT -- 'view', 'create', 'edit', 'delete'
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  _role app_role;
-  _has_permission BOOLEAN;
-BEGIN
-  -- Obter role do usuário na venue
-  SELECT role INTO _role
-  FROM venue_members
-  WHERE user_id = _user_id AND venue_id = _venue_id;
-  
-  IF _role IS NULL THEN
-    RETURN false;
-  END IF;
-  
-  -- Admin sempre tem acesso total
-  IF _role = 'admin' THEN
-    RETURN true;
-  END IF;
-  
-  -- Verificar permissão específica
-  EXECUTE format(
-    'SELECT can_%s FROM role_permissions WHERE venue_id = $1 AND role = $2 AND module = $3',
-    _action
-  ) INTO _has_permission
-  USING _venue_id, _role, _module;
-  
-  RETURN COALESCE(_has_permission, false);
-END;
-$$;
+```typescript
+export const PERMISSION_TEMPLATES = {
+  gerente: {
+    label: "Gerente",
+    description: "Acesso operacional completo, financeiro apenas visualização",
+    permissions: {
+      dashboard: { view: true },
+      agenda: { view: true, create: true, edit: true, delete: true },
+      clientes: { view: true, create: true, edit: true, delete: true },
+      // ... etc
+    }
+  },
+  caixa: { ... },
+  operador: { ... },
+  recepcao: { ... },
+}
 ```
 
 ---
 
-## Resumo de Entregáveis
+## 5. Módulos Disponíveis
 
-| Item | Arquivos | Prioridade |
-|------|----------|------------|
-| Tabela expenses + RLS | Migration SQL | Alta |
-| Tabela role_permissions + RLS | Migration SQL | Alta |
-| Página Financeiro | 8 arquivos novos | Alta |
-| Hook useExpenses | 1 arquivo | Alta |
-| Hook usePermissions | 1 arquivo | Alta |
-| Expansão aba Equipe | 4 arquivos novos + edições | Média |
-| Filtro menu por permissões | 1 edição | Média |
-| Verificação em todas as páginas | Múltiplas edições | Baixa |
+Lista de módulos para controle de permissão:
+
+| Módulo | Descrição | Ações |
+|--------|-----------|-------|
+| dashboard | Visão geral | Ver |
+| agenda | Reservas e agendamentos | Ver, Criar, Editar, Excluir |
+| clientes | Base de clientes | Ver, Criar, Editar, Excluir |
+| espacos | Espaços/salas | Ver, Criar, Editar, Excluir |
+| servicos | Catálogo de serviços | Ver, Criar, Editar, Excluir |
+| produtos | Catálogo de produtos | Ver, Criar, Editar, Excluir |
+| ordens_servico | Ordens de serviço | Ver, Criar, Editar, Excluir |
+| financeiro | Receitas e despesas | Ver, Criar, Editar, Excluir |
+| relatorios | Relatórios | Ver |
+| equipe | Gestão de membros | Ver, Criar, Editar, Excluir |
+| configuracoes | Config da unidade | Ver, Editar |
+| pagina_publica | Página pública | Ver, Editar |
 
 ---
 
-## Ordem de Implementação Sugerida
+## 6. Arquivos a Criar/Modificar
 
-1. **Fase 1 - Database**: Criar tabelas e policies
-2. **Fase 2 - Financeiro**: Página + hooks + componentes
-3. **Fase 3 - Permissões Backend**: Hook usePermissions + função SQL
-4. **Fase 4 - Permissões UI**: Dialogs + configuração na aba Equipe
-5. **Fase 5 - Integração**: Filtrar menu + verificações nas páginas
+### Novos Arquivos:
+1. `src/hooks/useTeamMembers.ts` - Hook para gestão de membros
+2. `src/hooks/useRolePermissions.ts` - Hook para gestão de permissões
+3. `src/components/team/TeamMembersList.tsx` - Lista de membros
+4. `src/components/team/RolePermissionsDialog.tsx` - Dialog de permissões
+5. `src/components/team/PermissionsGrid.tsx` - Grid de checkboxes
+6. `src/components/team/RoleTemplateSelector.tsx` - Seletor de templates
+7. `src/components/team/InviteMemberDialog.tsx` - Convite de membros
+8. `src/components/team/index.ts` - Barrel export
+9. `src/lib/permission-templates.ts` - Templates pré-definidos
+
+### Modificar:
+1. `src/pages/Configuracoes.tsx` - Integrar nova aba Equipe expandida
+2. `src/components/layout/AppSidebar.tsx` - Filtrar menu por permissões (usar usePermissions)
+
+---
+
+## 7. Ordem de Implementação
+
+1. **Criar templates de permissão** (`permission-templates.ts`)
+2. **Criar hooks** (`useTeamMembers`, `useRolePermissions`)
+3. **Criar componentes de UI** (Grid, Dialog, Seletor)
+4. **Integrar na página Configurações** (aba Equipe)
+5. **Aplicar filtro de sidebar** (ocultar menus sem permissão)
+
+---
+
+## 8. Considerações de Segurança
+
+- Apenas **admin** pode alterar permissões de outros membros
+- Admin não pode rebaixar a si mesmo (evitar lock-out)
+- Admin não pode ser retirado NENHUMA permissão, o admin é imutavel
+- Permissões são validadas no backend via RLS + função `check_permission`
+- Não pode dar erro generico nas telas, precisa ser avisado que não possui permissão, ou nem aparecer
+- Templates são aplicados client-side mas salvos individualmente no banco
