@@ -1,181 +1,314 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { Search, Package, Wrench, Plus, X } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { useServices } from "@/hooks/useServices";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useProducts } from "@/hooks/useProducts";
+import { cn } from "@/lib/utils";
 
-const formSchema = z.object({
-  description: z.string().min(1, "Descrição é obrigatória"),
-  quantity: z.coerce.number().min(1, "Quantidade mínima é 1"),
-  unit_price: z.coerce.number().min(0, "Preço deve ser maior ou igual a 0"),
+const manualItemSchema = z.object({
+  description: z.string().min(1, "Descrição obrigatória"),
+  quantity: z.coerce.number().min(1, "Mínimo 1"),
+  unit_price: z.coerce.number().min(0, "Preço inválido"),
+  service_code: z.string().optional(),
 });
 
-// Interface ajustada para bater com o uso em OrdemServicoForm e ServiceOrderItemsDialog
+const laborSchema = z.object({
+  description: z.string().min(1, "Descrição obrigatória"),
+  value: z.coerce.number().min(0.01, "Valor inválido"),
+});
+
+type ManualItemData = z.infer<typeof manualItemSchema>;
+type LaborData = z.infer<typeof laborSchema>;
+
 interface ServiceOrderItemFormProps {
-  orderType?: "simple" | "complete";
-  onAddItem: (data: {
+  orderType: "simple" | "complete";
+  onAddItem: (item: {
     description: string;
     quantity: number;
     unit_price: number;
     subtotal: number;
     service_code?: string | null;
-  }) => void;
+  }) => Promise<void>;
   onCancel: () => void;
-  defaultValues?: {
-    description?: string;
-    quantity?: number;
-    unit_price?: number;
-  };
-  isSubmitting?: boolean;
 }
 
-export function ServiceOrderItemForm({
-  orderType,
-  onAddItem,
-  onCancel,
-  defaultValues,
-  isSubmitting,
-}: ServiceOrderItemFormProps) {
-  const { toast } = useToast();
-  // Busca os serviços do catálogo
-  const { services } = useServices();
+export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: ServiceOrderItemFormProps) {
+  const { products, isLoading: loadingProducts } = useProducts();
+  const [productSearch, setProductSearch] = useState("");
+  const [selectedTab, setSelectedTab] = useState<string>("products");
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const activeProducts = products.filter((p) => p.is_active !== false);
+
+  const filteredProducts = activeProducts.filter((product) =>
+    product.name.toLowerCase().includes(productSearch.toLowerCase()),
+  );
+
+  const manualForm = useForm<ManualItemData>({
+    resolver: zodResolver(manualItemSchema),
     defaultValues: {
-      description: defaultValues?.description || "",
-      quantity: defaultValues?.quantity || 1,
-      unit_price: defaultValues?.unit_price || 0,
+      description: "",
+      quantity: 1,
+      unit_price: 0,
+      service_code: "",
     },
   });
 
-  // Monitora valores para o cálculo visual do subtotal
-  const quantity = form.watch("quantity");
-  const unitPrice = form.watch("unit_price");
-  const currentSubtotal = (quantity || 0) * (unitPrice || 0);
+  const laborForm = useForm<LaborData>({
+    resolver: zodResolver(laborSchema),
+    defaultValues: {
+      description: "Mão de Obra - Serviço Técnico",
+      value: 0,
+    },
+  });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const subtotal = values.quantity * values.unit_price;
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
 
-    onAddItem({
-      description: values.description,
-      quantity: values.quantity,
-      unit_price: values.unit_price,
-      subtotal: subtotal,
-      service_code: null, // Pode ser expandido futuramente se o serviço tiver código
+  const handleAddProduct = async (product: (typeof activeProducts)[0]) => {
+    await onAddItem({
+      description: product.name,
+      quantity: 1,
+      unit_price: product.price,
+      subtotal: product.price,
+      service_code: null,
     });
-  }
+  };
 
-  // Função para preencher dados ao selecionar do catálogo
-  const handleServiceSelect = (serviceId: string) => {
-    const selectedService = services.find((s) => s.id === serviceId);
+  const handleAddManualItem = async (data: ManualItemData) => {
+    await onAddItem({
+      description: data.description,
+      quantity: data.quantity,
+      unit_price: data.unit_price,
+      subtotal: data.quantity * data.unit_price,
+      service_code: data.service_code || null,
+    });
+    manualForm.reset();
+  };
 
-    if (selectedService) {
-      // Correção: Usando 'title' em vez de 'name'
-      form.setValue("description", selectedService.title);
-      form.setValue("unit_price", Number(selectedService.price));
-
-      toast({
-        title: "Serviço selecionado",
-        description: "Descrição e preço preenchidos automaticamente.",
-      });
-    }
+  const handleAddLabor = async (data: LaborData) => {
+    await onAddItem({
+      description: data.description,
+      quantity: 1,
+      unit_price: data.value,
+      subtotal: data.value,
+      service_code: orderType === "complete" ? "14.01" : null,
+    });
+    laborForm.reset({ description: "Mão de Obra - Serviço Técnico", value: 0 });
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 border rounded-md p-4 bg-background">
-        {/* === SELETOR DE CATÁLOGO === */}
-        <div className="p-3 bg-muted/30 rounded-md border border-dashed mb-4">
-          <FormLabel className="text-xs font-semibold text-muted-foreground mb-2 block uppercase tracking-wider">
-            Catálogo de Serviços (Opcional)
-          </FormLabel>
-          <Select onValueChange={handleServiceSelect}>
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue placeholder="Selecione para preencher automaticamente..." />
-            </SelectTrigger>
-            <SelectContent>
-              {services?.length > 0 ? (
-                services.map((service) => (
-                  <SelectItem key={service.id} value={service.id}>
-                    {/* Correção: Usando 'title' em vez de 'name' */}
-                    {service.title} -{" "}
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(service.price)}
-                  </SelectItem>
-                ))
-              ) : (
-                <div className="p-2 text-sm text-muted-foreground text-center">Nenhum serviço cadastrado.</div>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="border rounded-lg p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium">Adicionar Item</h4>
+        <Button variant="ghost" size="icon" onClick={onCancel}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
-        {/* === CAMPOS DO FORMULÁRIO === */}
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição do Item</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Ex: Formatação, Troca de Peça X..." className="resize-none" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="products" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Peças
+          </TabsTrigger>
+          <TabsTrigger value="labor" className="flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Mão de Obra
+          </TabsTrigger>
+          <TabsTrigger value="manual" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Manual
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products" className="space-y-3 mt-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar peça/produto..."
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {loadingProducts ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Carregando produtos...</p>
+          ) : filteredProducts.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              {productSearch ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+            </p>
+          ) : (
+            <ScrollArea className="h-[200px]">
+              <div className="space-y-1">
+                {filteredProducts.map((product) => (
+                  <button
+                    key={product.id}
+                    onClick={() => handleAddProduct(product)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-3 rounded-md text-left",
+                      "hover:bg-accent transition-colors",
+                      "border border-transparent hover:border-border",
+                    )}
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{product.name}</p>
+                      {product.category && <p className="text-xs text-muted-foreground">{product.category.name}</p>}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-sm">{formatCurrency(product.price)}</p>
+                      <p className="text-xs text-muted-foreground">Clique para adicionar</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
           )}
-        />
+        </TabsContent>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="quantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantidade</FormLabel>
-                <FormControl>
-                  <Input type="number" min="1" step="1" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <TabsContent value="labor" className="mt-4">
+          <Form {...laborForm}>
+            <form onSubmit={laborForm.handleSubmit(handleAddLabor)} className="space-y-4">
+              <FormField
+                control={laborForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição do Serviço</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ex: Instalação de ar-condicionado split" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="unit_price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preço Unitário (R$)</FormLabel>
-                <FormControl>
-                  <Input type="number" min="0" step="0.01" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+              <FormField
+                control={laborForm.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor da Mão de Obra (R$)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" min="0" placeholder="0,00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <div className="pt-2 flex items-center justify-between border-t mt-4">
-          <span className="text-sm font-medium text-muted-foreground">Subtotal:</span>
-          <span className="text-lg font-bold">
-            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(currentSubtotal)}
-          </span>
-        </div>
+              <div className="flex gap-2 pt-2">
+                <Button type="submit" className="flex-1">
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Adicionar Mão de Obra
+                </Button>
+              </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Adicionando..." : "Adicionar Item"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Serviços comuns:</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Instalação Split", desc: "Instalação de ar-condicionado split" },
+                    { label: "Manutenção Preventiva", desc: "Manutenção preventiva de ar-condicionado" },
+                    { label: "Limpeza", desc: "Limpeza e higienização de ar-condicionado" },
+                    { label: "Carga de Gás", desc: "Recarga de gás refrigerante" },
+                  ].map((preset) => (
+                    <Button
+                      key={preset.label}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => laborForm.setValue("description", preset.desc)}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </form>
+          </Form>
+        </TabsContent>
+
+        <TabsContent value="manual" className="mt-4">
+          <Form {...manualForm}>
+            <form onSubmit={manualForm.handleSubmit(handleAddManualItem)} className="space-y-4">
+              <FormField
+                control={manualForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Descrição do item" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {orderType === "complete" && (
+                <FormField
+                  control={manualForm.control}
+                  name="service_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Código do Serviço (Municipal)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Ex: 14.01" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={manualForm.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantidade *</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={manualForm.control}
+                  name="unit_price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preço Unitário *</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" min="0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Button type="submit" className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Item Manual
+              </Button>
+            </form>
+          </Form>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
