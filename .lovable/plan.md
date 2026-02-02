@@ -1,175 +1,395 @@
 
-# Plano: Melhorias nas Páginas de Login e Cadastro
+# Plano: Módulo Financeiro + Sistema de Permissões por Operador
 
-## Resumo
-Vou refatorar as páginas de autenticação para torná-las mais ricas visualmente, adicionar recursos de segurança como validação de senha e confirmação, além de incluir o ícone "olhinho" para visualização de senha.
+## Visão Geral
 
----
+Este plano aborda duas funcionalidades críticas para a operação comercial do sistema:
 
-## Alterações na Página de LOGIN (Auth.tsx - modo login)
-
-### 1. Link para Página de Compra/Planos
-- Adicionar link "Conheça nossos planos" ou "Ver preços" que direciona para `/inicio#precos`
-- Posicionar abaixo do botão de login ou no rodapé do formulário
-
-### 2. Enriquecer Visualmente a Página
-O painel esquerdo (desktop) ficará mais rico com:
-- **Lista de benefícios** com ícones (similar ao Onboarding)
-  - Agenda online 24/7
-  - Dashboard em tempo real  
-  - Gestão completa de clientes
-  - Relatórios e exportações
-- **Badge de número de usuários** (ex: "+500 negócios confiam no AgendaCerta")
-- **Ícones decorativos** de funcionalidades flutuando no background
-
-### 3. Toggle de Visibilidade da Senha (Olhinho)
-- Adicionar estado `showPassword` 
-- Ícone `Eye` / `EyeOff` do Lucide dentro do campo de senha
-- Ao clicar, alterna entre `type="password"` e `type="text"`
+1. **Módulo Financeiro**: Controle completo de fluxo de caixa com receitas (faturamento) e despesas (compras, pagamentos, etc.)
+2. **Sistema de Permissões**: Controle granular de acesso por função (Admin, Gerente, Funcionário)
 
 ---
 
-## Alterações na Página de CADASTRO (Auth.tsx - modo signup)
+Lembre-se que o sistema é multisegmento, tente não especificar muito
 
-### 1. Remover Campo de Telefone Fixo
-- O cadastro atual só tem: nome, email e senha
-- Confirmar que não há telefone fixo no Auth (verificado - não existe)
-- **Nota**: O telefone fixo está no Onboarding, não no Auth
+## Parte 1: Módulo de Controle Financeiro
 
-### 2. Requisitos de Senha
-Adicionar validação visual em tempo real:
-- Mínimo 8 caracteres
-- Pelo menos 1 letra maiúscula
-- Pelo menos 1 número
-- Pelo menos 1 caractere especial (!@#$%^&*)
+### 1.1 Nova Estrutura de Dados
 
-Exibir como checklist abaixo do campo:
-```
-✓ Mínimo 8 caracteres
-✗ Uma letra maiúscula
-✓ Um número
-✗ Um caractere especial
+Criar tabela `expenses` para registrar despesas:
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ expenses                                                         │
+├─────────────────────────────────────────────────────────────────┤
+│ id              │ uuid (PK)                                     │
+│ venue_id        │ uuid (FK venues)                              │
+│ category        │ enum (material, salary, rent, utilities,      │
+│                 │       maintenance, marketing, other)          │
+│ description     │ text                                          │
+│ amount          │ numeric                                       │
+│ payment_method  │ enum (CASH, CREDIT, DEBIT, PIX, TRANSFER)    │
+│ expense_date    │ date                                          │
+│ due_date        │ date (nullable - para contas a pagar)        │
+│ paid_at         │ timestamp (nullable)                          │
+│ is_paid         │ boolean (default true)                        │
+│ supplier        │ text (nullable)                               │
+│ notes           │ text (nullable)                               │
+│ receipt_url     │ text (nullable - comprovante)                 │
+│ created_by      │ uuid (FK auth.users)                          │
+│ created_at      │ timestamp                                     │
+│ updated_at      │ timestamp                                     │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Campo de Confirmar Senha
-- Adicionar novo estado `confirmPassword`
-- Campo adicional "Confirmar senha" 
-- Validação: senhas devem ser iguais
-- Erro visual se não coincidirem
+Criar enum para categorias de despesa:
 
-### 4. Toggle de Visibilidade (Olhinho)
-- Aplicar em ambos os campos de senha
-- Estados independentes: `showPassword` e `showConfirmPassword`
+```text
+expense_category: 
+  - material (Compra de material/produtos)
+  - salary (Pagamento funcionários)  
+  - rent (Aluguel)
+  - utilities (Água, luz, internet)
+  - maintenance (Manutenção/reparos)
+  - marketing (Marketing/publicidade)
+  - other (Outros)
+```
+
+### 1.2 Nova Página: Financeiro (/financeiro)
+
+Layout com abas:
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ FINANCEIRO                                         [+ Despesa]  │
+├─────────────────────────────────────────────────────────────────┤
+│ [Resumo] [Receitas] [Despesas] [Fluxo de Caixa]                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐            │
+│  │ RECEITAS     │ │ DESPESAS     │ │ SALDO        │            │
+│  │ R$ 15.420    │ │ R$ 8.350     │ │ R$ 7.070     │            │
+│  │ ↑ 12%        │ │ ↓ 5%         │ │ ↑ 25%        │            │
+│  └──────────────┘ └──────────────┘ └──────────────┘            │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐
+│  │ GRÁFICO: Receitas vs Despesas (últimos 6 meses)             │
+│  │ [Barras empilhadas ou linha]                                │
+│  └─────────────────────────────────────────────────────────────┘
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 1.3 Tab: Receitas (somente leitura)
+
+Agregação automática de:
+- Reservas finalizadas (tabela `bookings` onde status = 'FINALIZED')
+- Ordens de serviço finalizadas (tabela `service_orders` onde status = 'finished' ou 'invoiced')
+
+Filtros: período, espaço/serviço, cliente
+
+### 1.4 Tab: Despesas (CRUD completo)
+
+Lista de despesas com:
+- Filtros: categoria, período, status (pago/pendente)
+- Ações: criar, editar, excluir, marcar como pago
+- Dialog de formulário para nova despesa
+
+### 1.5 Tab: Fluxo de Caixa
+
+Visualização combinada:
+- Gráfico de linha/barra mostrando entradas vs saídas
+- Saldo acumulado por período
+- Projeção de contas a pagar
+
+### 1.6 Arquivos a Criar/Modificar
+
+**Novos arquivos:**
+- `src/pages/Financeiro.tsx` - Página principal
+- `src/hooks/useExpenses.ts` - Hook de despesas (CRUD)
+- `src/hooks/useFinancialMetrics.ts` - Métricas agregadas
+- `src/components/financeiro/ExpenseFormDialog.tsx` - Formulário
+- `src/components/financeiro/RevenueList.tsx` - Lista de receitas
+- `src/components/financeiro/ExpenseList.tsx` - Lista de despesas
+- `src/components/financeiro/CashFlowChart.tsx` - Gráfico de fluxo
+- `src/components/financeiro/FinancialSummary.tsx` - Cards resumo
+
+**Modificar:**
+- `src/App.tsx` - Adicionar rota /financeiro
+- `src/components/layout/AppSidebar.tsx` - Adicionar link Financeiro
 
 ---
 
-## Alterações no Onboarding.tsx
+## Parte 2: Sistema de Permissões por Operador
 
-### Remover Campo de Telefone Fixo
-- Remover o campo "Telefone fixo (opcional)" das linhas 235-245
-- Remover estado `phone` e referências
-- Ajustar grid para melhor distribuição dos campos restantes
+### 2.1 Estrutura de Permissões
 
----
+Criar tabela `role_permissions` para configuração granular:
 
-## Detalhes Técnicos
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ role_permissions                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│ id              │ uuid (PK)                                     │
+│ venue_id        │ uuid (FK venues)                              │
+│ role            │ app_role (admin, manager, staff)              │
+│ module          │ text (agenda, clientes, financeiro, etc.)     │
+│ can_view        │ boolean                                       │
+│ can_create      │ boolean                                       │
+│ can_edit        │ boolean                                       │
+│ can_delete      │ boolean                                       │
+│ created_at      │ timestamp                                     │
+│ updated_at      │ timestamp                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### Novos Estados em Auth.tsx
+### 2.2 Permissões Padrão por Função
+
+```text
+┌────────────────┬──────────────────────────────────────────────────┐
+│ MÓDULO         │ ADMIN      │ GERENTE     │ FUNCIONÁRIO          │
+├────────────────┼────────────┼─────────────┼──────────────────────┤
+│ Dashboard      │ Completo   │ Completo    │ Visualizar           │
+│ Agenda         │ Completo   │ Completo    │ Criar/Editar próprias│
+│ Clientes       │ Completo   │ Completo    │ Visualizar/Criar     │
+│ Espaços        │ Completo   │ Completo    │ Visualizar           │
+│ Serviços       │ Completo   │ Completo    │ Visualizar           │
+│ Produtos       │ Completo   │ Completo    │ Visualizar           │
+│ Ordens Serviço │ Completo   │ Completo    │ Criar/Editar próprias│
+│ Financeiro     │ Completo   │ Visualizar  │ Sem acesso           │
+│ Relatórios     │ Completo   │ Visualizar  │ Sem acesso           │
+│ Equipe         │ Completo   │ Visualizar  │ Sem acesso           │
+│ Configurações  │ Completo   │ Parcial     │ Sem acesso           │
+└────────────────┴────────────┴─────────────┴──────────────────────┘
+```
+
+### 2.3 Hook de Permissões
+
+Criar `usePermissions` para verificação em tempo real:
+
 ```typescript
-const [showPassword, setShowPassword] = useState(false);
-const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-const [confirmPassword, setConfirmPassword] = useState('');
+// Uso no componente:
+const { canView, canCreate, canEdit, canDelete } = usePermissions('financeiro');
+
+if (!canView) return <AccessDenied />;
 ```
 
-### Componente de Input com Olhinho
-```tsx
-<div className="relative">
-  <Input
-    type={showPassword ? "text" : "password"}
-    ...
-  />
-  <button
-    type="button"
-    onClick={() => setShowPassword(!showPassword)}
-    className="absolute right-3 top-1/2 -translate-y-1/2"
-  >
-    {showPassword ? <EyeOff /> : <Eye />}
-  </button>
-</div>
+### 2.4 Interface de Configuração (Aba Equipe)
+
+Melhorar a aba Equipe em Configurações:
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ GERENCIAR EQUIPE                                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ [+ Convidar Membro]                                            │
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐
+│ │ João Silva           │ Administrador │ [Configurar]         │
+│ │ joao@email.com       │ Acesso total  │                      │
+│ ├─────────────────────────────────────────────────────────────┤
+│ │ Maria Santos         │ Gerente       │ [Configurar]         │
+│ │ maria@email.com      │ 8 módulos     │                      │
+│ ├─────────────────────────────────────────────────────────────┤
+│ │ Pedro Alves          │ Funcionário   │ [Configurar]         │
+│ │ pedro@email.com      │ 4 módulos     │                      │
+│ └─────────────────────────────────────────────────────────────┘
+│                                                                 │
+│ [Configurar Permissões Padrão por Função]                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Função de Validação de Senha
-```typescript
-const getPasswordStrength = (password: string) => ({
-  hasMinLength: password.length >= 8,
-  hasUpperCase: /[A-Z]/.test(password),
-  hasNumber: /[0-9]/.test(password),
-  hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-});
+### 2.5 Dialog de Permissões Individuais
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ Permissões: Maria Santos (Gerente)                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ ☑ Usar padrão da função "Gerente"                              │
+│   ou                                                            │
+│ ☐ Personalizar permissões                                      │
+│                                                                 │
+│ ┌──────────────┬──────┬───────┬────────┬─────────┐             │
+│ │ Módulo       │ Ver  │ Criar │ Editar │ Excluir │             │
+│ ├──────────────┼──────┼───────┼────────┼─────────┤             │
+│ │ Dashboard    │  ✓   │   -   │   -    │    -    │             │
+│ │ Agenda       │  ✓   │   ✓   │   ✓    │    ✓    │             │
+│ │ Clientes     │  ✓   │   ✓   │   ✓    │    ✓    │             │
+│ │ Financeiro   │  ✓   │   ✗   │   ✗    │    ✗    │             │
+│ │ Relatórios   │  ✓   │   -   │   -    │    -    │             │
+│ │ Equipe       │  ✓   │   ✗   │   ✗    │    ✗    │             │
+│ │ Configurações│  ✓   │   ✗   │   ✗    │    ✗    │             │
+│ └──────────────┴──────┴───────┴────────┴─────────┘             │
+│                                                                 │
+│                            [Cancelar]  [Salvar]                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Novos Imports
-```typescript
-import { Eye, EyeOff, Check, X } from 'lucide-react';
+### 2.6 Fluxo de Convite de Novo Membro
+
+1. Admin clica em "Convidar Membro"
+2. Preenche: Email + Função inicial
+3. Sistema cria entrada em `venue_members` com o user_id quando o convidado aceitar
+4. Convidado recebe email com link de convite
+5. Ao criar conta ou fazer login, é vinculado automaticamente à venue
+
+### 2.7 Arquivos a Criar/Modificar
+
+**Novos arquivos:**
+- `src/hooks/usePermissions.ts` - Hook central de permissões
+- `src/hooks/useTeamMembers.ts` - Hook para gestão de equipe (CRUD)
+- `src/components/team/PermissionsDialog.tsx` - Dialog de permissões
+- `src/components/team/InviteMemberDialog.tsx` - Convite de membros
+- `src/components/team/RolePermissionsConfig.tsx` - Config padrão por função
+- `src/components/shared/AccessDenied.tsx` - Componente de acesso negado
+
+**Modificar:**
+- `src/pages/Configuracoes.tsx` - Expandir aba Equipe
+- `src/components/layout/AppSidebar.tsx` - Filtrar menu por permissões
+- Todas as páginas: Adicionar verificação de permissões
+
+---
+
+## Parte 3: Migração de Banco de Dados
+
+### 3.1 SQL Necessário
+
+```sql
+-- 1. Criar enum de categoria de despesa
+CREATE TYPE expense_category AS ENUM (
+  'material', 'salary', 'rent', 'utilities', 
+  'maintenance', 'marketing', 'other'
+);
+
+-- 2. Criar tabela expenses
+CREATE TABLE expenses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  category expense_category NOT NULL,
+  description TEXT NOT NULL,
+  amount NUMERIC NOT NULL CHECK (amount > 0),
+  payment_method payment_method,
+  expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  due_date DATE,
+  paid_at TIMESTAMPTZ,
+  is_paid BOOLEAN NOT NULL DEFAULT true,
+  supplier TEXT,
+  notes TEXT,
+  receipt_url TEXT,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 3. Criar tabela role_permissions  
+CREATE TABLE role_permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  role app_role NOT NULL,
+  module TEXT NOT NULL,
+  can_view BOOLEAN NOT NULL DEFAULT false,
+  can_create BOOLEAN NOT NULL DEFAULT false,
+  can_edit BOOLEAN NOT NULL DEFAULT false,
+  can_delete BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(venue_id, role, module)
+);
+
+-- 4. RLS Policies para expenses
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Members can view expenses"
+ON expenses FOR SELECT
+USING (is_venue_member(auth.uid(), venue_id));
+
+CREATE POLICY "Admins/Managers can manage expenses"
+ON expenses FOR ALL
+USING (is_venue_admin(auth.uid(), venue_id) OR 
+       EXISTS (
+         SELECT 1 FROM venue_members 
+         WHERE venue_id = expenses.venue_id 
+         AND user_id = auth.uid() 
+         AND role IN ('admin', 'manager')
+       ));
+
+-- 5. RLS Policies para role_permissions
+ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage permissions"
+ON role_permissions FOR ALL
+USING (is_venue_admin(auth.uid(), venue_id));
+
+CREATE POLICY "Members can view permissions"
+ON role_permissions FOR SELECT
+USING (is_venue_member(auth.uid(), venue_id));
+
+-- 6. Função para verificar permissão específica
+CREATE OR REPLACE FUNCTION check_permission(
+  _user_id UUID,
+  _venue_id UUID,
+  _module TEXT,
+  _action TEXT -- 'view', 'create', 'edit', 'delete'
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _role app_role;
+  _has_permission BOOLEAN;
+BEGIN
+  -- Obter role do usuário na venue
+  SELECT role INTO _role
+  FROM venue_members
+  WHERE user_id = _user_id AND venue_id = _venue_id;
+  
+  IF _role IS NULL THEN
+    RETURN false;
+  END IF;
+  
+  -- Admin sempre tem acesso total
+  IF _role = 'admin' THEN
+    RETURN true;
+  END IF;
+  
+  -- Verificar permissão específica
+  EXECUTE format(
+    'SELECT can_%s FROM role_permissions WHERE venue_id = $1 AND role = $2 AND module = $3',
+    _action
+  ) INTO _has_permission
+  USING _venue_id, _role, _module;
+  
+  RETURN COALESCE(_has_permission, false);
+END;
+$$;
 ```
 
 ---
 
-## Estrutura Visual Atualizada
+## Resumo de Entregáveis
 
-### Login (Desktop)
-```
-┌─────────────────────────────────────────────────────────┐
-│ [Painel Esquerdo - Gradiente]  │  [Painel Direito]      │
-│                                │                        │
-│  🏢 Logo                       │  BEM-VINDO             │
-│  "AgendaCerta"                 │  Entre com suas        │
-│                                │  credenciais           │
-│  ✓ Agenda online 24/7         │                        │
-│  ✓ Dashboard tempo real       │  [Email]               │
-│  ✓ Gestão de clientes         │  [Senha 👁]            │
-│  ✓ Relatórios completos       │  [Esqueci minha senha] │
-│                                │                        │
-│  "+500 negócios confiam"      │  [ENTRAR]              │
-│                                │                        │
-│  Política de Privacidade       │  Não tem conta?        │
-│                                │  Cadastre-se           │
-│                                │                        │
-│                                │  🔗 Ver nossos planos  │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Cadastro
-```
-┌─────────────────────────────────────────────────────────┐
-│  CRIAR CONTA                                            │
-│  Preencha os dados para se cadastrar                    │
-│                                                         │
-│  [Nome completo]                                        │
-│  [Email]                                                │
-│  [Senha 👁]                                             │
-│                                                         │
-│  Requisitos da senha:                                   │
-│  ✓ Mínimo 8 caracteres                                 │
-│  ✗ Uma letra maiúscula                                 │
-│  ✓ Um número                                           │
-│  ✗ Um caractere especial                               │
-│                                                         │
-│  [Confirmar senha 👁]                                   │
-│  ⚠ As senhas não coincidem (se diferentes)             │
-│                                                         │
-│  [CADASTRAR]                                            │
-│                                                         │
-│  Já tem conta? Entre                                    │
-│  🔗 Ver nossos planos                                   │
-└─────────────────────────────────────────────────────────┘
-```
+| Item | Arquivos | Prioridade |
+|------|----------|------------|
+| Tabela expenses + RLS | Migration SQL | Alta |
+| Tabela role_permissions + RLS | Migration SQL | Alta |
+| Página Financeiro | 8 arquivos novos | Alta |
+| Hook useExpenses | 1 arquivo | Alta |
+| Hook usePermissions | 1 arquivo | Alta |
+| Expansão aba Equipe | 4 arquivos novos + edições | Média |
+| Filtro menu por permissões | 1 edição | Média |
+| Verificação em todas as páginas | Múltiplas edições | Baixa |
 
 ---
 
-## Arquivos a Modificar
-1. **src/pages/Auth.tsx** - Principal (login + cadastro)
-2. **src/pages/Onboarding.tsx** - Remover telefone fixo
+## Ordem de Implementação Sugerida
 
-## Estimativa
-Implementação direta, sem dependências externas adicionais.
+1. **Fase 1 - Database**: Criar tabelas e policies
+2. **Fase 2 - Financeiro**: Página + hooks + componentes
+3. **Fase 3 - Permissões Backend**: Hook usePermissions + função SQL
+4. **Fase 4 - Permissões UI**: Dialogs + configuração na aba Equipe
+5. **Fase 5 - Integração**: Filtrar menu + verificações nas páginas
