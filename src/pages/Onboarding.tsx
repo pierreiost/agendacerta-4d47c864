@@ -16,7 +16,6 @@ export default function Onboarding() {
   const { refetchVenues } = useVenue();
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
   const [cnpjCpf, setCnpjCpf] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -82,7 +81,7 @@ export default function Onboarding() {
         .rpc('create_venue_with_admin', {
           _name: name,
           _address: address || null,
-          _phone: phone || null,
+          _phone: null,
           _cnpj_cpf: cnpjCpf.replace(/\D/g, ''),
           _whatsapp: whatsapp.replace(/\D/g, ''),
         });
@@ -228,18 +227,6 @@ export default function Onboarding() {
                   placeholder="Rua, número, bairro"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone fixo (opcional)</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="(00) 0000-0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
                   className="h-11"
                 />
               </div>
