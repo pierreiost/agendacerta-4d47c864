@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Search, Package, Wrench, Plus, X } from "lucide-react";
+import { Search, Package, Wrench, Plus, X, Briefcase } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useProducts } from "@/hooks/useProducts";
+import { useServices } from "@/hooks/useServices";
 import { cn } from "@/lib/utils";
 
 const manualItemSchema = z.object({
@@ -26,6 +30,14 @@ const laborSchema = z.object({
 type ManualItemData = z.infer<typeof manualItemSchema>;
 type LaborData = z.infer<typeof laborSchema>;
 
+interface CatalogItem {
+  id: string;
+  name: string;
+  price: number;
+  type: 'product' | 'service';
+  category?: string | null;
+}
+
 interface ServiceOrderItemFormProps {
   orderType: "simple" | "complete";
   onAddItem: (item: {
@@ -40,13 +52,41 @@ interface ServiceOrderItemFormProps {
 
 export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: ServiceOrderItemFormProps) {
   const { products, isLoading: loadingProducts } = useProducts();
-  const [productSearch, setProductSearch] = useState("");
-  const [selectedTab, setSelectedTab] = useState<string>("products");
+  const { services, isLoading: loadingServices } = useServices();
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogFilter, setCatalogFilter] = useState<'products' | 'services' | 'all'>('products');
+  const [selectedTab, setSelectedTab] = useState<string>("catalog");
 
   const activeProducts = products.filter((p) => p.is_active !== false);
+  const activeServices = services.filter((s) => s.is_active !== false);
 
-  const filteredProducts = activeProducts.filter((product) =>
-    product.name.toLowerCase().includes(productSearch.toLowerCase()),
+  // Combined catalog items
+  const catalogItems = useMemo<CatalogItem[]>(() => {
+    const prods: CatalogItem[] = catalogFilter !== 'services' 
+      ? activeProducts.map(p => ({ 
+          id: p.id, 
+          name: p.name, 
+          price: p.price, 
+          type: 'product' as const,
+          category: p.category?.name || null
+        })) 
+      : [];
+    
+    const servs: CatalogItem[] = catalogFilter !== 'products' 
+      ? activeServices.map(s => ({ 
+          id: s.id, 
+          name: s.title, 
+          price: s.price, 
+          type: 'service' as const,
+          category: null 
+        })) 
+      : [];
+    
+    return [...prods, ...servs];
+  }, [activeProducts, activeServices, catalogFilter]);
+
+  const filteredCatalog = catalogItems.filter((item) =>
+    item.name.toLowerCase().includes(catalogSearch.toLowerCase()),
   );
 
   const manualForm = useForm<ManualItemData>({
@@ -73,13 +113,13 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
       currency: "BRL",
     }).format(value);
 
-  const handleAddProduct = async (product: (typeof activeProducts)[0]) => {
+  const handleAddCatalogItem = async (item: CatalogItem) => {
     await onAddItem({
-      description: product.name,
+      description: item.name,
       quantity: 1,
-      unit_price: product.price,
-      subtotal: product.price,
-      service_code: null,
+      unit_price: item.price,
+      subtotal: item.price,
+      service_code: item.type === 'service' && orderType === 'complete' ? '14.01' : null,
     });
   };
 
@@ -105,6 +145,8 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
     laborForm.reset({ description: "Mão de Obra - Serviço Técnico", value: 0 });
   };
 
+  const isLoadingCatalog = loadingProducts || loadingServices;
+
   return (
     <div className="border rounded-lg p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -116,9 +158,9 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="products" className="flex items-center gap-2">
+          <TabsTrigger value="catalog" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Peças
+            Catálogo
           </TabsTrigger>
           <TabsTrigger value="labor" className="flex items-center gap-2">
             <Wrench className="h-4 w-4" />
@@ -130,42 +172,83 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="products" className="space-y-3 mt-4">
+        <TabsContent value="catalog" className="space-y-3 mt-4">
+          {/* Filter toggle */}
+          <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+            <span className="text-sm font-medium text-muted-foreground">Exibir:</span>
+            <RadioGroup 
+              value={catalogFilter} 
+              onValueChange={(value) => setCatalogFilter(value as typeof catalogFilter)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="products" id="filter-products" />
+                <Label htmlFor="filter-products" className="text-sm cursor-pointer flex items-center gap-1">
+                  <Package className="h-3 w-3" />
+                  Produtos
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="services" id="filter-services" />
+                <Label htmlFor="filter-services" className="text-sm cursor-pointer flex items-center gap-1">
+                  <Briefcase className="h-3 w-3" />
+                  Serviços
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all" id="filter-all" />
+                <Label htmlFor="filter-all" className="text-sm cursor-pointer">Todos</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar peça/produto..."
-              value={productSearch}
-              onChange={(e) => setProductSearch(e.target.value)}
+              placeholder="Buscar no catálogo..."
+              value={catalogSearch}
+              onChange={(e) => setCatalogSearch(e.target.value)}
               className="pl-9"
             />
           </div>
 
-          {loadingProducts ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Carregando produtos...</p>
-          ) : filteredProducts.length === 0 ? (
+          {isLoadingCatalog ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Carregando catálogo...</p>
+          ) : filteredCatalog.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              {productSearch ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+              {catalogSearch ? "Nenhum item encontrado" : "Nenhum item cadastrado"}
             </p>
           ) : (
             <ScrollArea className="h-[200px]">
               <div className="space-y-1">
-                {filteredProducts.map((product) => (
+                {filteredCatalog.map((item) => (
                   <button
-                    key={product.id}
-                    onClick={() => handleAddProduct(product)}
+                    key={`${item.type}-${item.id}`}
+                    onClick={() => handleAddCatalogItem(item)}
                     className={cn(
                       "w-full flex items-center justify-between p-3 rounded-md text-left",
                       "hover:bg-accent transition-colors",
                       "border border-transparent hover:border-border",
                     )}
                   >
-                    <div>
-                      <p className="font-medium text-sm">{product.name}</p>
-                      {product.category && <p className="text-xs text-muted-foreground">{product.category.name}</p>}
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={item.type === 'product' ? 'secondary' : 'default'}
+                        className="text-xs"
+                      >
+                        {item.type === 'product' ? (
+                          <><Package className="h-2.5 w-2.5 mr-1" />Peça</>
+                        ) : (
+                          <><Briefcase className="h-2.5 w-2.5 mr-1" />Serviço</>
+                        )}
+                      </Badge>
+                      <div>
+                        <p className="font-medium text-sm">{item.name}</p>
+                        {item.category && <p className="text-xs text-muted-foreground">{item.category}</p>}
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-sm">{formatCurrency(product.price)}</p>
+                      <p className="font-medium text-sm">{formatCurrency(item.price)}</p>
                       <p className="text-xs text-muted-foreground">Clique para adicionar</p>
                     </div>
                   </button>

@@ -43,6 +43,7 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { ProfessionalFormDialog } from '@/components/team/ProfessionalFormDialog';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
+import { InviteMemberDialog } from '@/components/team/InviteMemberDialog';
 import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
 import type { BookableMember } from '@/types/services';
 import {
@@ -56,6 +57,7 @@ import {
   Settings2,
   Scissors,
   Shield,
+  UserPlus,
 } from 'lucide-react';
 
 const reminderFormSchema = z.object({
@@ -71,6 +73,7 @@ export default function Configuracoes() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMember, setSelectedMember] = useState<BookableMember | null>(null);
   const [professionalDialogOpen, setProfessionalDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
   const { professionals, isLoading: loadingProfessionals } = useProfessionals();
   const {
@@ -322,14 +325,22 @@ export default function Configuracoes() {
             {/* Seção: Permissões e Funções */}
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <div>
-                    <CardTitle>Membros e Permissões</CardTitle>
-                    <CardDescription>
-                      Gerencie os membros da equipe e suas permissões de acesso
-                    </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <div>
+                      <CardTitle>Membros e Permissões</CardTitle>
+                      <CardDescription>
+                        Gerencie os membros da equipe e suas permissões de acesso
+                      </CardDescription>
+                    </div>
                   </div>
+                  {isAdmin && (
+                    <Button onClick={() => setInviteDialogOpen(true)}>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Convidar
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -459,6 +470,11 @@ export default function Configuracoes() {
         open={professionalDialogOpen}
         onOpenChange={setProfessionalDialogOpen}
         member={selectedMember}
+      />
+
+      <InviteMemberDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
       />
     </AppLayout>
   );
