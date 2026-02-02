@@ -8,6 +8,7 @@ interface UseFormPersistOptions<T extends FieldValues> {
   exclude?: (keyof T)[];
   debounceMs?: number;
   showRecoveryToast?: boolean;
+  isEnabled?: boolean;
 }
 
 export function useFormPersist<T extends FieldValues>({
@@ -16,15 +17,19 @@ export function useFormPersist<T extends FieldValues>({
   exclude = [],
   debounceMs = 500,
   showRecoveryToast = true,
+  isEnabled = true,
 }: UseFormPersistOptions<T>) {
   const storageKey = `form_draft_${key}`;
-  const hasRestoredRef = useRef(false);
+  // Usamos um Set para rastrear quais chaves já foram restauradas nesta sessão
+  const restoredKeysRef = useRef<Set<string>>(new Set());
   const isDirtyRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Restore draft
   useEffect(() => {
-    if (hasRestoredRef.current) return;
-    hasRestoredRef.current = true;
+    if (!isEnabled) return;
+    // Se já restauramos esta chave específica, não fazemos de novo para evitar loops
+    if (restoredKeysRef.current.has(storageKey)) return;
 
     try {
       const stored = localStorage.getItem(storageKey);
@@ -33,6 +38,7 @@ export function useFormPersist<T extends FieldValues>({
         const data = parsed.data;
         const timestamp = parsed.timestamp;
 
+        // Rascunho válido por 24h
         const isRecent = Date.now() - timestamp < 24 * 60 * 60 * 1000;
 
         if (isRecent && data) {
@@ -42,29 +48,41 @@ export function useFormPersist<T extends FieldValues>({
             if (!exclude.includes(field as keyof T)) {
               const value = data[field];
               if (value !== undefined && value !== null && value !== "") {
-                form.setValue(field as Path<T>, value as PathValue<T, Path<T>>);
+                form.setValue(field as Path<T>, value as PathValue<T, Path<T>>, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
                 hasData = true;
               }
             }
           });
 
-          if (hasData && showRecoveryToast) {
-            toast.info("Rascunho recuperado", {
-              description: "Continuando de onde você parou.",
-              duration: 4000,
-            });
+          if (hasData) {
+            if (showRecoveryToast) {
+              toast.info("Rascunho recuperado", {
+                description: "Continuando de onde você parou.",
+                duration: 4000,
+              });
+            }
+            isDirtyRef.current = true;
           }
-          isDirtyRef.current = hasData;
         } else {
           localStorage.removeItem(storageKey);
         }
       }
+      // Marca como restaurado
+      restoredKeysRef.current.add(storageKey);
     } catch (error) {
+      console.error("Erro ao restaurar rascunho:", error);
       localStorage.removeItem(storageKey);
     }
-  }, [form, storageKey, exclude, showRecoveryToast]);
+  }, [form, storageKey, exclude, showRecoveryToast, isEnabled]);
 
+  // Save draft
   const saveDraft = useCallback(() => {
+    if (!isEnabled) return;
+
     const values = form.getValues();
     const filteredValues: Partial<T> = {};
 
@@ -74,7 +92,10 @@ export function useFormPersist<T extends FieldValues>({
       }
     });
 
-    const hasData = Object.values(filteredValues).some((v) => v !== undefined && v !== null && v !== "");
+    // Verifica se tem dados relevantes
+    const hasData = Object.values(filteredValues).some(
+      (v) => v !== undefined && v !== null && v !== "" && (Array.isArray(v) ? v.length > 0 : true),
+    );
 
     if (hasData) {
       localStorage.setItem(
@@ -86,9 +107,12 @@ export function useFormPersist<T extends FieldValues>({
       );
       isDirtyRef.current = true;
     }
-  }, [form, storageKey, exclude]);
+  }, [form, storageKey, exclude, isEnabled]);
 
+  // Watch changes
   useEffect(() => {
+    if (!isEnabled) return;
+
     const subscription = form.watch(() => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -102,17 +126,14 @@ export function useFormPersist<T extends FieldValues>({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [form, saveDraft, debounceMs]);
+  }, [form, saveDraft, debounceMs, isEnabled]);
 
   const clearDraft = useCallback(() => {
     localStorage.removeItem(storageKey);
     isDirtyRef.current = false;
   }, [storageKey]);
 
-  const hasUnsavedData = useCallback(() => {
-    return isDirtyRef.current;
-  }, []);
-
+  // Warn on exit
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirtyRef.current) {
@@ -128,7 +149,6 @@ export function useFormPersist<T extends FieldValues>({
 
   return {
     clearDraft,
-    hasUnsavedData,
     saveDraft,
   };
 }
