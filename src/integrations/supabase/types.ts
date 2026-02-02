@@ -1631,7 +1631,7 @@ export type Database = {
         | "maintenance"
         | "marketing"
         | "other"
-      payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX"
+      payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX" | "TRANSFER"
       plan_type: "basic" | "max"
       service_order_status_complete:
         | "draft"
@@ -1782,7 +1782,7 @@ export const Constants = {
         "marketing",
         "other",
       ],
-      payment_method: ["CASH", "CREDIT", "DEBIT", "PIX"],
+      payment_method: ["CASH", "CREDIT", "DEBIT", "PIX", "TRANSFER"],
       plan_type: ["basic", "max"],
       service_order_status_complete: [
         "draft",

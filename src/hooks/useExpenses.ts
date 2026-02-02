@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVenue } from "@/contexts/VenueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
 
 export type ExpenseCategory = 
   | "material" 
@@ -13,7 +14,8 @@ export type ExpenseCategory =
   | "marketing" 
   | "other";
 
-export type PaymentMethod = "CASH" | "CREDIT" | "DEBIT" | "PIX" | "TRANSFER";
+// Use the database type for payment_method, but we also support TRANSFER in our UI
+export type PaymentMethod = Database["public"]["Enums"]["payment_method"] | "TRANSFER";
 
 export interface Expense {
   id: string;
@@ -61,7 +63,6 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "CASH", label: "Dinheiro" },
   { value: "CREDIT", label: "Cartão de Crédito" },
   { value: "DEBIT", label: "Cartão de Débito" },
-  { value: "TRANSFER", label: "Transferência" },
 ];
 
 export function useExpenses(filters?: {
@@ -109,6 +110,9 @@ export function useExpenses(filters?: {
     mutationFn: async (formData: ExpenseFormData) => {
       if (!currentVenue?.id) throw new Error("Venue não selecionada");
 
+      // Cast payment_method to the database type (it may include TRANSFER which needs migration)
+      const paymentMethod = formData.payment_method as Database["public"]["Enums"]["payment_method"] | null;
+      
       const { data, error } = await supabase
         .from("expenses")
         .insert({
@@ -116,7 +120,7 @@ export function useExpenses(filters?: {
           category: formData.category,
           description: formData.description,
           amount: formData.amount,
-          payment_method: formData.payment_method || null,
+          payment_method: paymentMethod,
           expense_date: formData.expense_date,
           due_date: formData.due_date || null,
           is_paid: formData.is_paid,
@@ -147,13 +151,15 @@ export function useExpenses(filters?: {
 
   const updateExpense = useMutation({
     mutationFn: async ({ id, ...formData }: ExpenseFormData & { id: string }) => {
+      const paymentMethod = formData.payment_method as Database["public"]["Enums"]["payment_method"] | null;
+      
       const { data, error } = await supabase
         .from("expenses")
         .update({
           category: formData.category,
           description: formData.description,
           amount: formData.amount,
-          payment_method: formData.payment_method || null,
+          payment_method: paymentMethod,
           expense_date: formData.expense_date,
           due_date: formData.due_date || null,
           is_paid: formData.is_paid,

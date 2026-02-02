@@ -17,6 +17,7 @@ import {
   Scissors,
   Moon,
   Sun,
+  DollarSign,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -173,6 +174,7 @@ export function AppSidebar() {
         {
           label: "GESTÃO",
           items: [
+            { title: "Financeiro", href: "/financeiro", icon: DollarSign },
             { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
             ...(isMaxPlan ? [
               { title: "Página Pública", href: "/pagina-publica", icon: Globe },
