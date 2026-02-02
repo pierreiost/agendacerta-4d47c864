@@ -28,16 +28,16 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <SubscriptionBanner daysRemaining={daysRemaining} status={status} />
       )}
       
-      <div className="flex min-h-screen w-full">
+        <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
-        <SidebarInset className="flex flex-1 flex-col w-full overflow-x-hidden">
-          <header className="sticky top-0 z-10 flex h-12 md:h-14 items-center gap-2 md:gap-4 border-b bg-background/95 px-3 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <SidebarTrigger className="-ml-1 md:-ml-2" />
+        <SidebarInset className="flex flex-1 flex-col w-full overflow-hidden">
+          <header className="sticky top-0 z-10 flex h-10 md:h-11 items-center gap-2 md:gap-3 border-b bg-background/95 px-2 md:px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
+            <SidebarTrigger className="-ml-1" />
             {title && (
-              <h1 className="text-base md:text-lg font-semibold truncate">{title}</h1>
+              <h1 className="text-sm md:text-base font-semibold truncate">{title}</h1>
             )}
           </header>
-          <main className="flex-1 p-3 md:p-6 overflow-x-hidden">
+          <main className="flex-1 p-2 md:p-4 overflow-y-auto overflow-x-hidden scrollbar-hide">
             {children}
           </main>
         </SidebarInset>

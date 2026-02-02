@@ -9,8 +9,8 @@
 
 @layer base {
   :root {
-    /* Compact mode - reduced base font size for higher density */
-    font-size: 13px;
+    /* Ultra-compact mode - 10% reduction for zoom-out effect */
+    font-size: 12px;
 
     /* Main Background - Light neutral */
     --background: 0 0% 98%;
@@ -95,8 +95,8 @@
   }
 
   .dark {
-    /* Compact mode - reduced base font size for higher density */
-    font-size: 13px;
+    /* Ultra-compact mode - 10% reduction for zoom-out effect */
+    font-size: 12px;
 
     /* Main Background - Dark Zinc */
     --background: 240 6% 6%;
@@ -184,6 +184,23 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
   }
+
+  /* Hide scrollbars globally but keep scroll functionality */
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* Mobile: slightly larger base font for readability */
+  @media (max-width: 768px) {
+    :root, .dark {
+      font-size: 14px;
+    }
+  }
 }
 
 @layer utilities {
@@ -214,6 +231,16 @@
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Utility class to hide scrollbars */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 
