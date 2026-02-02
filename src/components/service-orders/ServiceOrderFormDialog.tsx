@@ -83,7 +83,7 @@ export function ServiceOrderFormDialog({
       description: '',
       notes: '',
       discount: 0,
-      tax_rate: 0.05,
+      tax_rate: 0,
     },
   });
 
@@ -113,7 +113,7 @@ export function ServiceOrderFormDialog({
         description: order.description,
         notes: order.notes ?? '',
         discount: Number(order.discount) || 0,
-        tax_rate: Number(order.tax_rate) || 0.05,
+        tax_rate: Number(order.tax_rate) || 0,
       });
       setOrderType(order.order_type as 'simple' | 'complete');
     } else if (!open) {
@@ -152,7 +152,7 @@ export function ServiceOrderFormDialog({
       description: data.description,
       notes: data.notes || null,
       discount: data.discount || 0,
-      tax_rate: data.order_type === 'complete' ? (data.tax_rate || 0.05) : 0,
+      tax_rate: data.order_type === 'complete' ? (data.tax_rate || 0) : 0,
       status_simple: data.order_type === 'simple' ? 'open' as const : null,
       status_complete: data.order_type === 'complete' ? 'draft' as const : null,
     };
