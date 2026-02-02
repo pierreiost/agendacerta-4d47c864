@@ -18,11 +18,13 @@ import {
   Moon,
   Sun,
   DollarSign,
+  LucideIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVenue } from "@/contexts/VenueContext";
+import { usePermissions, type Module } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
@@ -46,10 +48,23 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
 
+interface MenuItem {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  module?: Module;
+}
+
+interface MenuGroup {
+  label: string;
+  items: MenuItem[];
+}
+
 export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { currentVenue, venues, setCurrentVenue } = useVenue();
+  const { getPermission, isSuperAdmin: permIsSuperAdmin } = usePermissions();
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -129,21 +144,21 @@ export function AppSidebar() {
   };
 
   // Build menu items based on whether user is superadmin or regular user
-  const menuGroups = isSuperAdmin
+  const allMenuGroups: MenuGroup[] = isSuperAdmin
     ? [
         // SuperAdmin specific menu
         {
           label: "PRINCIPAL",
           items: [
-            { title: "Dashboard", href: "/", icon: Home },
+            { title: "Dashboard", href: "/", icon: Home, module: "dashboard" as Module },
           ],
         },
         {
           label: "ADMINISTRAÇÃO",
           items: [
             { title: "Super Admin", href: "/superadmin", icon: Shield },
-            { title: "Clientes", href: "/clientes", icon: Users },
-            { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+            { title: "Clientes", href: "/clientes", icon: Users, module: "clientes" as Module },
+            { title: "Relatórios", href: "/relatorios", icon: BarChart3, module: "relatorios" as Module },
           ],
         },
       ]
@@ -152,37 +167,49 @@ export function AppSidebar() {
         {
           label: "PRINCIPAL",
           items: [
-            { title: "Dashboard", href: "/", icon: Home },
-            { title: "Agenda", href: "/agenda", icon: Calendar },
+            { title: "Dashboard", href: "/", icon: Home, module: "dashboard" as Module },
+            { title: "Agenda", href: "/agenda", icon: Calendar, module: "agenda" as Module },
           ],
         },
         {
           label: "OPERACIONAL",
-          items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText }],
+          items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText, module: "ordens_servico" as Module }],
         },
         {
           label: "CADASTROS",
           items: [
-            { title: "Clientes", href: "/clientes", icon: Users },
+            { title: "Clientes", href: "/clientes", icon: Users, module: "clientes" as Module },
             ...(isServiceVenue 
-              ? [{ title: "Serviços", href: "/servicos", icon: Scissors }]
-              : [{ title: "Espaços", href: "/espacos", icon: MapPin }]
+              ? [{ title: "Serviços", href: "/servicos", icon: Scissors, module: "servicos" as Module }]
+              : [{ title: "Espaços", href: "/espacos", icon: MapPin, module: "espacos" as Module }]
             ),
-            { title: "Produtos", href: "/produtos", icon: Package },
+            { title: "Produtos", href: "/produtos", icon: Package, module: "produtos" as Module },
           ],
         },
         {
           label: "GESTÃO",
           items: [
-            { title: "Financeiro", href: "/financeiro", icon: DollarSign },
-            { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
+            { title: "Financeiro", href: "/financeiro", icon: DollarSign, module: "financeiro" as Module },
+            { title: "Relatórios", href: "/relatorios", icon: BarChart3, module: "relatorios" as Module },
             ...(isMaxPlan ? [
-              { title: "Página Pública", href: "/pagina-publica", icon: Globe },
+              { title: "Página Pública", href: "/pagina-publica", icon: Globe, module: "pagina_publica" as Module },
             ] : []),
-            { title: "Configurações", href: "/configuracoes", icon: Settings },
+            { title: "Configurações", href: "/configuracoes", icon: Settings, module: "configuracoes" as Module },
           ],
         },
       ];
+
+  // Filter menu items by permission (non-superadmin/admin need canView permission)
+  const menuGroups: MenuGroup[] = allMenuGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      // Items without module are always visible (e.g., Super Admin)
+      if (!item.module) return true;
+      // Check permission
+      const perm = getPermission(item.module);
+      return perm.canView;
+    }),
+  })).filter(group => group.items.length > 0);
 
   return (
     <Sidebar className="border-r border-sidebar-border h-screen max-h-screen overflow-hidden">

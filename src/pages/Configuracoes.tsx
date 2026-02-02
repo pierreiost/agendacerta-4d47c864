@@ -42,6 +42,7 @@ import { useFormPersist } from '@/hooks/useFormPersist';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { ProfessionalFormDialog } from '@/components/team/ProfessionalFormDialog';
+import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
 import type { BookableMember } from '@/types/services';
 import {
@@ -54,6 +55,7 @@ import {
   XCircle,
   Settings2,
   Scissors,
+  Shield,
 } from 'lucide-react';
 
 const reminderFormSchema = z.object({
@@ -316,111 +318,118 @@ export default function Configuracoes() {
           </TabsContent>
 
           {/* TAB: EQUIPE */}
-          <TabsContent value="team">
+          <TabsContent value="team" className="space-y-6">
+            {/* Seção: Permissões e Funções */}
             <Card>
               <CardHeader>
-                <CardTitle>Gerenciar Equipe</CardTitle>
-                <CardDescription>
-                  {isServiceVenue 
-                    ? 'Configure quais membros realizam atendimentos e seus serviços'
-                    : 'Membros que podem acessar o sistema'}
-                </CardDescription>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle>Membros e Permissões</CardTitle>
+                    <CardDescription>
+                      Gerencie os membros da equipe e suas permissões de acesso
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {loadingProfessionals ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : professionals.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="rounded-full bg-muted p-4 mb-4">
-                      <Users className="h-8 w-8 text-muted-foreground" />
+                <TeamMembersList />
+              </CardContent>
+            </Card>
+
+            {/* Seção: Profissionais (apenas para venues de serviço) */}
+            {isServiceVenue && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5 text-primary" />
+                    <div>
+                      <CardTitle>Profissionais que Atendem</CardTitle>
+                      <CardDescription>
+                        Configure quais membros realizam atendimentos e seus serviços
+                      </CardDescription>
                     </div>
-                    <h3 className="font-semibold">Nenhum membro</h3>
-                    <p className="text-muted-foreground mt-1 text-sm max-w-sm">
-                      Convide membros para ajudar a gerenciar a unidade
-                    </p>
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Membro</TableHead>
-                        <TableHead>Função</TableHead>
-                        {isServiceVenue && (
-                          <>
-                            <TableHead>Atende Clientes</TableHead>
-                            <TableHead>Serviços</TableHead>
-                          </>
-                        )}
-                        <TableHead className="w-[100px]">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {professionals.map((member) => (
-                        <TableRow key={member.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                {member.avatar_url ? (
-                                  <AvatarImage src={member.avatar_url} />
-                                ) : null}
-                                <AvatarFallback>
-                                  {(member.display_name || member.profile?.full_name || 'M')[0].toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">
-                                  {member.display_name || member.profile?.full_name || 'Membro'}
-                                </p>
-                                {member.profile?.phone && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {member.profile.phone}
+                </CardHeader>
+                <CardContent>
+                  {loadingProfessionals ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : professionals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <div className="rounded-full bg-muted p-4 mb-4">
+                        <Scissors className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <h3 className="font-semibold">Nenhum profissional configurado</h3>
+                      <p className="text-muted-foreground mt-1 text-sm max-w-sm">
+                        Configure os membros da equipe que realizam atendimentos
+                      </p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Profissional</TableHead>
+                          <TableHead>Atende Clientes</TableHead>
+                          <TableHead>Serviços</TableHead>
+                          <TableHead className="w-[100px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {professionals.map((member) => (
+                          <TableRow key={member.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  {member.avatar_url ? (
+                                    <AvatarImage src={member.avatar_url} />
+                                  ) : null}
+                                  <AvatarFallback>
+                                    {(member.display_name || member.profile?.full_name || 'M')[0].toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">
+                                    {member.display_name || member.profile?.full_name || 'Membro'}
                                   </p>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="capitalize">
-                              {member.role === 'admin' ? 'Administrador' : 
-                               member.role === 'manager' ? 'Gerente' : 'Funcionário'}
-                            </Badge>
-                          </TableCell>
-                          {isServiceVenue && (
-                            <>
-                              <TableCell>
-                                <Badge variant={member.is_bookable ? 'default' : 'outline'}>
-                                  {member.is_bookable ? (
-                                    <><CheckCircle2 className="h-3 w-3 mr-1" /> Sim</>
-                                  ) : (
-                                    <><XCircle className="h-3 w-3 mr-1" /> Não</>
+                                  {member.profile?.phone && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {member.profile.phone}
+                                    </p>
                                   )}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {member.services && member.services.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {member.services.slice(0, 2).map((s) => (
-                                      <Badge key={s.id} variant="outline" className="text-xs">
-                                        <Scissors className="h-2 w-2 mr-1" />
-                                        {s.title}
-                                      </Badge>
-                                    ))}
-                                    {member.services.length > 2 && (
-                                      <Badge variant="outline" className="text-xs">
-                                        +{member.services.length - 2}
-                                      </Badge>
-                                    )}
-                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={member.is_bookable ? 'default' : 'outline'}>
+                                {member.is_bookable ? (
+                                  <><CheckCircle2 className="h-3 w-3 mr-1" /> Sim</>
                                 ) : (
-                                  <span className="text-muted-foreground text-sm">-</span>
+                                  <><XCircle className="h-3 w-3 mr-1" /> Não</>
                                 )}
-                              </TableCell>
-                            </>
-                          )}
-                          <TableCell>
-                            {isServiceVenue && (
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {member.services && member.services.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {member.services.slice(0, 2).map((s) => (
+                                    <Badge key={s.id} variant="outline" className="text-xs">
+                                      <Scissors className="h-2 w-2 mr-1" />
+                                      {s.title}
+                                    </Badge>
+                                  ))}
+                                  {member.services.length > 2 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{member.services.length - 2}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -432,15 +441,15 @@ export default function Configuracoes() {
                                 <Settings2 className="h-4 w-4 mr-1" />
                                 Configurar
                               </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
         </Tabs>
