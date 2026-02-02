@@ -259,6 +259,71 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string | null
+          expense_date: string
+          id: string
+          is_paid: boolean
+          notes: string | null
+          paid_at: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          receipt_url: string | null
+          supplier: string | null
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_url?: string | null
+          supplier?: string | null
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_url?: string | null
+          supplier?: string | null
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
@@ -601,6 +666,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          id: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          module?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_inquiries: {
         Row: {
@@ -1231,6 +1343,15 @@ export type Database = {
           locked_until: string
         }[]
       }
+      check_permission: {
+        Args: {
+          _action: string
+          _module: string
+          _user_id: string
+          _venue_id: string
+        }
+        Returns: boolean
+      }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       create_booking_atomic: {
         Args: {
@@ -1469,6 +1590,10 @@ export type Database = {
           start_time: string
         }[]
       }
+      get_user_venue_role: {
+        Args: { _user_id: string; _venue_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       get_venue_days_until_expiration: {
         Args: { _venue_id: string }
         Returns: number
@@ -1498,6 +1623,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "manager" | "staff" | "superadmin"
       booking_status: "PENDING" | "CONFIRMED" | "CANCELLED" | "FINALIZED"
+      expense_category:
+        | "material"
+        | "salary"
+        | "rent"
+        | "utilities"
+        | "maintenance"
+        | "marketing"
+        | "other"
       payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX"
       plan_type: "basic" | "max"
       service_order_status_complete:
@@ -1640,6 +1773,15 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "manager", "staff", "superadmin"],
       booking_status: ["PENDING", "CONFIRMED", "CANCELLED", "FINALIZED"],
+      expense_category: [
+        "material",
+        "salary",
+        "rent",
+        "utilities",
+        "maintenance",
+        "marketing",
+        "other",
+      ],
       payment_method: ["CASH", "CREDIT", "DEBIT", "PIX"],
       plan_type: ["basic", "max"],
       service_order_status_complete: [
