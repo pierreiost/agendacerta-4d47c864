@@ -1,23 +1,16 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Pencil, Trash2, FileCheck } from 'lucide-react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Pencil, Trash2, FileText, ClipboardList } from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,25 +20,42 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useServiceOrders, type ServiceOrder } from '@/hooks/useServiceOrders';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+} from "@/components/ui/alert-dialog";
+import { useServiceOrders, type ServiceOrder } from "@/hooks/useServiceOrders";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const statusLabelsSimple: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
-  open: { label: 'Aberta', variant: 'secondary' },
-  finished: { label: 'Finalizada', variant: 'default' },
-  invoiced: { label: 'Faturada', variant: 'outline' },
+const statusLabelsSimple: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+  open: { label: "Aberta", variant: "secondary" },
+  finished: { label: "Finalizada", variant: "default" },
+  invoiced: { label: "Faturada", variant: "outline" },
 };
 
-const statusLabelsComplete: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-  draft: { label: 'Rascunho', variant: 'secondary' },
-  approved: { label: 'Aprovada', variant: 'default' },
-  in_progress: { label: 'Em execução', variant: 'default' },
-  finished: { label: 'Finalizada', variant: 'default' },
-  invoiced: { label: 'Faturada', variant: 'outline' },
-  cancelled: { label: 'Cancelada', variant: 'destructive' },
+const statusLabelsComplete: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+> = {
+  draft: { label: "Rascunho", variant: "secondary" },
+  approved: { label: "Aprovada", variant: "default" },
+  in_progress: { label: "Em execução", variant: "default" },
+  finished: { label: "Finalizada", variant: "default" },
+  invoiced: { label: "Faturada", variant: "outline" },
+  cancelled: { label: "Cancelada", variant: "destructive" },
+};
+
+const getTypeBadgeStyle = (type: "simple" | "complete") => {
+  if (type === "complete") {
+    return "bg-violet-100 text-violet-700 border-violet-200 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-700";
+  }
+  return "bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700";
+};
+
+const getTypeLabel = (type: "simple" | "complete") => {
+  return type === "complete" ? "NFS-e" : "Simples";
+};
+
+const getTypeIcon = (type: "simple" | "complete") => {
+  return type === "complete" ? <ClipboardList className="w-3 h-3 mr-1" /> : <FileText className="w-3 h-3 mr-1" />;
 };
 
 export default function OrdensServico() {
@@ -54,13 +64,10 @@ export default function OrdensServico() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
-  const simpleOrders = orders.filter((o) => o.order_type === 'simple');
-  const completeOrders = orders.filter((o) => o.order_type === 'complete');
-
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
 
   const handleEdit = (order: ServiceOrder) => {
@@ -81,117 +88,20 @@ export default function OrdensServico() {
   };
 
   const handleStatusChange = async (order: ServiceOrder, newStatus: string) => {
-    if (order.order_type === 'simple') {
+    if (order.order_type === "simple") {
       await updateOrder({
         id: order.id,
-        status_simple: newStatus as 'open' | 'finished' | 'invoiced',
-        finished_at: newStatus === 'finished' ? new Date().toISOString() : order.finished_at,
+        status_simple: newStatus as "open" | "finished" | "invoiced",
+        finished_at: newStatus === "finished" ? new Date().toISOString() : order.finished_at,
       });
     } else {
       await updateOrder({
         id: order.id,
-        status_complete: newStatus as 'draft' | 'approved' | 'in_progress' | 'finished' | 'invoiced' | 'cancelled',
-        finished_at: newStatus === 'finished' ? new Date().toISOString() : order.finished_at,
+        status_complete: newStatus as "draft" | "approved" | "in_progress" | "finished" | "invoiced" | "cancelled",
+        finished_at: newStatus === "finished" ? new Date().toISOString() : order.finished_at,
       });
     }
   };
-
-  const renderOrdersTable = (ordersList: ServiceOrder[], isComplete: boolean) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[80px]">Nº</TableHead>
-          <TableHead>Cliente</TableHead>
-          {isComplete && <TableHead>CPF/CNPJ</TableHead>}
-          <TableHead>Descrição</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Total</TableHead>
-          <TableHead>Data</TableHead>
-          <TableHead className="w-[100px]">Ações</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {ordersList.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={isComplete ? 8 : 7} className="text-center py-8 text-muted-foreground">
-              Nenhuma OS encontrada
-            </TableCell>
-          </TableRow>
-        ) : (
-          ordersList.map((order) => {
-            const status = isComplete
-              ? statusLabelsComplete[order.status_complete ?? 'draft']
-              : statusLabelsSimple[order.status_simple ?? 'open'];
-
-            return (
-              <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleEdit(order)}>
-                <TableCell className="font-mono font-bold">#{order.order_number}</TableCell>
-                <TableCell>{order.customer_name}</TableCell>
-                {isComplete && <TableCell>{order.customer_document || '-'}</TableCell>}
-                <TableCell className="max-w-[200px] truncate">{order.description}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="p-0 h-auto">
-                        <Badge variant={status.variant as 'default' | 'secondary' | 'outline' | 'destructive'}>
-                          {status.label}
-                        </Badge>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {isComplete
-                        ? Object.entries(statusLabelsComplete).map(([key, { label }]) => (
-                            <DropdownMenuItem
-                              key={key}
-                              onClick={() => handleStatusChange(order, key)}
-                            >
-                              {label}
-                            </DropdownMenuItem>
-                          ))
-                        : Object.entries(statusLabelsSimple).map(([key, { label }]) => (
-                            <DropdownMenuItem
-                              key={key}
-                              onClick={() => handleStatusChange(order, key)}
-                            >
-                              {label}
-                            </DropdownMenuItem>
-                          ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(Number(order.total))}
-                </TableCell>
-                <TableCell>
-                  {format(new Date(order.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(order)}
-                      title="Editar"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(order.id)}
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })
-        )}
-      </TableBody>
-    </Table>
-  );
 
   return (
     <AppLayout>
@@ -199,52 +109,111 @@ export default function OrdensServico() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Ordens de Serviço</h1>
-            <p className="text-muted-foreground text-sm">
-              Gerencie suas OS simples e completas (para NFS-e)
-            </p>
+            <p className="text-muted-foreground text-sm">Gerencie todas as ordens de serviço em um único lugar</p>
           </div>
-          <Button onClick={() => navigate('/ordens-servico/nova')} className="w-full sm:w-auto">
+          <Button onClick={() => navigate("/ordens-servico/nova")} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Nova OS
           </Button>
         </div>
 
-        <Tabs defaultValue="simple">
-          <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex">
-            <TabsTrigger value="simple" className="gap-1 md:gap-2 text-xs md:text-sm">
-              <FileText className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden xs:inline">Simples</span> ({simpleOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="complete" className="gap-1 md:gap-2 text-xs md:text-sm">
-              <FileCheck className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden xs:inline">NFS-e</span> ({completeOrders.length})
-            </TabsTrigger>
-          </TabsList>
+        {isLoading ? (
+          <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+        ) : (
+          <div className="rounded-md border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Nº</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead className="w-[100px]">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      Nenhuma OS encontrada
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  orders.map((order) => {
+                    const isComplete = order.order_type === "complete";
+                    const statusConfig = isComplete
+                      ? statusLabelsComplete[order.status_complete ?? "draft"]
+                      : statusLabelsSimple[order.status_simple ?? "open"];
 
-          <TabsContent value="simple" className="mt-4">
-            {isLoading ? (
-              <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-            ) : (
-              <div className="overflow-x-auto -mx-4 md:mx-0">
-                <div className="min-w-[600px] md:min-w-full px-4 md:px-0">
-                  {renderOrdersTable(simpleOrders, false)}
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="complete" className="mt-4">
-            {isLoading ? (
-              <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-            ) : (
-              <div className="overflow-x-auto -mx-4 md:mx-0">
-                <div className="min-w-[700px] md:min-w-full px-4 md:px-0">
-                  {renderOrdersTable(completeOrders, true)}
-                </div>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                    return (
+                      <TableRow
+                        key={order.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleEdit(order)}
+                      >
+                        <TableCell className="font-mono font-bold">#{order.order_number}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={`flex w-fit items-center border font-medium px-2 py-0.5 ${getTypeBadgeStyle(order.order_type)}`}
+                          >
+                            {getTypeIcon(order.order_type)}
+                            {getTypeLabel(order.order_type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{order.customer_name}</TableCell>
+                        <TableCell>{order.customer_document || "-"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{order.description}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="p-0 h-auto">
+                                <Badge
+                                  variant={statusConfig.variant as "default" | "secondary" | "outline" | "destructive"}
+                                >
+                                  {statusConfig.label}
+                                </Badge>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              {isComplete
+                                ? Object.entries(statusLabelsComplete).map(([key, { label }]) => (
+                                    <DropdownMenuItem key={key} onClick={() => handleStatusChange(order, key)}>
+                                      {label}
+                                    </DropdownMenuItem>
+                                  ))
+                                : Object.entries(statusLabelsSimple).map(([key, { label }]) => (
+                                    <DropdownMenuItem key={key} onClick={() => handleStatusChange(order, key)}>
+                                      {label}
+                                    </DropdownMenuItem>
+                                  ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(Number(order.total))}</TableCell>
+                        <TableCell>{format(new Date(order.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(order)} title="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(order.id)} title="Excluir">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -257,7 +226,9 @@ export default function OrdensServico() {
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="w-full sm:w-auto">Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete} className="w-full sm:w-auto">
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
