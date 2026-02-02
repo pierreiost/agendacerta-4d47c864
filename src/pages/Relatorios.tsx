@@ -78,7 +78,7 @@ export default function Relatorios() {
     return { totalRevenue, totalBookings, totalHours, uniqueCustomers };
   }, [bookings]);
 
-  // OS Stats
+  // OS Stats - Only count finalized/invoiced orders for revenue
   const osStats = useMemo(() => {
     const filtered = orders.filter((o) => {
       const createdAt = new Date(o.created_at);
@@ -86,13 +86,22 @@ export default function Relatorios() {
     });
 
     const total = filtered.length;
-    const totalRevenue = filtered.reduce((sum, o) => sum + Number(o.total || 0), 0);
     
-    // Calculate parts vs labor
+    // Only finalized/invoiced orders count for revenue
+    const finalizedOrders = filtered.filter((o) => 
+      o.status_simple === 'finished' || 
+      o.status_simple === 'invoiced' || 
+      o.status_complete === 'finished' || 
+      o.status_complete === 'invoiced'
+    );
+    
+    const totalRevenue = finalizedOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    
+    // Calculate parts vs labor (only from finalized orders)
     let partsTotal = 0;
     let laborTotal = 0;
     
-    filtered.forEach((order) => {
+    finalizedOrders.forEach((order) => {
       const items = order.items || [];
       items.forEach((item) => {
         const desc = item.description.toLowerCase();
@@ -113,12 +122,10 @@ export default function Relatorios() {
     });
 
     const openCount = filtered.filter(
-      (o) => o.status_simple === 'open' || o.status_complete === 'draft' || o.status_complete === 'in_progress'
+      (o) => o.status_simple === 'open' || o.status_complete === 'draft' || o.status_complete === 'in_progress' || o.status_complete === 'approved'
     ).length;
 
-    const finishedCount = filtered.filter(
-      (o) => o.status_simple === 'finished' || o.status_complete === 'finished' || o.status_simple === 'invoiced' || o.status_complete === 'invoiced'
-    ).length;
+    const finishedCount = finalizedOrders.length;
 
     return { total, totalRevenue, partsTotal, laborTotal, openCount, finishedCount };
   }, [orders, dateRange]);
