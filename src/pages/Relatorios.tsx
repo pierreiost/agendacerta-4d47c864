@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -12,7 +12,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBookings } from '@/hooks/useBookings';
 import { useSpaces } from '@/hooks/useSpaces';
+import { useCustomers } from '@/hooks/useCustomers';
+import { useServiceOrders } from '@/hooks/useServiceOrders';
 import { useVenue } from '@/contexts/VenueContext';
+import { useExcelExport } from '@/hooks/useExcelExport';
 import {
   BarChart,
   Bar,
@@ -36,7 +39,7 @@ import {
   differenceInHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileDown, Loader2, TrendingUp, Users, DollarSign, Clock } from 'lucide-react';
+import { FileDown, Loader2, TrendingUp, Users, DollarSign, Clock, FileSpreadsheet, Package, Wrench } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -44,6 +47,9 @@ const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 export default function Relatorios() {
   const { currentVenue } = useVenue();
   const { spaces } = useSpaces();
+  const { customers } = useCustomers();
+  const { orders } = useServiceOrders();
+  const { exportCustomers, exportServiceOrders, exportServiceOrdersDetailed } = useExcelExport();
   const [period, setPeriod] = useState('current');
 
   const dateRange = useMemo(() => {
@@ -71,6 +77,58 @@ export default function Relatorios() {
 
     return { totalRevenue, totalBookings, totalHours, uniqueCustomers };
   }, [bookings]);
+
+  // OS Stats - Only count finalized/invoiced orders for revenue
+  const osStats = useMemo(() => {
+    const filtered = orders.filter((o) => {
+      const createdAt = new Date(o.created_at);
+      return createdAt >= dateRange.start && createdAt <= dateRange.end;
+    });
+
+    const total = filtered.length;
+    
+    // Only finalized/invoiced orders count for revenue
+    const finalizedOrders = filtered.filter((o) => 
+      o.status_simple === 'finished' || 
+      o.status_simple === 'invoiced' || 
+      o.status_complete === 'finished' || 
+      o.status_complete === 'invoiced'
+    );
+    
+    const totalRevenue = finalizedOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    
+    // Calculate parts vs labor (only from finalized orders)
+    let partsTotal = 0;
+    let laborTotal = 0;
+    
+    finalizedOrders.forEach((order) => {
+      const items = order.items || [];
+      items.forEach((item) => {
+        const desc = item.description.toLowerCase();
+        const isLabor =
+          desc.includes('mão de obra') ||
+          desc.includes('serviço') ||
+          desc.includes('instalação') ||
+          desc.includes('manutenção') ||
+          desc.includes('limpeza') ||
+          desc.includes('reparo');
+        
+        if (isLabor) {
+          laborTotal += Number(item.subtotal);
+        } else {
+          partsTotal += Number(item.subtotal);
+        }
+      });
+    });
+
+    const openCount = filtered.filter(
+      (o) => o.status_simple === 'open' || o.status_complete === 'draft' || o.status_complete === 'in_progress' || o.status_complete === 'approved'
+    ).length;
+
+    const finishedCount = finalizedOrders.length;
+
+    return { total, totalRevenue, partsTotal, laborTotal, openCount, finishedCount };
+  }, [orders, dateRange]);
 
   const revenueBySpace = useMemo(() => {
     const data: Record<string, number> = {};
@@ -167,6 +225,26 @@ export default function Relatorios() {
     doc.save(`relatorio-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
+  const handleExportCustomers = () => {
+    exportCustomers(customers);
+  };
+
+  const handleExportOrders = () => {
+    const filteredOrders = orders.filter((o) => {
+      const createdAt = new Date(o.created_at);
+      return createdAt >= dateRange.start && createdAt <= dateRange.end;
+    });
+    exportServiceOrders(filteredOrders);
+  };
+
+  const handleExportOrdersDetailed = () => {
+    const filteredOrders = orders.filter((o) => {
+      const createdAt = new Date(o.created_at);
+      return createdAt >= dateRange.start && createdAt <= dateRange.end;
+    });
+    exportServiceOrdersDetailed(filteredOrders);
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -200,7 +278,7 @@ export default function Relatorios() {
             </Select>
             <Button variant="outline" onClick={handleExportPDF}>
               <FileDown className="mr-2 h-4 w-4" />
-              Exportar PDF
+              PDF
             </Button>
           </div>
         </div>
@@ -251,6 +329,8 @@ export default function Relatorios() {
             <TabsTrigger value="revenue">Faturamento</TabsTrigger>
             <TabsTrigger value="occupancy">Ocupação</TabsTrigger>
             <TabsTrigger value="customers">Clientes</TabsTrigger>
+            <TabsTrigger value="os">Ordens de Serviço</TabsTrigger>
+            <TabsTrigger value="exports">Exportações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="revenue">
@@ -348,6 +428,190 @@ export default function Relatorios() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="os">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total OS</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{osStats.total}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {osStats.openCount} abertas • {osStats.finishedCount} finalizadas
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Faturamento OS</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(osStats.totalRevenue)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Package className="h-4 w-4 text-blue-500" />
+                    Peças/Produtos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(osStats.partsTotal)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {osStats.totalRevenue > 0
+                      ? `${((osStats.partsTotal / osStats.totalRevenue) * 100).toFixed(0)}% do total`
+                      : '-'}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Wrench className="h-4 w-4 text-orange-500" />
+                    Mão de Obra
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(osStats.laborTotal)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {osStats.totalRevenue > 0
+                      ? `${((osStats.laborTotal / osStats.totalRevenue) * 100).toFixed(0)}% do total`
+                      : '-'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Parts vs Labor Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribuição: Peças vs Mão de Obra</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {osStats.totalRevenue === 0 ? (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    Sem dados para o período selecionado
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Peças/Produtos', value: osStats.partsTotal },
+                          { name: 'Mão de Obra', value: osStats.laborTotal },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        <Cell fill="#3b82f6" />
+                        <Cell fill="#f97316" />
+                      </Pie>
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="exports">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {/* Export Customers */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Clientes
+                  </CardTitle>
+                  <CardDescription>
+                    Exportar lista completa de clientes cadastrados
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>{customers.length}</strong> clientes cadastrados
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Inclui: Nome, E-mail, Telefone, CPF/CNPJ, Endereço
+                    </p>
+                  </div>
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Button onClick={handleExportCustomers} className="w-full">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Exportar Excel
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Export OS Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-5 w-5" />
+                    OS - Resumo
+                  </CardTitle>
+                  <CardDescription>
+                    Exportar ordens de serviço do período
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>{osStats.total}</strong> ordens no período
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Inclui: Cliente, Status, Peças, Mão de Obra, Total
+                    </p>
+                  </div>
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Button onClick={handleExportOrders} className="w-full">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Exportar Excel
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Export OS Detailed */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    OS - Detalhada
+                  </CardTitle>
+                  <CardDescription>
+                    Exportar com todos os itens de cada OS
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Uma linha por item de cada OS
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Inclui: Nº OS, Cliente, Item, Qtd, Preço, Subtotal
+                    </p>
+                  </div>
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Button onClick={handleExportOrdersDetailed} className="w-full" variant="outline">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Exportar Excel
+                  </Button>
+                </div>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

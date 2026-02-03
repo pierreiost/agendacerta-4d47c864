@@ -2,131 +2,160 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useVenue } from '@/contexts/VenueContext';
 import { useToast } from '@/hooks/use-toast';
-
-export interface Professional {
-  id: string;
-  venue_id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  avatar_url: string | null;
-  specialties: string[] | null;
-  bio: string | null;
-  is_active: boolean;
-  work_schedule: Record<string, { start: string; end: string; enabled: boolean }> | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ProfessionalInsert {
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  avatar_url?: string | null;
-  specialties?: string[] | null;
-  bio?: string | null;
-  is_active?: boolean;
-  work_schedule?: Record<string, { start: string; end: string; enabled: boolean }> | null;
-}
-
-export interface ProfessionalUpdate extends Partial<ProfessionalInsert> {
-  id: string;
-}
+import type { BookableMember, ProfessionalAvailability } from '@/types/services';
 
 export function useProfessionals() {
   const { currentVenue } = useVenue();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const venueId = currentVenue?.id;
-
-  const { data: professionals = [], isLoading, error } = useQuery({
-    queryKey: ['professionals', venueId],
+  const professionalsQuery = useQuery({
+    queryKey: ['professionals', currentVenue?.id],
     queryFn: async () => {
-      if (!venueId) return [];
+      if (!currentVenue?.id) return [];
 
-      const { data, error } = await supabase
-        .from('professionals')
+      // Fetch venue members with their profiles
+      const { data: members, error: membersError } = await supabase
+        .from('venue_members')
         .select('*')
-        .eq('venue_id', venueId)
-        .order('name');
+        .eq('venue_id', currentVenue.id);
 
-      if (error) throw error;
-      return data as Professional[];
+      if (membersError) throw membersError;
+
+      // Fetch profiles for each member
+      const membersWithProfiles = await Promise.all(
+        (members || []).map(async (member) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('user_id', member.user_id)
+            .maybeSingle();
+
+          // Fetch services assigned to this professional
+          const { data: professionalServices } = await supabase
+            .from('professional_services')
+            .select('service_id')
+            .eq('member_id', member.id);
+
+          let services: { id: string; title: string }[] = [];
+          if (professionalServices && professionalServices.length > 0) {
+            const serviceIds = professionalServices.map(ps => ps.service_id);
+            const { data: servicesData } = await supabase
+              .from('services')
+              .select('id, title')
+              .in('id', serviceIds);
+            services = servicesData || [];
+          }
+
+          return {
+            ...member,
+            profile: profile || undefined,
+            services,
+          } as BookableMember;
+        })
+      );
+
+      return membersWithProfiles;
     },
-    enabled: !!venueId,
+    enabled: !!currentVenue?.id,
   });
 
-  const createProfessional = useMutation({
-    mutationFn: async (professional: ProfessionalInsert) => {
-      if (!venueId) throw new Error('Venue não selecionado');
+  const bookableProfessionals = (professionalsQuery.data ?? []).filter(p => p.is_bookable);
 
-      const { data, error } = await supabase
-        .from('professionals')
-        .insert({ ...professional, venue_id: venueId })
-        .select()
-        .single();
+  const updateProfessionalBookable = useMutation({
+    mutationFn: async ({
+      memberId,
+      is_bookable,
+      display_name,
+      bio,
+      serviceIds,
+    }: {
+      memberId: string;
+      is_bookable: boolean;
+      display_name?: string;
+      bio?: string;
+      serviceIds?: string[];
+    }) => {
+      // Update member bookable status
+      const { error: memberError } = await supabase
+        .from('venue_members')
+        .update({
+          is_bookable,
+          display_name: display_name || null,
+          bio: bio || null,
+        })
+        .eq('id', memberId);
 
-      if (error) throw error;
-      return data;
+      if (memberError) throw memberError;
+
+      // Update professional services if provided
+      if (serviceIds !== undefined) {
+        // Remove existing assignments
+        await supabase
+          .from('professional_services')
+          .delete()
+          .eq('member_id', memberId);
+
+        // Add new assignments
+        if (serviceIds.length > 0) {
+          const { error: servicesError } = await supabase
+            .from('professional_services')
+            .insert(
+              serviceIds.map(serviceId => ({
+                member_id: memberId,
+                service_id: serviceId,
+              }))
+            );
+
+          if (servicesError) throw servicesError;
+        }
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['professionals', venueId] });
-      toast({ title: 'Profissional criado com sucesso!' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao criar profissional', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const updateProfessional = useMutation({
-    mutationFn: async ({ id, ...updates }: ProfessionalUpdate) => {
-      const { data, error } = await supabase
-        .from('professionals')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['professionals', venueId] });
+      queryClient.invalidateQueries({ queryKey: ['professionals', currentVenue?.id] });
       toast({ title: 'Profissional atualizado!' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Erro ao atualizar profissional',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
-
-  const deleteProfessional = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('professionals')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['professionals', venueId] });
-      toast({ title: 'Profissional removido!' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const activeProfessionals = professionals.filter(p => p.is_active);
 
   return {
-    professionals,
-    activeProfessionals,
-    isLoading,
-    error,
-    createProfessional,
-    updateProfessional,
-    deleteProfessional,
+    professionals: professionalsQuery.data ?? [],
+    bookableProfessionals,
+    isLoading: professionalsQuery.isLoading,
+    error: professionalsQuery.error,
+    updateProfessionalBookable,
+    refetch: professionalsQuery.refetch,
   };
+}
+
+export function useProfessionalAvailability(
+  date: Date | null,
+  serviceIds: string[],
+  professionalId?: string
+) {
+  const { currentVenue } = useVenue();
+
+  return useQuery({
+    queryKey: ['professional-availability', currentVenue?.id, date?.toISOString(), serviceIds, professionalId],
+    queryFn: async () => {
+      if (!currentVenue?.id || !date || serviceIds.length === 0) return [];
+
+      const { data, error } = await supabase.rpc('get_professional_availability', {
+        p_venue_id: currentVenue.id,
+        p_date: date.toISOString().split('T')[0],
+        p_service_ids: serviceIds,
+        p_professional_id: professionalId || null,
+      });
+
+      if (error) throw error;
+      return (data || []) as ProfessionalAvailability[];
+    },
+    enabled: !!currentVenue?.id && !!date && serviceIds.length > 0,
+  });
 }

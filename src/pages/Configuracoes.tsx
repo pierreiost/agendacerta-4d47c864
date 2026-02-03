@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import {
   Form,
@@ -26,11 +27,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useFormPersist } from '@/hooks/useFormPersist';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import { useFileUpload } from '@/hooks/useFileUpload';
+import { useProfessionals } from '@/hooks/useProfessionals';
+import { ProfessionalFormDialog } from '@/components/team/ProfessionalFormDialog';
+import { TeamMembersList } from '@/components/team/TeamMembersList';
+import { CreateMemberDialog } from '@/components/team/CreateMemberDialog';
+import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
+import type { BookableMember } from '@/types/services';
 import {
   Loader2,
   Building2,
@@ -39,25 +54,16 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  ImageIcon,
-  Upload,
-  Link,
-  X,
+  Settings2,
+  Scissors,
+  Shield,
+  UserPlus,
 } from 'lucide-react';
-
-const venueFormSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
-  logo_url: z.string().url('URL inválida').optional().or(z.literal('')),
-});
 
 const reminderFormSchema = z.object({
   reminder_hours_before: z.coerce.number().min(1).max(72),
 });
 
-type VenueFormData = z.infer<typeof venueFormSchema>;
 type ReminderFormData = z.infer<typeof reminderFormSchema>;
 
 export default function Configuracoes() {
@@ -65,8 +71,11 @@ export default function Configuracoes() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
-  const { upload, isUploading } = useFileUpload();
+  const [selectedMember, setSelectedMember] = useState<BookableMember | null>(null);
+  const [professionalDialogOpen, setProfessionalDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  
+  const { professionals, isLoading: loadingProfessionals } = useProfessionals();
   const {
     isConnected,
     connection,
@@ -78,6 +87,10 @@ export default function Configuracoes() {
   } = useGoogleCalendar();
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
+  
+  // Check venue segment for conditional UI
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const isServiceVenue = venueSegment && venueSegment !== 'sports';
 
   useEffect(() => {
     const googleSuccess = searchParams.get('google_success');
@@ -103,29 +116,6 @@ export default function Configuracoes() {
     }
   }, [searchParams, setSearchParams, toast]);
 
-  const venueForm = useForm<VenueFormData>({
-    resolver: zodResolver(venueFormSchema),
-    defaultValues: {
-      name: currentVenue?.name ?? '',
-      address: currentVenue?.address ?? '',
-      phone: currentVenue?.phone ?? '',
-      email: currentVenue?.email ?? '',
-      logo_url: currentVenue?.logo_url ?? '',
-    },
-  });
-
-  useEffect(() => {
-    if (currentVenue) {
-      venueForm.reset({
-        name: currentVenue.name ?? '',
-        address: currentVenue.address ?? '',
-        phone: currentVenue.phone ?? '',
-        email: currentVenue.email ?? '',
-        logo_url: currentVenue.logo_url ?? '',
-      });
-    }
-  }, [currentVenue, venueForm]);
-
   const reminderForm = useForm<ReminderFormData>({
     resolver: zodResolver(reminderFormSchema),
     defaultValues: {
@@ -133,34 +123,22 @@ export default function Configuracoes() {
     },
   });
 
-  const onVenueSubmit = async (data: VenueFormData) => {
-    if (!currentVenue?.id) return;
-    setIsLoading(true);
-
-    const { error } = await supabase
-      .from('venues')
-      .update({
-        name: data.name,
-        address: data.address || null,
-        phone: data.phone || null,
-        email: data.email || null,
-        logo_url: data.logo_url || null,
-      })
-      .eq('id', currentVenue.id);
-
-    setIsLoading(false);
-
-    if (error) {
-      toast({
-        title: 'Erro ao atualizar',
-        description: error.message,
-        variant: 'destructive',
+  // Reset reminder form when venue changes
+  useEffect(() => {
+    if (currentVenue) {
+      reminderForm.reset({
+        reminder_hours_before: currentVenue.reminder_hours_before ?? 24,
       });
-    } else {
-      toast({ title: 'Configurações salvas!' });
-      refetchVenues();
     }
-  };
+  }, [currentVenue?.id, currentVenue, reminderForm]);
+
+  // Form persistence for reminder settings
+  const { clearDraft: clearReminderDraft } = useFormPersist({
+    form: reminderForm,
+    key: `reminder_settings_${currentVenue?.id || 'default'}`,
+    debounceMs: 500,
+    showRecoveryToast: false, // Avoid multiple toasts
+  });
 
   const onReminderSubmit = async (data: ReminderFormData) => {
     if (!currentVenue?.id) return;
@@ -183,6 +161,7 @@ export default function Configuracoes() {
       });
     } else {
       toast({ title: 'Configuração de lembrete salva!' });
+      clearReminderDraft(); // Clear draft on successful save
       refetchVenues();
     }
   };
@@ -207,10 +186,12 @@ export default function Configuracoes() {
               <Calendar className="mr-2 h-4 w-4" />
               Integrações
             </TabsTrigger>
+{/* Aba de lembretes oculta para futuras implementações
             <TabsTrigger value="reminders">
               <Bell className="mr-2 h-4 w-4" />
               Lembretes
             </TabsTrigger>
+*/}
             <TabsTrigger value="team">
               <Users className="mr-2 h-4 w-4" />
               Equipe
@@ -219,195 +200,7 @@ export default function Configuracoes() {
 
           {/* TAB: UNIDADE */}
           <TabsContent value="venue">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dados da Unidade</CardTitle>
-                <CardDescription>
-                  Informações básicas sobre sua unidade
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...venueForm}>
-                  <form onSubmit={venueForm.handleSubmit(onVenueSubmit)} className="space-y-4">
-                    <FormField
-                      control={venueForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nome da unidade" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={venueForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Endereço</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Endereço completo" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={venueForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Telefone</FormLabel>
-                            <FormControl>
-                              <Input placeholder="(11) 99999-9999" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={venueForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="contato@exemplo.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Logo - apenas para header do sistema */}
-                    {isAdmin && (
-                      <FormField
-                        control={venueForm.control}
-                        name="logo_url"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Logotipo do Sistema</FormLabel>
-                            <FormDescription>
-                              Aparece no header da sidebar do sistema administrativo
-                            </FormDescription>
-                            <div className="flex items-start gap-4">
-                              <div className="relative">
-                                <Avatar className="h-16 w-16 border">
-                                  <AvatarImage src={field.value || undefined} alt="Logo" />
-                                  <AvatarFallback>
-                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                                  </AvatarFallback>
-                                </Avatar>
-                                {field.value && (
-                                  <button
-                                    type="button"
-                                    onClick={() => field.onChange('')}
-                                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
-                                    title="Remover logo"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                )}
-                              </div>
-                              <div className="flex-1 space-y-2">
-                                <div className="flex gap-2">
-                                  <Button
-                                    type="button"
-                                    variant={logoInputMode === 'url' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setLogoInputMode('url')}
-                                  >
-                                    <Link className="h-4 w-4 mr-1" />
-                                    URL
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant={logoInputMode === 'file' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setLogoInputMode('file')}
-                                  >
-                                    <Upload className="h-4 w-4 mr-1" />
-                                    Arquivo
-                                  </Button>
-                                </div>
-
-                                {logoInputMode === 'url' ? (
-                                  <FormControl>
-                                    <Input
-                                      placeholder="https://exemplo.com/logo.png"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                ) : (
-                                  <div>
-                                    <Label
-                                      htmlFor="logo-upload"
-                                      className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                                        isUploading ? 'opacity-50 pointer-events-none' : ''
-                                      }`}
-                                    >
-                                      {isUploading ? (
-                                        <div className="flex items-center gap-2">
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          <span className="text-xs">Enviando...</span>
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <Upload className="h-4 w-4 text-muted-foreground" />
-                                          <span className="text-xs text-muted-foreground">
-                                            PNG, JPG ou SVG
-                                          </span>
-                                        </>
-                                      )}
-                                    </Label>
-                                    <Input
-                                      id="logo-upload"
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      disabled={isUploading}
-                                      onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file || !currentVenue?.id) return;
-
-                                        const result = await upload(file, {
-                                          bucket: 'venue-logos',
-                                          folder: currentVenue.id,
-                                        });
-
-                                        if (result) {
-                                          field.onChange(result.url);
-                                          toast({ title: 'Logo enviado!' });
-                                        }
-                                        e.target.value = '';
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Salvar
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+            <VenueSettingsTab />
           </TabsContent>
 
           {/* TAB: INTEGRAÇÕES */}
@@ -475,7 +268,7 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-          {/* TAB: LEMBRETES */}
+{/* TAB: LEMBRETES - Oculta para futuras implementações
           <TabsContent value="reminders">
             <Card>
               <CardHeader>
@@ -528,31 +321,164 @@ export default function Configuracoes() {
               </CardContent>
             </Card>
           </TabsContent>
+*/}
 
           {/* TAB: EQUIPE */}
-          <TabsContent value="team">
+          <TabsContent value="team" className="space-y-6">
+            {/* Seção: Permissões e Funções */}
             <Card>
               <CardHeader>
-                <CardTitle>Gerenciar Equipe</CardTitle>
-                <CardDescription>
-                  Convide membros para ajudar a gerenciar a unidade
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <div>
+                      <CardTitle>Membros e Permissões</CardTitle>
+                      <CardDescription>
+                        Gerencie os membros da equipe e suas permissões de acesso
+                      </CardDescription>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <Button onClick={() => setInviteDialogOpen(true)}>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Adicionar Usuário
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <div className="rounded-full bg-muted p-4 mb-4">
-                    <Users className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-semibold">Em breve</h3>
-                  <p className="text-muted-foreground mt-1 text-sm max-w-sm">
-                    A funcionalidade de convite de membros estará disponível em uma próxima atualização
-                  </p>
-                </div>
+                <TeamMembersList />
               </CardContent>
             </Card>
+
+            {/* Seção: Profissionais (apenas para venues de serviço) */}
+            {isServiceVenue && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5 text-primary" />
+                    <div>
+                      <CardTitle>Profissionais que Atendem</CardTitle>
+                      <CardDescription>
+                        Configure quais membros realizam atendimentos e seus serviços
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingProfessionals ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : professionals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <div className="rounded-full bg-muted p-4 mb-4">
+                        <Scissors className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <h3 className="font-semibold">Nenhum profissional configurado</h3>
+                      <p className="text-muted-foreground mt-1 text-sm max-w-sm">
+                        Configure os membros da equipe que realizam atendimentos
+                      </p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Profissional</TableHead>
+                          <TableHead>Atende Clientes</TableHead>
+                          <TableHead>Serviços</TableHead>
+                          <TableHead className="w-[100px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {professionals.map((member) => (
+                          <TableRow key={member.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  {member.avatar_url ? (
+                                    <AvatarImage src={member.avatar_url} />
+                                  ) : null}
+                                  <AvatarFallback>
+                                    {(member.display_name || member.profile?.full_name || 'M')[0].toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">
+                                    {member.display_name || member.profile?.full_name || 'Membro'}
+                                  </p>
+                                  {member.profile?.phone && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {member.profile.phone}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={member.is_bookable ? 'default' : 'outline'}>
+                                {member.is_bookable ? (
+                                  <><CheckCircle2 className="h-3 w-3 mr-1" /> Sim</>
+                                ) : (
+                                  <><XCircle className="h-3 w-3 mr-1" /> Não</>
+                                )}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {member.services && member.services.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {member.services.slice(0, 2).map((s) => (
+                                    <Badge key={s.id} variant="outline" className="text-xs">
+                                      <Scissors className="h-2 w-2 mr-1" />
+                                      {s.title}
+                                    </Badge>
+                                  ))}
+                                  {member.services.length > 2 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{member.services.length - 2}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedMember(member);
+                                  setProfessionalDialogOpen(true);
+                                }}
+                              >
+                                <Settings2 className="h-4 w-4 mr-1" />
+                                Configurar
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
+
         </Tabs>
       </div>
+
+      <ProfessionalFormDialog
+        open={professionalDialogOpen}
+        onOpenChange={setProfessionalDialogOpen}
+        member={selectedMember}
+      />
+
+      <CreateMemberDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+      />
     </AppLayout>
   );
 }

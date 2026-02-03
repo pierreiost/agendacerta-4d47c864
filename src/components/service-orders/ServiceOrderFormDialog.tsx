@@ -31,6 +31,7 @@ import { useVenue } from '@/contexts/VenueContext';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useServiceOrders, type ServiceOrder } from '@/hooks/useServiceOrders';
 import { maskPhone, maskCPFCNPJ, maskCEP } from '@/lib/masks';
+import { useFormPersist } from '@/hooks/useFormPersist';
 
 const formSchema = z.object({
   order_type: z.enum(['simple', 'complete']),
@@ -82,12 +83,22 @@ export function ServiceOrderFormDialog({
       description: '',
       notes: '',
       discount: 0,
-      tax_rate: 0.05,
+      tax_rate: 0,
     },
+  });
+
+  const isEditing = !!order;
+
+  // Form persistence - only for new orders
+  const { clearDraft } = useFormPersist({
+    form,
+    key: `service_order_form_${currentVenue?.id}`,
+    showRecoveryToast: !isEditing && open,
   });
 
   useEffect(() => {
     if (order) {
+      clearDraft();
       form.reset({
         order_type: order.order_type as 'simple' | 'complete',
         customer_id: order.customer_id ?? undefined,
@@ -102,14 +113,14 @@ export function ServiceOrderFormDialog({
         description: order.description,
         notes: order.notes ?? '',
         discount: Number(order.discount) || 0,
-        tax_rate: Number(order.tax_rate) || 0.05,
+        tax_rate: Number(order.tax_rate) || 0,
       });
       setOrderType(order.order_type as 'simple' | 'complete');
-    } else {
+    } else if (!open) {
       form.reset();
       setOrderType('simple');
     }
-  }, [order, form]);
+  }, [order, form, open, clearDraft]);
 
   const handleCustomerSelect = (customerId: string) => {
     const customer = customers.find((c) => c.id === customerId);
@@ -141,7 +152,7 @@ export function ServiceOrderFormDialog({
       description: data.description,
       notes: data.notes || null,
       discount: data.discount || 0,
-      tax_rate: data.order_type === 'complete' ? (data.tax_rate || 0.05) : 0,
+      tax_rate: data.order_type === 'complete' ? (data.tax_rate || 0) : 0,
       status_simple: data.order_type === 'simple' ? 'open' as const : null,
       status_complete: data.order_type === 'complete' ? 'draft' as const : null,
     };
@@ -152,6 +163,7 @@ export function ServiceOrderFormDialog({
       } else {
         await createOrder(payload);
       }
+      clearDraft();
       onOpenChange(false);
     } catch (error) {
       // Error handled by hook

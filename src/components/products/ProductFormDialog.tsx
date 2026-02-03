@@ -29,6 +29,7 @@ import { Switch } from '@/components/ui/switch';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import type { Tables } from '@/integrations/supabase/types';
 import { Loader2 } from 'lucide-react';
+import { useFormPersist } from '@/hooks/useFormPersist';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -67,15 +68,23 @@ export function ProductFormDialog({
     },
   });
 
+  // Form persistence - only for new products
+  const { clearDraft } = useFormPersist({
+    form,
+    key: `product_form_${venueId}`,
+    showRecoveryToast: !isEditing && open,
+  });
+
   useEffect(() => {
     if (product) {
+      clearDraft();
       form.reset({
         name: product.name,
         category_id: product.category_id ?? '',
         price: Number(product.price) ?? 0,
         is_active: product.is_active ?? true,
       });
-    } else {
+    } else if (!open) {
       form.reset({
         name: '',
         category_id: '',
@@ -83,7 +92,7 @@ export function ProductFormDialog({
         is_active: true,
       });
     }
-  }, [product, form]);
+  }, [product, form, open, clearDraft]);
 
   const onSubmit = async (data: FormData) => {
     const payload = {
@@ -100,6 +109,7 @@ export function ProductFormDialog({
       await createProduct.mutateAsync(payload);
     }
 
+    clearDraft();
     onOpenChange(false);
   };
 

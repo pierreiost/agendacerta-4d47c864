@@ -1,28 +1,52 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useVenue } from '@/contexts/VenueContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export function useGoogleCalendar() {
   const { currentVenue } = useVenue();
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const connectionQuery = useQuery({
-    queryKey: ['google-calendar-connection', currentVenue?.id],
+    queryKey: ['google-calendar-connection', currentVenue?.id, user?.id],
     queryFn: async () => {
-      if (!currentVenue?.id) return null;
+      if (!currentVenue?.id || !user?.id) return null;
 
-      const { data, error } = await supabase
+      // First, try to find the user's own connection
+      const { data: userConnection, error: userError } = await supabase
         .from('google_calendar_tokens')
-        .select('venue_id, calendar_id, created_at')
+        .select('venue_id, calendar_id, created_at, user_id')
         .eq('venue_id', currentVenue.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
-      return data;
+      if (userError) throw userError;
+      
+      // If user has their own connection, return it
+      if (userConnection) {
+        return userConnection;
+      }
+
+      // Fallback: check for venue-wide connection (user_id is null) - only for admins
+      const isAdmin = currentVenue.role === 'admin' || currentVenue.role === 'superadmin';
+      if (isAdmin) {
+        const { data: venueConnection, error: venueError } = await supabase
+          .from('google_calendar_tokens')
+          .select('venue_id, calendar_id, created_at, user_id')
+          .eq('venue_id', currentVenue.id)
+          .is('user_id', null)
+          .maybeSingle();
+
+        if (venueError) throw venueError;
+        return venueConnection;
+      }
+
+      return null;
     },
-    enabled: !!currentVenue?.id,
+    enabled: !!currentVenue?.id && !!user?.id,
   });
 
   const connectMutation = useMutation({

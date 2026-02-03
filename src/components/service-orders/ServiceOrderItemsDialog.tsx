@@ -1,42 +1,11 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Trash2, Plus } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { useServiceOrders, type ServiceOrder } from '@/hooks/useServiceOrders';
-
-const itemSchema = z.object({
-  description: z.string().min(1, 'Descrição obrigatória'),
-  quantity: z.coerce.number().min(1, 'Mínimo 1'),
-  unit_price: z.coerce.number().min(0, 'Preço inválido'),
-  service_code: z.string().optional(),
-});
-
-type ItemFormData = z.infer<typeof itemSchema>;
+import { useState } from "react";
+import { Trash2, Plus, Package, Wrench } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useServiceOrders, type ServiceOrder } from "@/hooks/useServiceOrders";
+import { ServiceOrderItemForm } from "./ServiceOrderItemForm";
 
 interface ServiceOrderItemsDialogProps {
   open: boolean;
@@ -44,35 +13,22 @@ interface ServiceOrderItemsDialogProps {
   order: ServiceOrder;
 }
 
-export function ServiceOrderItemsDialog({
-  open,
-  onOpenChange,
-  order,
-}: ServiceOrderItemsDialogProps) {
+export function ServiceOrderItemsDialog({ open, onOpenChange, order }: ServiceOrderItemsDialogProps) {
   const { addItem, removeItem } = useServiceOrders();
   const [isAdding, setIsAdding] = useState(false);
 
-  const form = useForm<ItemFormData>({
-    resolver: zodResolver(itemSchema),
-    defaultValues: {
-      description: '',
-      quantity: 1,
-      unit_price: 0,
-      service_code: '',
-    },
-  });
-
-  const onSubmit = async (data: ItemFormData) => {
+  const handleAddItem = async (item: {
+    description: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+    service_code?: string | null;
+  }) => {
     try {
       await addItem({
         service_order_id: order.id,
-        description: data.description,
-        quantity: data.quantity,
-        unit_price: data.unit_price,
-        subtotal: data.quantity * data.unit_price,
-        service_code: data.service_code || null,
+        ...item,
       });
-      form.reset();
       setIsAdding(false);
     } catch (error) {
       // Error handled by hook
@@ -80,12 +36,31 @@ export function ServiceOrderItemsDialog({
   };
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
 
   const items = order.items ?? [];
+
+  // Identify item type by description for visual badges
+  const getItemType = (description: string): "labor" | "part" | "other" => {
+    const laborKeywords = ["mão de obra", "serviço", "instalação", "manutenção", "limpeza", "reparo"];
+    const lowerDesc = description.toLowerCase();
+    if (laborKeywords.some((kw) => lowerDesc.includes(kw))) {
+      return "labor";
+    }
+    return "part";
+  };
+
+  // Calculate totals by type
+  const laborTotal = items
+    .filter((item) => getItemType(item.description) === "labor")
+    .reduce((sum, item) => sum + Number(item.subtotal), 0);
+
+  const partsTotal = items
+    .filter((item) => getItemType(item.description) !== "labor")
+    .reduce((sum, item) => sum + Number(item.subtotal), 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,14 +70,34 @@ export function ServiceOrderItemsDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Summary Cards */}
+          {items.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Peças/Produtos</p>
+                  <p className="font-semibold">{formatCurrency(partsTotal)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
+                <Wrench className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Mão de Obra</p>
+                  <p className="font-semibold">{formatCurrency(laborTotal)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Items Table */}
           {items.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Descrição</TableHead>
-                  {order.order_type === 'complete' && (
-                    <TableHead>Cód. Serviço</TableHead>
-                  )}
+                  {order.order_type === "complete" && <TableHead>Cód. Serviço</TableHead>}
                   <TableHead className="text-right">Qtd</TableHead>
                   <TableHead className="text-right">Preço Un.</TableHead>
                   <TableHead className="text-right">Subtotal</TableHead>
@@ -110,119 +105,55 @@ export function ServiceOrderItemsDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.description}</TableCell>
-                    {order.order_type === 'complete' && (
-                      <TableCell>{item.service_code || '-'}</TableCell>
-                    )}
-                    <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(Number(item.unit_price))}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(Number(item.subtotal))}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {items.map((item) => {
+                  const itemType = getItemType(item.description);
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        {itemType === "labor" ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800"
+                          >
+                            <Wrench className="h-3 w-3 mr-1" />
+                            Serviço
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
+                          >
+                            <Package className="h-3 w-3 mr-1" />
+                            Peça
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      {order.order_type === "complete" && <TableCell>{item.service_code || "-"}</TableCell>}
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(item.unit_price))}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(item.subtotal))}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              Nenhum item adicionado
-            </p>
+            <p className="text-center text-muted-foreground py-8">Nenhum item adicionado</p>
           )}
 
+          {/* Add Item Form */}
           {isAdding ? (
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="border rounded-lg p-4 space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Descrição *</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {order.order_type === 'complete' && (
-                    <FormField
-                      control={form.control}
-                      name="service_code"
-                      render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormLabel>Código do Serviço (Municipal)</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Ex: 14.01" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  <FormField
-                    control={form.control}
-                    name="quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantidade *</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="unit_price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço Unitário *</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      form.reset();
-                      setIsAdding(false);
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit">Adicionar</Button>
-                </div>
-              </form>
-            </Form>
+            <ServiceOrderItemForm
+              orderType={order.order_type}
+              onAddItem={handleAddItem}
+              onCancel={() => setIsAdding(false)}
+            />
           ) : (
             <Button onClick={() => setIsAdding(true)} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
@@ -230,12 +161,13 @@ export function ServiceOrderItemsDialog({
             </Button>
           )}
 
+          {/* Totals */}
           <div className="border-t pt-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span>Subtotal</span>
               <span>{formatCurrency(Number(order.subtotal))}</span>
             </div>
-            {order.order_type === 'complete' && (
+            {order.order_type === "complete" && (
               <>
                 <div className="flex justify-between text-sm">
                   <span>Desconto</span>

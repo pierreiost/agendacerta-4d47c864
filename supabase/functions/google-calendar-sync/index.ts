@@ -2,10 +2,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decrypt, encrypt, isEncrypted, decryptLegacy, isLegacyEncrypted } from "../_shared/encryption.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowed origins for CORS - includes preview and published URLs
+const ALLOWED_ORIGINS = [
+  "https://id-preview--7fded635-bc6f-4133-b6f3-38281cefc754.lovable.app",
+  "https://agendacertaa.lovable.app",
+  Deno.env.get("FRONTEND_URL"),
+].filter(Boolean) as string[];
+
+function getCorsHeaders(origin: string | null) {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
@@ -260,6 +271,9 @@ async function deleteCalendarEvent(
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("Origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -350,14 +364,51 @@ serve(async (req) => {
       });
     }
 
-    // Get venue's Google Calendar tokens
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("google_calendar_tokens")
-      .select("*")
-      .eq("venue_id", venue_id)
-      .maybeSingle();
+    // Get Google Calendar tokens - priority:
+    // 1. Professional's own token (if booking has professional_id)
+    // 2. Fallback to venue-wide token (user_id is null)
+    let tokenData = null;
+    
+    // If booking has a professional, try to get their calendar connection
+    if (booking.professional_id) {
+      // Get the user_id from the professional's venue_member record
+      const { data: professional } = await supabase
+        .from("venue_members")
+        .select("user_id")
+        .eq("id", booking.professional_id)
+        .single();
 
-    if (tokenError || !tokenData) {
+      if (professional?.user_id) {
+        const { data: professionalToken } = await supabase
+          .from("google_calendar_tokens")
+          .select("*")
+          .eq("venue_id", venue_id)
+          .eq("user_id", professional.user_id)
+          .maybeSingle();
+        
+        if (professionalToken) {
+          tokenData = professionalToken;
+          console.log(`Using professional's calendar for sync: ${maskString(professional.user_id)}`);
+        }
+      }
+    }
+
+    // Fallback to venue-wide token if no professional token found
+    if (!tokenData) {
+      const { data: venueToken, error: tokenError } = await supabase
+        .from("google_calendar_tokens")
+        .select("*")
+        .eq("venue_id", venue_id)
+        .is("user_id", null)
+        .maybeSingle();
+
+      if (tokenError) {
+        console.error("Error fetching venue token");
+      }
+      tokenData = venueToken;
+    }
+
+    if (!tokenData) {
       console.log(`No Google Calendar connected for venue: ${maskString(venue_id)}`);
       return new Response(JSON.stringify({ synced: false, reason: "not_connected" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -449,6 +500,7 @@ serve(async (req) => {
   } catch (error) {
     // Log error without exposing internal details
     console.error("Sync error occurred");
+    const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

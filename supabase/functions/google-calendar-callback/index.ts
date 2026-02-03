@@ -148,17 +148,19 @@ serve(async (req) => {
 
     console.log("Tokens encrypted successfully");
 
+    // Upsert with user_id for per-member connections
     const { error: upsertError } = await supabase
       .from("google_calendar_tokens")
       .upsert(
         {
           venue_id,
+          user_id, // Now storing the user_id for per-member connection
           access_token: encryptedAccessToken,
           refresh_token: encryptedRefreshToken,
           token_expires_at: expiresAt,
           calendar_id: calendarId,
         },
-        { onConflict: "venue_id" }
+        { onConflict: "venue_id,user_id" } // Updated constraint
       );
 
     if (upsertError) {

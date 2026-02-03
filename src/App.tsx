@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { VenueProvider, useVenue } from "./contexts/VenueContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigationPersist, NavigationPersistContext } from "@/hooks/useNavigationPersist";
+import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
@@ -15,7 +17,9 @@ import Agenda from "./pages/Agenda";
 import Clientes from "./pages/Clientes";
 import Espacos from "./pages/Espacos";
 import Produtos from "./pages/Produtos";
+import Servicos from "./pages/Servicos";
 import Relatorios from "./pages/Relatorios";
+import Financeiro from "./pages/Financeiro";
 import OrdensServico from "./pages/OrdensServico";
 import OrdemServicoForm from "./pages/OrdemServicoForm";
 import Configuracoes from "./pages/Configuracoes";
@@ -95,9 +99,10 @@ function SuperAdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AppRoutes() {
+function AppRoutesWithPersist() {
   const { user, loading: authLoading } = useAuth();
   const { venues, loading: venueLoading } = useVenue();
+  const navigationPersist = useNavigationPersist();
 
   if (authLoading || venueLoading) {
     return (
@@ -108,36 +113,40 @@ function AppRoutes() {
   }
 
   return (
-    <Routes>
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route
-        path="/onboarding"
-        element={
-          !user ? (
-            <Navigate to="/auth" replace />
-          ) : venues.length > 0 ? (
-            <Navigate to="/" replace />
-          ) : (
-            <Onboarding />
-          )
-        }
-      />
-      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
-      <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
-      <Route path="/espacos" element={<ProtectedRoute><Espacos /></ProtectedRoute>} />
-      <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
-      <Route path="/ordens-servico" element={<ProtectedRoute><OrdensServico /></ProtectedRoute>} />
-      <Route path="/ordens-servico/nova" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
-      <Route path="/ordens-servico/:id" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
-      <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
-      <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-      
-      <Route path="/pagina-publica" element={<ProtectedRoute><PublicPageConfig /></ProtectedRoute>} />
-      <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <NavigationPersistContext.Provider value={navigationPersist}>
+      <Routes>
+        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/onboarding"
+          element={
+            !user ? (
+              <Navigate to="/auth" replace />
+            ) : venues.length > 0 ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Onboarding />
+            )
+          }
+        />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
+        <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+        <Route path="/espacos" element={<ProtectedRoute><Espacos /></ProtectedRoute>} />
+        <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
+        <Route path="/servicos" element={<ProtectedRoute><Servicos /></ProtectedRoute>} />
+        <Route path="/ordens-servico" element={<ProtectedRoute><OrdensServico /></ProtectedRoute>} />
+        <Route path="/ordens-servico/nova" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
+        <Route path="/ordens-servico/:id" element={<ProtectedRoute><OrdemServicoForm /></ProtectedRoute>} />
+        <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+        <Route path="/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
+        <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+        
+        <Route path="/pagina-publica" element={<ProtectedRoute><PublicPageConfig /></ProtectedRoute>} />
+        <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </NavigationPersistContext.Provider>
   );
 }
 
@@ -145,11 +154,12 @@ function AppWithProviders() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes - outside of auth/venue providers */}
+        {/* Public marketing routes - outside of auth/venue providers */}
+        <Route path="/inicio" element={<LandingPage />} />
         <Route path="/v/:slug" element={<PublicPageVenue />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         {/* All other routes go through the providers */}
-        <Route path="/*" element={<AppRoutes />} />
+        <Route path="/*" element={<AppRoutesWithPersist />} />
       </Routes>
     </BrowserRouter>
   );

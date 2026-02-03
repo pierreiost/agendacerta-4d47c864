@@ -14,8 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_services: {
+        Row: {
+          booking_id: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          price: number
+          professional_id: string | null
+          service_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          price: number
+          professional_id?: string | null
+          service_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          price?: number
+          professional_id?: string | null
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_services_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "venue_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
+          booking_type: string | null
           created_at: string
           created_by: string | null
           customer_email: string | null
@@ -27,16 +87,20 @@ export type Database = {
           grand_total: number | null
           id: string
           items_total: number | null
+          metadata: Json | null
           notes: string | null
+          professional_id: string | null
           reminder_sent: boolean | null
           space_id: string
           space_total: number | null
           start_time: string
           status: Database["public"]["Enums"]["booking_status"]
+          total_duration_minutes: number | null
           updated_at: string
           venue_id: string
         }
         Insert: {
+          booking_type?: string | null
           created_at?: string
           created_by?: string | null
           customer_email?: string | null
@@ -48,16 +112,20 @@ export type Database = {
           grand_total?: number | null
           id?: string
           items_total?: number | null
+          metadata?: Json | null
           notes?: string | null
+          professional_id?: string | null
           reminder_sent?: boolean | null
           space_id: string
           space_total?: number | null
           start_time: string
           status?: Database["public"]["Enums"]["booking_status"]
+          total_duration_minutes?: number | null
           updated_at?: string
           venue_id: string
         }
         Update: {
+          booking_type?: string | null
           created_at?: string
           created_by?: string | null
           customer_email?: string | null
@@ -69,12 +137,15 @@ export type Database = {
           grand_total?: number | null
           id?: string
           items_total?: number | null
+          metadata?: Json | null
           notes?: string | null
+          professional_id?: string | null
           reminder_sent?: boolean | null
           space_id?: string
           space_total?: number | null
           start_time?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          total_duration_minutes?: number | null
           updated_at?: string
           venue_id?: string
         }
@@ -84,6 +155,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "venue_members"
             referencedColumns: ["id"]
           },
           {
@@ -181,6 +259,71 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string | null
+          expense_date: string
+          id: string
+          is_paid: boolean
+          notes: string | null
+          paid_at: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          receipt_url: string | null
+          supplier: string | null
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_url?: string | null
+          supplier?: string | null
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_url?: string | null
+          supplier?: string | null
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
@@ -190,6 +333,7 @@ export type Database = {
           refresh_token: string
           token_expires_at: string
           updated_at: string
+          user_id: string | null
           venue_id: string
         }
         Insert: {
@@ -200,6 +344,7 @@ export type Database = {
           refresh_token: string
           token_expires_at: string
           updated_at?: string
+          user_id?: string | null
           venue_id: string
         }
         Update: {
@@ -210,6 +355,7 @@ export type Database = {
           refresh_token?: string
           token_expires_at?: string
           updated_at?: string
+          user_id?: string | null
           venue_id?: string
         }
         Relationships: [
@@ -452,6 +598,48 @@ export type Database = {
           },
         ]
       }
+      professional_services: {
+        Row: {
+          created_at: string
+          custom_duration: number | null
+          custom_price: number | null
+          id: string
+          member_id: string
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_duration?: number | null
+          custom_price?: number | null
+          id?: string
+          member_id: string
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_duration?: number | null
+          custom_price?: number | null
+          id?: string
+          member_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_services_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "venue_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -481,6 +669,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          id: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          module?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_inquiries: {
         Row: {
@@ -722,6 +957,53 @@ export type Database = {
           },
         ]
       }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          duration_minutes: number
+          id: string
+          is_active: boolean | null
+          price: number
+          title: string
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          title: string
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          title?: string
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spaces: {
         Row: {
           capacity: number | null
@@ -799,22 +1081,34 @@ export type Database = {
       }
       venue_members: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
           created_at: string
+          display_name: string | null
           id: string
+          is_bookable: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
           venue_id: string
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
+          is_bookable?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
           venue_id: string
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
+          is_bookable?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
           venue_id?: string
@@ -862,8 +1156,11 @@ export type Database = {
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
           booking_mode: string | null
+          business_category: string | null
+          cnpj_cpf: string | null
           created_at: string
           dark_mode: boolean | null
+          dashboard_mode: string | null
           email: string | null
           id: string
           logo_url: string | null
@@ -876,11 +1173,15 @@ export type Database = {
           public_settings: Json | null
           reminder_hours_before: number | null
           secondary_color: string | null
+          segment: Database["public"]["Enums"]["venue_segment"] | null
+          slot_interval_minutes: number | null
           slug: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
           updated_at: string
+          whatsapp: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -888,8 +1189,11 @@ export type Database = {
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           booking_mode?: string | null
+          business_category?: string | null
+          cnpj_cpf?: string | null
           created_at?: string
           dark_mode?: boolean | null
+          dashboard_mode?: string | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -902,11 +1206,15 @@ export type Database = {
           public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
+          segment?: Database["public"]["Enums"]["venue_segment"] | null
+          slot_interval_minutes?: number | null
           slug?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -914,8 +1222,11 @@ export type Database = {
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           booking_mode?: string | null
+          business_category?: string | null
+          cnpj_cpf?: string | null
           created_at?: string
           dark_mode?: boolean | null
+          dashboard_mode?: string | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -928,11 +1239,15 @@ export type Database = {
           public_settings?: Json | null
           reminder_hours_before?: number | null
           secondary_color?: string | null
+          segment?: Database["public"]["Enums"]["venue_segment"] | null
+          slot_interval_minutes?: number | null
           slug?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
@@ -1031,7 +1346,34 @@ export type Database = {
           locked_until: string
         }[]
       }
+      check_permission: {
+        Args: {
+          _action: string
+          _module: string
+          _user_id: string
+          _venue_id: string
+        }
+        Returns: boolean
+      }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      create_booking_atomic: {
+        Args: {
+          p_booking_type?: string
+          p_customer_email?: string
+          p_customer_id?: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_end_time: string
+          p_notes?: string
+          p_professional_id?: string
+          p_space_id: string
+          p_space_price_per_hour?: number
+          p_start_time: string
+          p_status?: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
       create_public_booking: {
         Args: {
           p_customer_email: string
@@ -1058,6 +1400,42 @@ export type Database = {
         }
         Returns: string
       }
+      create_recurring_bookings: {
+        Args: {
+          p_base_date: string
+          p_customer_email?: string
+          p_customer_id?: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_end_hour: number
+          p_notes?: string
+          p_recurrence_count?: number
+          p_recurrence_type?: string
+          p_space_id: string
+          p_space_price_per_hour?: number
+          p_start_hour: number
+          p_venue_id: string
+        }
+        Returns: {
+          booking_date: string
+          booking_id: string
+          error_message: string
+          success: boolean
+        }[]
+      }
+      create_service_booking: {
+        Args: {
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone?: string
+          p_notes?: string
+          p_professional_id: string
+          p_service_ids: string[]
+          p_start_time: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
       create_service_inquiry: {
         Args: {
           p_customer_email: string
@@ -1069,40 +1447,121 @@ export type Database = {
         }
         Returns: string
       }
-      create_venue_with_admin: {
-        Args: { _address?: string; _name: string; _phone?: string }
+      create_venue_with_admin:
+        | {
+            Args: { _address?: string; _name: string; _phone?: string }
+            Returns: {
+              accent_color: string | null
+              address: string | null
+              asaas_customer_id: string | null
+              asaas_subscription_id: string | null
+              booking_mode: string | null
+              business_category: string | null
+              cnpj_cpf: string | null
+              created_at: string
+              dark_mode: boolean | null
+              dashboard_mode: string | null
+              email: string | null
+              id: string
+              logo_url: string | null
+              name: string
+              phone: string | null
+              plan_type: string | null
+              primary_color: string | null
+              public_page_enabled: boolean | null
+              public_page_sections: Json | null
+              public_settings: Json | null
+              reminder_hours_before: number | null
+              secondary_color: string | null
+              segment: Database["public"]["Enums"]["venue_segment"] | null
+              slot_interval_minutes: number | null
+              slug: string | null
+              status: Database["public"]["Enums"]["subscription_status"] | null
+              subscription_ends_at: string | null
+              subscription_status: string | null
+              trial_ends_at: string | null
+              updated_at: string
+              whatsapp: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "venues"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _address?: string
+              _cnpj_cpf?: string
+              _name: string
+              _phone?: string
+              _whatsapp?: string
+            }
+            Returns: {
+              accent_color: string | null
+              address: string | null
+              asaas_customer_id: string | null
+              asaas_subscription_id: string | null
+              booking_mode: string | null
+              business_category: string | null
+              cnpj_cpf: string | null
+              created_at: string
+              dark_mode: boolean | null
+              dashboard_mode: string | null
+              email: string | null
+              id: string
+              logo_url: string | null
+              name: string
+              phone: string | null
+              plan_type: string | null
+              primary_color: string | null
+              public_page_enabled: boolean | null
+              public_page_sections: Json | null
+              public_settings: Json | null
+              reminder_hours_before: number | null
+              secondary_color: string | null
+              segment: Database["public"]["Enums"]["venue_segment"] | null
+              slot_interval_minutes: number | null
+              slug: string | null
+              status: Database["public"]["Enums"]["subscription_status"] | null
+              subscription_ends_at: string | null
+              subscription_status: string | null
+              trial_ends_at: string | null
+              updated_at: string
+              whatsapp: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "venues"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      get_dashboard_metrics: {
+        Args: { p_venue_id: string }
         Returns: {
-          accent_color: string | null
-          address: string | null
-          asaas_customer_id: string | null
-          asaas_subscription_id: string | null
-          booking_mode: string | null
-          created_at: string
-          dark_mode: boolean | null
-          email: string | null
-          id: string
-          logo_url: string | null
-          name: string
-          phone: string | null
-          plan_type: string | null
-          primary_color: string | null
-          public_page_enabled: boolean | null
-          public_page_sections: Json | null
-          public_settings: Json | null
-          reminder_hours_before: number | null
-          secondary_color: string | null
-          slug: string | null
-          subscription_ends_at: string | null
-          subscription_status: string | null
-          trial_ends_at: string | null
-          updated_at: string
+          confirmed_today: number
+          month_bookings: number
+          month_revenue: number
+          occupancy_rate: number
+          pending_today: number
+          revenue_sparkline: number[]
+          total_today: number
+        }[]
+      }
+      get_professional_availability: {
+        Args: {
+          p_date: string
+          p_professional_id?: string
+          p_service_ids: string[]
+          p_venue_id: string
         }
-        SetofOptions: {
-          from: "*"
-          to: "venues"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: {
+          available_slots: string[]
+          professional_id: string
+          professional_name: string
+        }[]
       }
       get_public_spaces_by_venue: {
         Args: { p_venue_id: string }
@@ -1134,6 +1593,14 @@ export type Database = {
           start_time: string
         }[]
       }
+      get_user_venue_role: {
+        Args: { _user_id: string; _venue_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_venue_days_until_expiration: {
+        Args: { _venue_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1146,6 +1613,7 @@ export type Database = {
         Args: { _user_id: string; _venue_id: string }
         Returns: boolean
       }
+      is_venue_blocked: { Args: { _venue_id: string }; Returns: boolean }
       is_venue_member: {
         Args: { _user_id: string; _venue_id: string }
         Returns: boolean
@@ -1158,7 +1626,16 @@ export type Database = {
     Enums: {
       app_role: "admin" | "manager" | "staff" | "superadmin"
       booking_status: "PENDING" | "CONFIRMED" | "CANCELLED" | "FINALIZED"
-      payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX"
+      expense_category:
+        | "material"
+        | "salary"
+        | "rent"
+        | "utilities"
+        | "maintenance"
+        | "marketing"
+        | "other"
+      payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX" | "TRANSFER"
+      plan_type: "basic" | "max"
       service_order_status_complete:
         | "draft"
         | "approved"
@@ -1168,6 +1645,8 @@ export type Database = {
         | "cancelled"
       service_order_status_simple: "open" | "finished" | "invoiced"
       service_order_type: "simple" | "complete"
+      subscription_status: "trialing" | "active" | "overdue" | "suspended"
+      venue_segment: "sports" | "beauty" | "health" | "custom"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1297,7 +1776,17 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "manager", "staff", "superadmin"],
       booking_status: ["PENDING", "CONFIRMED", "CANCELLED", "FINALIZED"],
-      payment_method: ["CASH", "CREDIT", "DEBIT", "PIX"],
+      expense_category: [
+        "material",
+        "salary",
+        "rent",
+        "utilities",
+        "maintenance",
+        "marketing",
+        "other",
+      ],
+      payment_method: ["CASH", "CREDIT", "DEBIT", "PIX", "TRANSFER"],
+      plan_type: ["basic", "max"],
       service_order_status_complete: [
         "draft",
         "approved",
@@ -1308,6 +1797,8 @@ export const Constants = {
       ],
       service_order_status_simple: ["open", "finished", "invoiced"],
       service_order_type: ["simple", "complete"],
+      subscription_status: ["trialing", "active", "overdue", "suspended"],
+      venue_segment: ["sports", "beauty", "health", "custom"],
     },
   },
 } as const

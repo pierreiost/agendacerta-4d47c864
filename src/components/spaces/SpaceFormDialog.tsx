@@ -30,6 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { useSpaces, type Space } from '@/hooks/useSpaces';
 import type { Tables } from '@/integrations/supabase/types';
 import { Loader2 } from 'lucide-react';
+import { useFormPersist } from '@/hooks/useFormPersist';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -72,8 +73,16 @@ export function SpaceFormDialog({
     },
   });
 
+  // Form persistence - only for new spaces
+  const { clearDraft } = useFormPersist({
+    form,
+    key: `space_form_${venueId}`,
+    showRecoveryToast: !isEditing && open,
+  });
+
   useEffect(() => {
     if (space) {
+      clearDraft();
       form.reset({
         name: space.name,
         description: space.description ?? '',
@@ -82,7 +91,7 @@ export function SpaceFormDialog({
         price_per_hour: Number(space.price_per_hour) ?? 0,
         is_active: space.is_active ?? true,
       });
-    } else {
+    } else if (!open) {
       form.reset({
         name: '',
         description: '',
@@ -92,7 +101,7 @@ export function SpaceFormDialog({
         is_active: true,
       });
     }
-  }, [space, form]);
+  }, [space, form, open, clearDraft]);
 
   const onSubmit = async (data: FormData) => {
     const payload = {
@@ -111,6 +120,7 @@ export function SpaceFormDialog({
       await createSpace.mutateAsync(payload);
     }
 
+    clearDraft();
     onOpenChange(false);
   };
 
