@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -150,12 +150,33 @@ export function BookingFormDialog({
     refetchCustomers();
   };
 
+  // Track previous open state to detect when dialog opens
+  const prevOpenRef = useRef(open);
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
+    const wasOpen = prevOpenRef.current;
+    prevOpenRef.current = open;
+
+    // Only reset form when dialog opens (transition from closed to open)
+    // or when booking/defaultSlot changes while open
+    if (!open) {
+      hasInitializedRef.current = false;
+      return;
+    }
+
+    // Skip if already initialized for this dialog session
+    if (hasInitializedRef.current && wasOpen) {
+      return;
+    }
+
+    hasInitializedRef.current = true;
+
     if (booking) {
       clearDraft();
       const startDate = parseISO(booking.start_time);
       const endDate = parseISO(booking.end_time);
-      
+
       form.reset({
         customer_id: booking.customer_id ?? '',
         customer_name: booking.customer_name,
@@ -180,13 +201,15 @@ export function BookingFormDialog({
         end_hour: `${defaultSlot.hour + 1}:00`,
         notes: '',
       });
-    } else if (!open) {
+    } else {
+      // New booking without preset slot - don't clear draft, let useFormPersist restore
+      const defaultSpaceId = spaces[0]?.id ?? '';
       form.reset({
         customer_id: '',
         customer_name: '',
         customer_phone: '',
         customer_email: '',
-        space_id: spaces[0]?.id ?? '',
+        space_id: defaultSpaceId,
         date: new Date(),
         start_hour: '8:00',
         end_hour: '9:00',
@@ -195,7 +218,8 @@ export function BookingFormDialog({
     }
     setConflictError(null);
     setCustomerSearch('');
-  }, [booking, defaultSlot, form, spaces, open, clearDraft]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, booking?.id, defaultSlot?.spaceId, defaultSlot?.date?.getTime(), defaultSlot?.hour]);
 
   const onSubmit = async (data: FormData) => {
     setConflictError(null);
