@@ -1,4 +1,3 @@
-export { HeroSection } from './HeroSection';
 export { GallerySection } from './GallerySection';
 export { TestimonialsSection } from './TestimonialsSection';
 export { StatsSection } from './StatsSection';
@@ -10,3 +9,4 @@ export { BookingWidget } from './BookingWidget';
 export { WhatsAppButton } from './WhatsAppButton';
 export { PageHeader } from './PageHeader';
 export { MobileBookingButton } from './MobileBookingButton';
+export { SocialFloatingButtons } from './SocialFloatingButtons';
