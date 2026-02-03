@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { GallerySection as GallerySectionType } from '@/types/public-page';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, Camera } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GallerySectionProps {
@@ -32,7 +32,6 @@ export function GallerySection({ section }: GallerySectionProps) {
 
   if (!section.enabled || section.images.length === 0) return null;
 
-  // Filtrar apenas imagens com URLs seguras
   const safeImages = section.images.filter(img => isSafeImageUrl(img.url));
   if (safeImages.length === 0) return null;
 
@@ -49,50 +48,40 @@ export function GallerySection({ section }: GallerySectionProps) {
   };
 
   return (
-    <section className="py-12">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Camera className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold">Conheça nosso espaço</h2>
-        </div>
-        <p className="text-muted-foreground text-sm">
-          Veja as fotos do nosso ambiente
-        </p>
+    <section className="py-8">
+      {/* Section Title */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-1">
+          Conheça nosso espaço
+        </h2>
+        <div className="w-12 h-0.5 bg-primary rounded-full" />
       </div>
 
-      {/* Grid de imagens - layout masonry-like */}
-      <div className={cn(
-        "grid gap-3",
-        safeImages.length === 1 && "grid-cols-1",
-        safeImages.length === 2 && "grid-cols-2",
-        safeImages.length >= 3 && "grid-cols-2 md:grid-cols-3"
-      )}>
-        {safeImages.slice(0, 6).map((image, index) => (
+      {/* Grid compacto de fotos */}
+      <div className="grid grid-cols-4 gap-2">
+        {safeImages.slice(0, 8).map((image, index) => (
           <button
             key={index}
             onClick={() => setSelectedIndex(index)}
             className={cn(
-              "relative overflow-hidden rounded-xl group cursor-pointer",
-              "ring-2 ring-transparent hover:ring-primary/50 transition-all duration-300",
-              // Primeira imagem maior quando há mais de 2
-              index === 0 && safeImages.length > 2 && "col-span-2 row-span-2 aspect-[4/3]",
-              // Outras imagens são quadradas
-              !(index === 0 && safeImages.length > 2) && "aspect-square"
+              "relative overflow-hidden rounded-lg group cursor-pointer aspect-square",
+              "ring-1 ring-black/5 hover:ring-primary/50 transition-all duration-200",
+              "hover:shadow-md"
             )}
           >
             <img
               src={image.url}
               alt={image.alt || `Foto ${index + 1}`}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            {/* Overlay on hover */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
 
             {/* Mostrar contador se houver mais imagens */}
-            {index === 5 && safeImages.length > 6 && (
+            {index === 7 && safeImages.length > 8 && (
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <span className="text-white text-xl font-semibold">+{safeImages.length - 6}</span>
+                <span className="text-white text-sm font-medium">+{safeImages.length - 8}</span>
               </div>
             )}
           </button>
@@ -107,7 +96,7 @@ export function GallerySection({ section }: GallerySectionProps) {
               <img
                 src={safeImages[selectedIndex].url}
                 alt={safeImages[selectedIndex].alt || ''}
-                className="w-full h-auto max-h-[80vh] object-contain"
+                className="w-full h-auto max-h-[85vh] object-contain"
               />
             )}
 
@@ -115,10 +104,10 @@ export function GallerySection({ section }: GallerySectionProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 text-white hover:bg-white/20"
+              className="absolute top-3 right-3 text-white hover:bg-white/20 h-10 w-10"
               onClick={() => setSelectedIndex(null)}
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </Button>
 
             {/* Navigation */}
@@ -126,25 +115,25 @@ export function GallerySection({ section }: GallerySectionProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
                 onClick={showPrev}
               >
-                <ChevronLeft className="h-8 w-8" />
+                <ChevronLeft className="h-7 w-7" />
               </Button>
             )}
             {selectedIndex !== null && selectedIndex < safeImages.length - 1 && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
                 onClick={showNext}
               >
-                <ChevronRight className="h-8 w-8" />
+                <ChevronRight className="h-7 w-7" />
               </Button>
             )}
 
             {/* Counter */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm bg-black/50 px-3 py-1 rounded-full">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm bg-black/50 px-4 py-1.5 rounded-full">
               {selectedIndex !== null && `${selectedIndex + 1} / ${safeImages.length}`}
             </div>
           </div>
