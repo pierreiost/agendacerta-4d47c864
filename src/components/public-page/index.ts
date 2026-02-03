@@ -8,3 +8,5 @@ export { HoursSection } from './HoursSection';
 export { SocialSection } from './SocialSection';
 export { BookingWidget } from './BookingWidget';
 export { WhatsAppButton } from './WhatsAppButton';
+export { PageHeader } from './PageHeader';
+export { MobileBookingButton } from './MobileBookingButton';

@@ -13,6 +13,8 @@ import {
   FaqSection,
   BookingWidget,
   WhatsAppButton,
+  PageHeader,
+  MobileBookingButton,
 } from '@/components/public-page';
 
 interface PublicVenue {
@@ -59,7 +61,6 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-// Função para validar URL segura
 const isSafeUrl = (url: string): boolean => {
   if (!url) return false;
   const lowerUrl = url.toLowerCase().trim();
@@ -110,12 +111,11 @@ export default function PublicPageVenue() {
     ? { ...DEFAULT_SECTIONS, ...venue.public_page_sections }
     : DEFAULT_SECTIONS;
 
-  // Obter telefone da section social ou do venue
   const whatsappPhone = sections.social?.whatsapp || venue?.phone;
 
   if (venueLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -123,8 +123,8 @@ export default function PublicPageVenue() {
 
   if (!venue || venueError) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center shadow-lg">
           <CardHeader>
             <CardTitle>Página não encontrada</CardTitle>
             <CardDescription>Esta página pública não existe ou não está disponível.</CardDescription>
@@ -134,15 +134,15 @@ export default function PublicPageVenue() {
     );
   }
 
-  // External link redirect mode
+  // External link mode
   if (venue.booking_mode === 'external_link') {
     const externalUrl = venue.public_settings?.external_link_url;
     const safeUrl = externalUrl && isSafeUrl(externalUrl) ? externalUrl : null;
 
     if (safeUrl) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <Card className="max-w-md w-full text-center shadow-lg">
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full text-center shadow-xl">
             <CardHeader className="space-y-4">
               {venue.logo_url && (
                 <div className="flex justify-center">
@@ -167,62 +167,72 @@ export default function PublicPageVenue() {
     }
   }
 
+  // Verificar se há conteúdo na coluna esquerda
+  const hasLeftContent =
+    (sections.gallery.enabled && sections.gallery.images.length > 0) ||
+    (sections.testimonials.enabled && sections.testimonials.items.length > 0) ||
+    (sections.faq.enabled && sections.faq.items.length > 0);
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section - Full width */}
+    <div className="min-h-screen bg-slate-50">
+      {/* Header fixo */}
+      <PageHeader
+        venueName={venue.name}
+        logoUrl={venue.logo_url}
+        whatsappPhone={whatsappPhone}
+      />
+
+      {/* Hero Section */}
       <HeroSection
         section={sections.hero}
         venueName={venue.name}
         logoUrl={venue.logo_url}
-        onCtaClick={() => {
-          const bookingSection = document.getElementById('booking-section');
-          const bookingMobile = document.getElementById('booking-section-mobile');
-          const target = window.innerWidth >= 1024 ? bookingSection : bookingMobile;
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }}
       />
 
       {/* Main Content - Two Column Layout */}
-      <div className="max-w-7xl mx-auto px-4 py-8 lg:py-16">
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-          {/* Mobile: Booking Widget First */}
-          <div className="lg:hidden" id="booking-section-mobile">
-            <BookingWidget venue={venue} />
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-16">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
+          {/* Left Column - Content */}
+          {hasLeftContent && (
+            <div className="flex-1 lg:flex-[55] space-y-2 order-2 lg:order-1">
+              {/* Gallery */}
+              {sections.gallery.enabled && sections.gallery.images.length > 0 && (
+                <GallerySection section={sections.gallery} />
+              )}
 
-          {/* Left Column - Content (Scrollable) */}
-          <div className="flex-1 space-y-0">
-            {/* Gallery Section */}
-            {sections.gallery.enabled && sections.gallery.images.length > 0 && (
-              <GallerySection section={sections.gallery} />
-            )}
+              {/* Testimonials */}
+              {sections.testimonials.enabled && sections.testimonials.items.length > 0 && (
+                <TestimonialsSection section={sections.testimonials} />
+              )}
 
-            {/* Testimonials Section */}
-            {sections.testimonials.enabled && sections.testimonials.items.length > 0 && (
-              <TestimonialsSection section={sections.testimonials} />
-            )}
+              {/* FAQ */}
+              {sections.faq.enabled && sections.faq.items.length > 0 && (
+                <FaqSection section={sections.faq} />
+              )}
+            </div>
+          )}
 
-            {/* FAQ Section */}
-            {sections.faq.enabled && sections.faq.items.length > 0 && (
-              <FaqSection section={sections.faq} />
-            )}
-          </div>
-
-          {/* Right Column - Booking Widget (Sticky on Desktop) */}
-          <div className="hidden lg:block lg:w-[420px] flex-shrink-0" id="booking-section">
-            <div className="sticky top-8">
-              <BookingWidget venue={venue} />
+          {/* Right Column - Booking Widget (Desktop) */}
+          <div
+            className={`hidden lg:block lg:flex-[45] order-1 lg:order-2 ${!hasLeftContent ? 'mx-auto max-w-lg' : ''}`}
+            id="booking-section"
+          >
+            <div className="sticky top-24">
+              <div className="bg-white rounded-2xl shadow-2xl shadow-black/5 border border-black/5 overflow-hidden">
+                <BookingWidget venue={venue} />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="py-8 px-4 text-center text-sm text-muted-foreground border-t bg-muted/30">
+      <footer className="py-8 px-4 text-center text-sm text-muted-foreground border-t bg-white/50 pb-24 lg:pb-8">
         <p>&copy; {new Date().getFullYear()} {venue.name}. Todos os direitos reservados.</p>
       </footer>
+
+      {/* Mobile: Botão fixo que abre drawer */}
+      <MobileBookingButton venue={venue} />
 
       {/* WhatsApp Floating Button */}
       <WhatsAppButton phone={whatsappPhone} />
