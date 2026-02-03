@@ -186,10 +186,12 @@ export default function Configuracoes() {
               <Calendar className="mr-2 h-4 w-4" />
               Integrações
             </TabsTrigger>
+{/* Aba de lembretes oculta para futuras implementações
             <TabsTrigger value="reminders">
               <Bell className="mr-2 h-4 w-4" />
               Lembretes
             </TabsTrigger>
+*/}
             <TabsTrigger value="team">
               <Users className="mr-2 h-4 w-4" />
               Equipe
@@ -266,7 +268,7 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-          {/* TAB: LEMBRETES */}
+{/* TAB: LEMBRETES - Oculta para futuras implementações
           <TabsContent value="reminders">
             <Card>
               <CardHeader>
@@ -319,6 +321,7 @@ export default function Configuracoes() {
               </CardContent>
             </Card>
           </TabsContent>
+*/}
 
           {/* TAB: EQUIPE */}
           <TabsContent value="team" className="space-y-6">
@@ -338,7 +341,7 @@ export default function Configuracoes() {
                   {isAdmin && (
                     <Button onClick={() => setInviteDialogOpen(true)}>
                       <UserPlus className="mr-2 h-4 w-4" />
-                      Convidar
+                      Adicionar Usuário
                     </Button>
                   )}
                 </div>
