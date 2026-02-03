@@ -9,7 +9,6 @@ interface PageHeaderProps {
   whatsappPhone: string | null | undefined;
 }
 
-// Validar URL segura
 function isSafeImageUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   try {
@@ -41,25 +40,30 @@ export function PageHeader({ venueName, logoUrl, whatsappPhone }: PageHeaderProp
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         isScrolled
-          ? "bg-white/95 backdrop-blur-md shadow-sm border-b"
+          ? "bg-white/98 backdrop-blur-md shadow-md"
           : "bg-transparent"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center justify-between h-18 md:h-22 py-3">
           {/* Logo e Nome - Esquerda */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             {safeLogoUrl && (
               <img
                 src={safeLogoUrl}
                 alt={venueName}
-                className="h-9 md:h-11 w-auto object-contain"
+                className={cn(
+                  "w-auto object-contain transition-all duration-300",
+                  isScrolled ? "h-10 md:h-12" : "h-12 md:h-14"
+                )}
               />
             )}
             <span
               className={cn(
-                "font-semibold text-lg md:text-xl transition-colors duration-300",
-                isScrolled ? "text-foreground" : "text-white drop-shadow-md"
+                "font-bold transition-all duration-300",
+                isScrolled
+                  ? "text-foreground text-lg md:text-xl"
+                  : "text-white text-xl md:text-2xl drop-shadow-lg"
               )}
             >
               {venueName}
@@ -70,12 +74,12 @@ export function PageHeader({ venueName, logoUrl, whatsappPhone }: PageHeaderProp
           {hasValidPhone && (
             <Button
               asChild
-              size="sm"
               className={cn(
-                "gap-2 rounded-full px-4 transition-all duration-300",
+                "gap-2 rounded-xl font-semibold transition-all duration-300",
+                "hover:scale-105 active:scale-95",
                 isScrolled
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30"
+                  ? "bg-primary hover:bg-primary/90 text-white shadow-md"
+                  : "bg-white hover:bg-white/95 text-primary shadow-lg"
               )}
             >
               <a
@@ -84,7 +88,7 @@ export function PageHeader({ venueName, logoUrl, whatsappPhone }: PageHeaderProp
                 rel="noopener noreferrer"
               >
                 <MessageCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">Fale Conosco</span>
+                <span>WhatsApp</span>
               </a>
             </Button>
           )}

@@ -57,31 +57,31 @@ export function GallerySection({ section }: GallerySectionProps) {
         <div className="w-12 h-0.5 bg-primary rounded-full" />
       </div>
 
-      {/* Grid compacto de fotos */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* Grid de fotos */}
+      <div className="grid grid-cols-4 gap-3">
         {safeImages.slice(0, 8).map((image, index) => (
           <button
             key={index}
             onClick={() => setSelectedIndex(index)}
             className={cn(
-              "relative overflow-hidden rounded-lg group cursor-pointer aspect-square",
-              "ring-1 ring-black/5 hover:ring-primary/50 transition-all duration-200",
-              "hover:shadow-md"
+              "relative overflow-hidden rounded-xl group cursor-pointer aspect-square",
+              "ring-2 ring-transparent hover:ring-primary/60 transition-all duration-200",
+              "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
             )}
           >
             <img
               src={image.url}
               alt={image.alt || `Foto ${index + 1}`}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
 
             {/* Overlay on hover */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200" />
 
             {/* Mostrar contador se houver mais imagens */}
             {index === 7 && safeImages.length > 8 && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <span className="text-white text-sm font-medium">+{safeImages.length - 8}</span>
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl">
+                <span className="text-white text-lg font-bold">+{safeImages.length - 8}</span>
               </div>
             )}
           </button>
