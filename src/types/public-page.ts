@@ -99,7 +99,7 @@ export interface SocialSection {
 }
 
 export interface PublicPageSections {
-  hero: HeroSection;
+  hero?: HeroSection; // Deprecated - kept for backwards compatibility
   gallery: GallerySection;
   testimonials: TestimonialsSection;
   stats: StatsSection;
@@ -110,15 +110,6 @@ export interface PublicPageSections {
 }
 
 export const DEFAULT_SECTIONS: PublicPageSections = {
-  hero: {
-    enabled: true,
-    title: null,
-    subtitle: null,
-    background_image_url: null,
-    show_cta: true,
-    cta_text: "Agendar agora",
-    cover_style: 'wave'
-  },
   gallery: {
     enabled: false,
     images: []

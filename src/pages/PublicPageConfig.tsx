@@ -19,7 +19,7 @@ import {
   MapPin, Clock, Share2, Plus, Trash2, Upload, X, ExternalLink, 
   GripVertical, Star, Palette, ImageIcon, Link as LinkIcon
 } from 'lucide-react';
-import { PublicPageSections, DEFAULT_SECTIONS, Testimonial, FaqItem, GalleryImage, CustomStat, CoverStyle } from '@/types/public-page';
+import { PublicPageSections, DEFAULT_SECTIONS, Testimonial, FaqItem, GalleryImage, CustomStat } from '@/types/public-page';
 import { cn } from '@/lib/utils';
 
 const DAY_LABELS: Record<string, string> = {
@@ -41,12 +41,6 @@ const PRESET_COLORS = [
   { color: '#06b6d4', name: 'Ciano' },
   { color: '#ec4899', name: 'Rosa' },
   { color: '#f97316', name: 'Laranja' },
-];
-
-const COVER_STYLES: { value: CoverStyle; label: string; description: string }[] = [
-  { value: 'wave', label: 'Ondulado', description: 'Transição suave com onda decorativa' },
-  { value: 'squared', label: 'Retangular', description: 'Bordas retas e modernas' },
-  { value: 'hero', label: 'Full Width', description: 'Banner em tela cheia' },
 ];
 
 export default function PublicPageConfig() {
@@ -240,14 +234,10 @@ export default function PublicPageConfig() {
         </div>
 
         <Tabs defaultValue="branding" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9 h-auto gap-1 p-1">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-auto gap-1 p-1">
             <TabsTrigger value="branding" className="flex-col py-1.5 h-auto">
               <Palette className="h-4 w-4 mb-0.5" />
               <span className="text-xs">Identidade</span>
-            </TabsTrigger>
-            <TabsTrigger value="hero" className="flex-col py-1.5 h-auto">
-              <Image className="h-4 w-4 mb-0.5" />
-              <span className="text-xs">Hero</span>
             </TabsTrigger>
             <TabsTrigger value="gallery" className="flex-col py-1.5 h-auto">
               <Image className="h-4 w-4 mb-0.5" />
@@ -427,160 +417,7 @@ export default function PublicPageConfig() {
                 </CardContent>
               </Card>
 
-              {/* Estilo da Capa */}
-              <Card className="lg:col-span-2">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Estilo da Capa (Hero)</CardTitle>
-                  <CardDescription className="text-xs">
-                    Escolha como o banner principal será exibido
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup
-                    value={sections.hero.cover_style || 'wave'}
-                    onValueChange={(value) => updateSection('hero', { cover_style: value as CoverStyle })}
-                    className="grid grid-cols-3 gap-4"
-                  >
-                    {COVER_STYLES.map((style) => (
-                      <div key={style.value}>
-                        <RadioGroupItem
-                          value={style.value}
-                          id={style.value}
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor={style.value}
-                          className={cn(
-                            "flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
-                            "peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                          )}
-                        >
-                          {/* Preview illustration */}
-                          <div className="w-full h-12 mb-2 rounded bg-muted relative overflow-hidden">
-                            <div 
-                              className="absolute inset-x-0 top-0 h-8" 
-                              style={{ backgroundColor: primaryColor || '#6366f1' }}
-                            />
-                            {style.value === 'wave' && (
-                              <svg viewBox="0 0 100 20" className="absolute bottom-0 w-full h-4">
-                                <path d="M0 20 Q25 10 50 15 T100 10 V20 Z" fill="white" />
-                              </svg>
-                            )}
-                            {style.value === 'squared' && (
-                              <div className="absolute bottom-0 inset-x-0 h-4 bg-white" />
-                            )}
-                          </div>
-                          <span className="font-medium text-sm">{style.label}</span>
-                          <span className="text-xs text-muted-foreground text-center">{style.description}</span>
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </CardContent>
-              </Card>
             </div>
-          </TabsContent>
-
-          {/* Hero Section */}
-          <TabsContent value="hero">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">Seção Hero</CardTitle>
-                    <CardDescription className="text-xs">Banner principal com título e chamada para ação</CardDescription>
-                  </div>
-                  <Switch
-                    checked={sections.hero.enabled}
-                    onCheckedChange={(checked) => updateSection('hero', { enabled: checked })}
-                  />
-                </div>
-              </CardHeader>
-              {sections.hero.enabled && (
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Título</Label>
-                      <Input
-                        placeholder={currentVenue?.name || "Seu título aqui"}
-                        value={sections.hero.title || ''}
-                        onChange={(e) => updateSection('hero', { title: e.target.value || null })}
-                      />
-                      <p className="text-xs text-muted-foreground">Deixe vazio para usar o nome da empresa</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">Subtítulo</Label>
-                      <Input
-                        placeholder="Agende seu horário online"
-                        value={sections.hero.subtitle || ''}
-                        onChange={(e) => updateSection('hero', { subtitle: e.target.value || null })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm">Imagem de fundo</Label>
-                    <div className="flex gap-4 items-start">
-                      {sections.hero.background_image_url ? (
-                        <div className="relative">
-                          <img
-                            src={sections.hero.background_image_url}
-                            alt="Hero background"
-                            className="h-24 w-40 object-cover rounded-lg border"
-                          />
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            className="absolute -top-2 -right-2 h-5 w-5"
-                            onClick={() => updateSection('hero', { background_image_url: null })}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Label
-                          htmlFor="hero-bg-upload"
-                          className="flex flex-col items-center justify-center h-24 w-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                        >
-                          <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                          <span className="text-xs text-muted-foreground">Upload imagem</span>
-                        </Label>
-                      )}
-                      <Input
-                        id="hero-bg-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={isUploading}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImageUpload(file, (url) => updateSection('hero', { background_image_url: url }));
-                          e.target.value = '';
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={sections.hero.show_cta}
-                        onCheckedChange={(checked) => updateSection('hero', { show_cta: checked })}
-                      />
-                      <Label className="text-sm">Mostrar botão de ação</Label>
-                    </div>
-                    {sections.hero.show_cta && (
-                      <Input
-                        className="max-w-xs"
-                        placeholder="Agendar agora"
-                        value={sections.hero.cta_text}
-                        onChange={(e) => updateSection('hero', { cta_text: e.target.value })}
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
           </TabsContent>
 
           {/* Gallery Section */}
