@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { PublicPageSections, DEFAULT_SECTIONS } from '@/types/public-page';
 import {
-  HeroSection,
   GallerySection,
   TestimonialsSection,
   FaqSection,
@@ -15,6 +14,7 @@ import {
   WhatsAppButton,
   PageHeader,
   MobileBookingButton,
+  SocialFloatingButtons,
 } from '@/components/public-page';
 
 interface PublicVenue {
@@ -182,15 +182,8 @@ export default function PublicPageVenue() {
         whatsappPhone={whatsappPhone}
       />
 
-      {/* Hero Section */}
-      <HeroSection
-        section={sections.hero}
-        venueName={venue.name}
-        logoUrl={venue.logo_url}
-      />
-
       {/* Main Content - Two Column Layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-10 lg:pt-28 lg:pb-16">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
           {/* Left Column - Content */}
           {hasLeftContent && (
@@ -234,8 +227,11 @@ export default function PublicPageVenue() {
       {/* Mobile: Botão fixo que abre drawer */}
       <MobileBookingButton venue={venue} />
 
-      {/* WhatsApp Floating Button */}
-      <WhatsAppButton phone={whatsappPhone} />
+      {/* Social Floating Buttons (WhatsApp + Instagram) */}
+      <SocialFloatingButtons
+        whatsappPhone={whatsappPhone}
+        instagramHandle={sections.social?.instagram}
+      />
     </div>
   );
 }
