@@ -109,17 +109,27 @@ export default function OrdemServicoForm() {
   const watchedCustomerId = watch("customerId");
 
   const persistKey = currentVenue?.id ? `os_form_${currentVenue.id}_${id || "new"}` : null;
+  const [skipDataLoad, setSkipDataLoad] = useState(false);
   
-  const { clearDraft } = useFormPersist({
+  const { clearDraft, hasUnsavedData } = useFormPersist({
     form,
     key: persistKey || "os_form_temp",
     exclude: [],
     debounceMs: 500,
-    showRecoveryToast: !isEditing, // Only show toast for new OS
+    showRecoveryToast: !isEditing,
+    onRestore: () => {
+      // Flag to skip loading from DB when we restored from draft
+      if (!isEditing) {
+        setSkipDataLoad(true);
+      }
+    },
   });
 
   useEffect(() => {
     const loadData = async () => {
+      // Skip loading from DB if we restored from draft (for new orders)
+      if (skipDataLoad && !isEditing) return;
+      
       if (existingOrder && id) {
         const parseAddress = (address: string | null) => {
           return { logradouro: address || "", numero: "", complemento: "", bairro: "" };
@@ -158,7 +168,7 @@ export default function OrdemServicoForm() {
     };
 
     loadData();
-  }, [existingOrder, id, getOrderItems, reset]);
+  }, [existingOrder, id, getOrderItems, reset, skipDataLoad, isEditing]);
 
   const totals = useMemo(() => {
     const subtotal = watchedItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);

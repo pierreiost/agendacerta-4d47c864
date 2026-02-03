@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { ALL_MODULES, PERMISSION_TEMPLATES, type TemplateKey } from "@/lib/permission-templates";
 import type { AppRole, Module, Permission } from "@/hooks/usePermissions";
 import type { TeamMember } from "@/hooks/useTeamMembers";
+import { useVenue } from "@/contexts/VenueContext";
 
 interface RolePermissionsDialogProps {
   open: boolean;
@@ -30,9 +31,23 @@ const ROLE_LABELS: Record<AppRole, string> = {
   staff: "Funcionário",
 };
 
+// Create empty permissions for "Personalizado" template
+const emptyPermissions: Record<Module, Permission> = {} as Record<Module, Permission>;
+for (const mod of ALL_MODULES) {
+  emptyPermissions[mod.key] = {
+    canView: false,
+    canCreate: false,
+    canEdit: false,
+    canDelete: false,
+  };
+}
+
 export function RolePermissionsDialog({ open, onOpenChange, member }: RolePermissionsDialogProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey | null>(null);
-  const [localPermissions, setLocalPermissions] = useState<Record<Module, Permission>>({} as Record<Module, Permission>);
+  const { currentVenue } = useVenue();
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey | null>("gerente");
+  const [localPermissions, setLocalPermissions] = useState<Record<Module, Permission>>(
+    { ...PERMISSION_TEMPLATES.gerente.permissions }
+  );
   
   const { 
     permissionMap, 
@@ -43,29 +58,82 @@ export function RolePermissionsDialog({ open, onOpenChange, member }: RolePermis
     isApplyingTemplate,
   } = useRolePermissions(member?.role);
 
+  // Storage key for persistence
+  const getStorageKey = useCallback(() => {
+    if (!currentVenue?.id || !member?.id) return null;
+    return `permissions_draft_${currentVenue.id}_${member.id}`;
+  }, [currentVenue?.id, member?.id]);
+
   // Initialize local permissions when dialog opens or permissions load
   useEffect(() => {
     if (open && member) {
-      // Start with defaults
-      const defaults: Record<Module, Permission> = {} as Record<Module, Permission>;
-      for (const mod of ALL_MODULES) {
-        defaults[mod.key] = permissionMap[mod.key] || {
-          canView: false,
-          canCreate: false,
-          canEdit: false,
-          canDelete: false,
-        };
+      const storageKey = getStorageKey();
+      
+      // Try to restore from localStorage first
+      if (storageKey) {
+        try {
+          const stored = localStorage.getItem(storageKey);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.permissions && parsed.template !== undefined) {
+              setLocalPermissions(parsed.permissions);
+              setSelectedTemplate(parsed.template);
+              return;
+            }
+          }
+        } catch (error) {
+          // Ignore parsing errors
+        }
       }
-      setLocalPermissions(defaults);
-      setSelectedTemplate(null);
+      
+      // Check if there are existing permissions in the database
+      const hasExistingPermissions = Object.keys(permissionMap).length > 0;
+      
+      if (hasExistingPermissions) {
+        // Use existing permissions from database
+        const existingPerms: Record<Module, Permission> = {} as Record<Module, Permission>;
+        for (const mod of ALL_MODULES) {
+          existingPerms[mod.key] = permissionMap[mod.key] || {
+            canView: false,
+            canCreate: false,
+            canEdit: false,
+            canDelete: false,
+          };
+        }
+        setLocalPermissions(existingPerms);
+        setSelectedTemplate(null); // Mark as custom since it's from DB
+      } else {
+        // No permissions yet - start with "Gerente" template pre-filled
+        setLocalPermissions({ ...PERMISSION_TEMPLATES.gerente.permissions });
+        setSelectedTemplate("gerente");
+      }
     }
-  }, [open, member, permissionMap]);
+  }, [open, member, permissionMap, getStorageKey]);
+
+  // Save to localStorage when permissions change
+  useEffect(() => {
+    const storageKey = getStorageKey();
+    if (storageKey && open) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({
+          permissions: localPermissions,
+          template: selectedTemplate,
+          timestamp: Date.now(),
+        }));
+      } catch (error) {
+        // Ignore storage errors
+      }
+    }
+  }, [localPermissions, selectedTemplate, getStorageKey, open]);
 
   const handleTemplateSelect = (templateKey: TemplateKey | null) => {
     setSelectedTemplate(templateKey);
     
     if (templateKey && PERMISSION_TEMPLATES[templateKey]) {
       setLocalPermissions({ ...PERMISSION_TEMPLATES[templateKey].permissions });
+    } else {
+      // "Personalizado" - start with empty permissions
+      setLocalPermissions({ ...emptyPermissions });
     }
   };
 
@@ -90,6 +158,13 @@ export function RolePermissionsDialog({ open, onOpenChange, member }: RolePermis
     });
   };
 
+  const clearDraft = useCallback(() => {
+    const storageKey = getStorageKey();
+    if (storageKey) {
+      localStorage.removeItem(storageKey);
+    }
+  }, [getStorageKey]);
+
   const handleSave = () => {
     if (!member) return;
 
@@ -103,7 +178,12 @@ export function RolePermissionsDialog({ open, onOpenChange, member }: RolePermis
 
     savePermissions(
       { targetRole: member.role, permissionsToSave },
-      { onSuccess: () => onOpenChange(false) }
+      { 
+        onSuccess: () => {
+          clearDraft();
+          onOpenChange(false);
+        } 
+      }
     );
   };
 

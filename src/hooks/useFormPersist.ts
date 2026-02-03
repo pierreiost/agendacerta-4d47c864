@@ -8,6 +8,7 @@ interface UseFormPersistOptions<T extends FieldValues> {
   exclude?: (keyof T)[];
   debounceMs?: number;
   showRecoveryToast?: boolean;
+  onRestore?: () => void;
 }
 
 export function useFormPersist<T extends FieldValues>({
@@ -16,6 +17,7 @@ export function useFormPersist<T extends FieldValues>({
   exclude = [],
   debounceMs = 500,
   showRecoveryToast = true,
+  onRestore,
 }: UseFormPersistOptions<T>) {
   const storageKey = `form_draft_${key}`;
   const hasRestoredRef = useRef(false);
@@ -48,11 +50,14 @@ export function useFormPersist<T extends FieldValues>({
             }
           });
 
-          if (hasData && showRecoveryToast) {
-            toast.info("Rascunho recuperado", {
-              description: "Continuando de onde você parou.",
-              duration: 4000,
-            });
+          if (hasData) {
+            if (showRecoveryToast) {
+              toast.info("Rascunho recuperado", {
+                description: "Continuando de onde você parou.",
+                duration: 4000,
+              });
+            }
+            onRestore?.();
           }
           isDirtyRef.current = hasData;
         } else {
@@ -62,7 +67,7 @@ export function useFormPersist<T extends FieldValues>({
     } catch (error) {
       localStorage.removeItem(storageKey);
     }
-  }, [form, storageKey, exclude, showRecoveryToast]);
+  }, [form, storageKey, exclude, showRecoveryToast, onRestore]);
 
   const saveDraft = useCallback(() => {
     const values = form.getValues();
