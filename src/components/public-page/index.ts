@@ -6,3 +6,5 @@ export { FaqSection } from './FaqSection';
 export { LocationSection } from './LocationSection';
 export { HoursSection } from './HoursSection';
 export { SocialSection } from './SocialSection';
+export { BookingWidget } from './BookingWidget';
+export { WhatsAppButton } from './WhatsAppButton';
