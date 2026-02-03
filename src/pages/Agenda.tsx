@@ -12,6 +12,7 @@ import { DayView } from '@/components/agenda/DayView';
 import { WeekViewNew } from '@/components/agenda/WeekViewNew';
 import { MonthView } from '@/components/agenda/MonthView';
 import { BookingWizard } from '@/components/agenda/BookingWizard';
+import { TechnicianBookingWizard } from '@/components/agenda/TechnicianBookingWizard';
 import { ServiceBookingWizard } from '@/components/agenda/ServiceBookingWizard';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
 import { DayViewSkeleton, WeekViewSkeleton, MonthViewSkeleton } from '@/components/agenda/AgendaSkeletons';
@@ -29,9 +30,11 @@ import { Calendar, Loader2, Filter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-// Check if venue uses service-based booking (beauty/health segments)
-const isServiceMode = (segment?: string | null) => {
-  return segment === 'beauty' || segment === 'health';
+// Check booking mode based on venue segment
+const getBookingMode = (segment?: string | null): 'space' | 'service' | 'technician' => {
+  if (segment === 'beauty' || segment === 'health') return 'service';
+  if (segment === 'custom') return 'technician';
+  return 'space'; // sports or default
 };
 
 export default function Agenda() {
@@ -365,21 +368,36 @@ export default function Agenda() {
       </div>
 
       {/* Booking Wizard - Show different wizard based on venue segment */}
-      {isServiceMode(currentVenue?.segment) ? (
-        <ServiceBookingWizard
-          open={wizardOpen}
-          onOpenChange={handleWizardOpenChange}
-          defaultDate={defaultSlot?.date || currentDate}
-        />
-      ) : (
-        <BookingWizard
-          open={wizardOpen}
-          onOpenChange={handleWizardOpenChange}
-          spaces={filteredSpaces}
-          allSpaces={activeSpaces}
-          defaultSlot={defaultSlot}
-        />
-      )}
+      {(() => {
+        const mode = getBookingMode(currentVenue?.segment);
+        if (mode === 'service') {
+          return (
+            <ServiceBookingWizard
+              open={wizardOpen}
+              onOpenChange={handleWizardOpenChange}
+              defaultDate={defaultSlot?.date || currentDate}
+            />
+          );
+        }
+        if (mode === 'technician') {
+          return (
+            <TechnicianBookingWizard
+              open={wizardOpen}
+              onOpenChange={handleWizardOpenChange}
+              defaultDate={defaultSlot?.date || currentDate}
+            />
+          );
+        }
+        return (
+          <BookingWizard
+            open={wizardOpen}
+            onOpenChange={handleWizardOpenChange}
+            spaces={filteredSpaces}
+            allSpaces={activeSpaces}
+            defaultSlot={defaultSlot}
+          />
+        );
+      })()}
 
       {/* Booking Details Sheet */}
       <BookingOrderSheet
