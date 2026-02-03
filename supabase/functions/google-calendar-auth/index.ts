@@ -82,6 +82,7 @@ serve(async (req) => {
     const state = crypto.randomUUID();
     
     // Store state in database with expiration (10 minutes)
+    // Now includes user_id for per-member connections
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
     
     const { error: stateError } = await supabase
@@ -89,7 +90,7 @@ serve(async (req) => {
       .insert({
         state,
         venue_id,
-        user_id: user.id,
+        user_id: user.id, // Store the connecting user's ID
         expires_at: expiresAt,
       });
 
@@ -117,7 +118,7 @@ serve(async (req) => {
     authUrl.searchParams.set("prompt", "consent");
     authUrl.searchParams.set("state", state);
 
-    console.log("Generated auth URL for venue:", venue_id, "with secure state");
+    console.log("Generated auth URL for venue:", venue_id, "user:", user.id, "with secure state");
 
     return new Response(JSON.stringify({ auth_url: authUrl.toString() }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

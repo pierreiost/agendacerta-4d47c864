@@ -364,14 +364,51 @@ serve(async (req) => {
       });
     }
 
-    // Get venue's Google Calendar tokens
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("google_calendar_tokens")
-      .select("*")
-      .eq("venue_id", venue_id)
-      .maybeSingle();
+    // Get Google Calendar tokens - priority:
+    // 1. Professional's own token (if booking has professional_id)
+    // 2. Fallback to venue-wide token (user_id is null)
+    let tokenData = null;
+    
+    // If booking has a professional, try to get their calendar connection
+    if (booking.professional_id) {
+      // Get the user_id from the professional's venue_member record
+      const { data: professional } = await supabase
+        .from("venue_members")
+        .select("user_id")
+        .eq("id", booking.professional_id)
+        .single();
 
-    if (tokenError || !tokenData) {
+      if (professional?.user_id) {
+        const { data: professionalToken } = await supabase
+          .from("google_calendar_tokens")
+          .select("*")
+          .eq("venue_id", venue_id)
+          .eq("user_id", professional.user_id)
+          .maybeSingle();
+        
+        if (professionalToken) {
+          tokenData = professionalToken;
+          console.log(`Using professional's calendar for sync: ${maskString(professional.user_id)}`);
+        }
+      }
+    }
+
+    // Fallback to venue-wide token if no professional token found
+    if (!tokenData) {
+      const { data: venueToken, error: tokenError } = await supabase
+        .from("google_calendar_tokens")
+        .select("*")
+        .eq("venue_id", venue_id)
+        .is("user_id", null)
+        .maybeSingle();
+
+      if (tokenError) {
+        console.error("Error fetching venue token");
+      }
+      tokenData = venueToken;
+    }
+
+    if (!tokenData) {
       console.log(`No Google Calendar connected for venue: ${maskString(venue_id)}`);
       return new Response(JSON.stringify({ synced: false, reason: "not_connected" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
