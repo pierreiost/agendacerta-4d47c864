@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useBookings, type Booking } from '@/hooks/useBookings';
 import { useSpaces } from '@/hooks/useSpaces';
+import { useProfessionals } from '@/hooks/useProfessionals';
 import { useVenue } from '@/contexts/VenueContext';
 import { AgendaHeader, ViewMode } from '@/components/agenda/AgendaHeader';
 import { AgendaSidebar } from '@/components/agenda/AgendaSidebar';
-import { DayView } from '@/components/agenda/DayView';
+import { DayView, type AgendaColumn } from '@/components/agenda/DayView';
 import { WeekViewNew } from '@/components/agenda/WeekViewNew';
 import { MonthView } from '@/components/agenda/MonthView';
 import { BookingWizard } from '@/components/agenda/BookingWizard';
@@ -21,13 +22,14 @@ import {
   endOfDay,
 } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Loader2, Filter } from 'lucide-react';
+import { Calendar, Loader2, Filter, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export default function Agenda() {
   const { currentVenue } = useVenue();
   const { spaces, isLoading: spacesLoading } = useSpaces();
+  const { professionals, isLoading: professionalsLoading } = useProfessionals();
   const { toast } = useToast();
 
   // State
@@ -35,12 +37,14 @@ export default function Agenda() {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
+  const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['PENDING', 'CONFIRMED', 'FINALIZED']);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [defaultSlot, setDefaultSlot] = useState<{ spaceId: string; date: Date; hour: number } | null>(null);
+  const [defaultSlot, setDefaultSlot] = useState<{ spaceId?: string; professionalId?: string; date: Date; hour: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [agendaMode, setAgendaMode] = useState<'spaces' | 'professionals'>('spaces');
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -56,31 +60,66 @@ export default function Agenda() {
 
   const { bookings, isLoading: bookingsLoading, updateBooking, checkConflict } = useBookings(dateRange.start, dateRange.end);
 
-  // Filter active spaces
+  // Filter active spaces and professionals
   const activeSpaces = useMemo(() => {
     return spaces.filter((s) => s.is_active);
   }, [spaces]);
 
-  // Initialize selected spaces when spaces load
+  const activeProfessionals = useMemo(() => {
+    return professionals.filter((p) => p.is_active);
+  }, [professionals]);
+
+  // Auto-detect agenda mode based on what's available
+  useMemo(() => {
+    if (activeSpaces.length === 0 && activeProfessionals.length > 0) {
+      setAgendaMode('professionals');
+    } else if (activeSpaces.length > 0) {
+      setAgendaMode('spaces');
+    }
+  }, [activeSpaces.length, activeProfessionals.length]);
+
+  // Initialize selected items when data loads
   useMemo(() => {
     if (activeSpaces.length > 0 && selectedSpaceIds.length === 0) {
       setSelectedSpaceIds(activeSpaces.map((s) => s.id));
     }
-  }, [activeSpaces]);
+    if (activeProfessionals.length > 0 && selectedProfessionalIds.length === 0) {
+      setSelectedProfessionalIds(activeProfessionals.map((p) => p.id));
+    }
+  }, [activeSpaces, activeProfessionals]);
 
-  // Filter spaces based on selection
+  // Filter spaces/professionals based on selection
   const filteredSpaces = useMemo(() => {
     if (selectedSpaceIds.length === 0) return activeSpaces;
     return activeSpaces.filter((s) => selectedSpaceIds.includes(s.id));
   }, [activeSpaces, selectedSpaceIds]);
 
+  const filteredProfessionals = useMemo(() => {
+    if (selectedProfessionalIds.length === 0) return activeProfessionals;
+    return activeProfessionals.filter((p) => selectedProfessionalIds.includes(p.id));
+  }, [activeProfessionals, selectedProfessionalIds]);
+
+  // Convert professionals to AgendaColumn format for DayView
+  const professionalsAsColumns: AgendaColumn[] = useMemo(() => {
+    return filteredProfessionals.map(p => ({
+      id: p.id,
+      name: p.name,
+      subtitle: p.specialties?.join(', ') || null
+    }));
+  }, [filteredProfessionals]);
+
   // Filter bookings
   const filteredBookings = useMemo(() => {
     let result = bookings;
 
-    // Filter by selected spaces
-    if (selectedSpaceIds.length > 0) {
-      result = result.filter((b) => selectedSpaceIds.includes(b.space_id));
+    // Filter by selected spaces (if in spaces mode)
+    if (agendaMode === 'spaces' && selectedSpaceIds.length > 0) {
+      result = result.filter((b) => b.space_id && selectedSpaceIds.includes(b.space_id));
+    }
+
+    // Filter by selected professionals (if in professionals mode)
+    if (agendaMode === 'professionals' && selectedProfessionalIds.length > 0) {
+      result = result.filter((b) => b.professional_id && selectedProfessionalIds.includes(b.professional_id));
     }
 
     // Filter by status
@@ -100,7 +139,7 @@ export default function Agenda() {
     }
 
     return result;
-  }, [bookings, selectedSpaceIds, selectedStatuses, searchQuery]);
+  }, [bookings, agendaMode, selectedSpaceIds, selectedProfessionalIds, selectedStatuses, searchQuery]);
 
   // Handlers
   const handleSpaceToggle = useCallback((spaceId: string) => {
@@ -109,6 +148,15 @@ export default function Agenda() {
         return prev.filter((id) => id !== spaceId);
       }
       return [...prev, spaceId];
+    });
+  }, []);
+
+  const handleProfessionalToggle = useCallback((professionalId: string) => {
+    setSelectedProfessionalIds((prev) => {
+      if (prev.includes(professionalId)) {
+        return prev.filter((id) => id !== professionalId);
+      }
+      return [...prev, professionalId];
     });
   }, []);
 
@@ -121,10 +169,14 @@ export default function Agenda() {
     });
   }, []);
 
-  const handleSlotClick = useCallback((spaceId: string, date: Date, hour: number) => {
-    setDefaultSlot({ spaceId, date, hour });
+  const handleSlotClick = useCallback((columnId: string, date: Date, hour: number) => {
+    if (agendaMode === 'spaces') {
+      setDefaultSlot({ spaceId: columnId, date, hour });
+    } else {
+      setDefaultSlot({ professionalId: columnId, date, hour });
+    }
     setWizardOpen(true);
-  }, []);
+  }, [agendaMode]);
 
   const handleBookingClick = useCallback((booking: Booking) => {
     setSelectedBooking(booking);
@@ -142,11 +194,14 @@ export default function Agenda() {
   }, []);
 
   const handleBookingMove = useCallback(
-    async (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => {
+    async (bookingId: string, columnId: string, newStart: Date, newEnd: Date) => {
       const booking = bookings.find((b) => b.id === bookingId);
       if (!booking) return;
 
-      const hasConflict = await checkConflict(spaceId, newStart, newEnd, bookingId);
+      const spaceId = agendaMode === 'spaces' ? columnId : booking.space_id;
+      const professionalId = agendaMode === 'professionals' ? columnId : booking.professional_id;
+
+      const hasConflict = await checkConflict(newStart, newEnd, bookingId, spaceId, professionalId);
       if (hasConflict) {
         toast({
           title: 'Conflito de horário',
@@ -165,7 +220,7 @@ export default function Agenda() {
         space_price_per_hour: space?.price_per_hour ?? 0,
       });
     },
-    [bookings, spaces, checkConflict, updateBooking, toast]
+    [bookings, spaces, agendaMode, checkConflict, updateBooking, toast]
   );
 
   const handleBookingResize = useCallback(
@@ -173,7 +228,7 @@ export default function Agenda() {
       const booking = bookings.find((b) => b.id === bookingId);
       if (!booking) return;
 
-      const hasConflict = await checkConflict(booking.space_id, newStart, newEnd, bookingId);
+      const hasConflict = await checkConflict(newStart, newEnd, bookingId, booking.space_id, booking.professional_id);
       if (hasConflict) {
         toast({
           title: 'Conflito de horário',
@@ -194,7 +249,8 @@ export default function Agenda() {
     [bookings, spaces, checkConflict, updateBooking, toast]
   );
 
-  const isLoading = spacesLoading || bookingsLoading;
+  const isLoading = spacesLoading || professionalsLoading || bookingsLoading;
+  const hasNoColumns = activeSpaces.length === 0 && activeProfessionals.length === 0;
 
   return (
     <AppLayout>
@@ -261,14 +317,14 @@ export default function Agenda() {
             <Card className="flex-1 flex items-center justify-center">
               <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary" />
             </Card>
-          ) : activeSpaces.length === 0 ? (
+          ) : hasNoColumns ? (
             <Card className="flex-1 flex flex-col items-center justify-center text-center p-4 md:p-8">
               <div className="rounded-full bg-muted p-3 md:p-4 mb-3 md:mb-4">
-                <Calendar className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
+                <Users className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-base md:text-lg">Nenhum espaço cadastrado</h3>
+              <h3 className="font-semibold text-base md:text-lg">Nenhum espaço ou profissional cadastrado</h3>
               <p className="text-muted-foreground mt-1 text-sm">
-                Cadastre espaços para visualizar a agenda
+                Cadastre espaços ou profissionais para visualizar a agenda
               </p>
             </Card>
           ) : (
@@ -283,6 +339,8 @@ export default function Agenda() {
                   onBookingClick={handleBookingClick}
                   onBookingMove={handleBookingMove}
                   onBookingResize={handleBookingResize}
+                  mode={agendaMode}
+                  professionals={professionalsAsColumns}
                 />
               )}
               {viewMode === 'week' && (

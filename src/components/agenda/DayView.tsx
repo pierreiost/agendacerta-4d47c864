@@ -22,15 +22,25 @@ type Space = Tables<'spaces'> & {
   category?: Tables<'categories'> | null;
 };
 
+// Coluna genérica da agenda (pode ser espaço ou profissional)
+export interface AgendaColumn {
+  id: string;
+  name: string;
+  subtitle?: string | null;
+}
+
 interface DayViewProps {
   date: Date;
   spaces: Space[];
   bookings: Booking[];
   allSpaces: Space[];
-  onSlotClick: (spaceId: string, date: Date, hour: number) => void;
+  onSlotClick: (columnId: string, date: Date, hour: number) => void;
   onBookingClick: (booking: Booking) => void;
-  onBookingMove?: (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => void;
+  onBookingMove?: (bookingId: string, columnId: string, newStart: Date, newEnd: Date) => void;
   onBookingResize?: (bookingId: string, newStart: Date, newEnd: Date) => void;
+  // Novo: suporte a profissionais
+  mode?: 'spaces' | 'professionals';
+  professionals?: AgendaColumn[];
 }
 
 // Horários visíveis na agenda (8:00 a 22:00) - mais espaço útil
@@ -83,7 +93,7 @@ interface DragState {
   initialY: number;
   initialStart: Date;
   initialEnd: Date;
-  spaceId: string;
+  columnId: string;
 }
 
 export function DayView({
@@ -95,10 +105,34 @@ export function DayView({
   onBookingClick,
   onBookingMove,
   onBookingResize,
+  mode = 'spaces',
+  professionals = [],
 }: DayViewProps) {
+  // Colunas da agenda (espaços ou profissionais)
+  const columns: AgendaColumn[] = useMemo(() => {
+    if (mode === 'professionals' && professionals.length > 0) {
+      return professionals;
+    }
+    return spaces.map(s => ({ id: s.id, name: s.name, subtitle: s.category?.name }));
+  }, [mode, spaces, professionals]);
+
+  const allColumns: AgendaColumn[] = useMemo(() => {
+    if (mode === 'professionals' && professionals.length > 0) {
+      return professionals;
+    }
+    return allSpaces.map(s => ({ id: s.id, name: s.name, subtitle: s.category?.name }));
+  }, [mode, allSpaces, professionals]);
+
+  // Função para obter o columnId de um booking
+  const getBookingColumnId = useCallback((booking: Booking): string | null => {
+    if (mode === 'professionals') {
+      return booking.professional_id || null;
+    }
+    return booking.space_id || null;
+  }, [mode]);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragPreview, setDragPreview] = useState<{
-    spaceId: string;
+    columnId: string;
     start: Date;
     end: Date;
   } | null>(null);
@@ -175,22 +209,25 @@ export function DayView({
       e.stopPropagation();
       e.preventDefault();
 
+      const columnId = getBookingColumnId(booking);
+      if (!columnId) return;
+
       setDragState({
         bookingId: booking.id,
         type,
         initialY: e.clientY,
         initialStart: new Date(booking.start_time),
         initialEnd: new Date(booking.end_time),
-        spaceId: booking.space_id,
+        columnId,
       });
 
       setDragPreview({
-        spaceId: booking.space_id,
+        columnId,
         start: new Date(booking.start_time),
         end: new Date(booking.end_time),
       });
     },
-    []
+    [getBookingColumnId]
   );
 
   const handleMouseMove = useCallback(
@@ -226,7 +263,7 @@ export function DayView({
       if (endHour > 22 || (endHour === 22 && newEnd.getMinutes() > 0)) return;
 
       setDragPreview({
-        spaceId: dragState.spaceId,
+        columnId: dragState.columnId,
         start: newStart,
         end: newEnd,
       });
@@ -242,7 +279,7 @@ export function DayView({
 
       if (hasChanged) {
         if (dragState.type === 'move' && onBookingMove) {
-          onBookingMove(dragState.bookingId, dragState.spaceId, dragPreview.start, dragPreview.end);
+          onBookingMove(dragState.bookingId, dragState.columnId, dragPreview.start, dragPreview.end);
         } else if (onBookingResize) {
           onBookingResize(dragState.bookingId, dragPreview.start, dragPreview.end);
         }
@@ -264,7 +301,7 @@ export function DayView({
     }
   }, [dragState, handleMouseMove, handleMouseUp]);
 
-  const handleSlotClick = (spaceId: string, hour: number, event?: React.MouseEvent) => {
+  const handleSlotClickInternal = (columnId: string, hour: number, event?: React.MouseEvent) => {
     // Calcular minutos baseado na posição do clique dentro do slot
     let minutes = 0;
     if (event) {
@@ -280,7 +317,7 @@ export function DayView({
 
     // Criar data com hora arredondada
     const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
-    onSlotClick(spaceId, slotDate, finalHour);
+    onSlotClick(columnId, slotDate, finalHour);
   };
 
   const isCurrentTimeSlot = (hour: number) => {
@@ -295,12 +332,12 @@ export function DayView({
     }).format(value);
   };
 
-  if (spaces.length === 0) {
+  if (columns.length === 0) {
     return (
       <Card className="flex-1 flex items-center justify-center p-8">
         <div className="text-center text-muted-foreground">
-          <p>Nenhum espaço selecionado</p>
-          <p className="text-sm">Selecione espaços na barra lateral para visualizar a agenda</p>
+          <p>Nenhum {mode === 'professionals' ? 'profissional' : 'espaço'} selecionado</p>
+          <p className="text-sm">Selecione na barra lateral para visualizar a agenda</p>
         </div>
       </Card>
     );
@@ -310,15 +347,15 @@ export function DayView({
     <Card className="flex-1 overflow-hidden shadow-soft">
       <ScrollArea className="h-full" ref={scrollAreaRef}>
         <div className="min-w-[320px] md:min-w-[600px] lg:min-w-[800px]">
-          {/* Header with space names */}
+          {/* Header with column names */}
           <div className="sticky top-0 z-20 bg-card border-b border-border">
             <div className="flex">
               <div className="w-12 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2" />
-              {spaces.map((space, index) => {
-                const colors = getSpaceColor(allSpaces.findIndex((s) => s.id === space.id));
+              {columns.map((column, index) => {
+                const colors = getSpaceColor(allColumns.findIndex((c) => c.id === column.id));
                 return (
                   <div
-                    key={space.id}
+                    key={column.id}
                     className={cn(
                       'flex-1 min-w-[100px] md:min-w-[140px] lg:min-w-[180px] p-2 md:p-3 border-r border-border last:border-r-0',
                       'bg-gradient-to-b from-muted/30 to-transparent'
@@ -326,10 +363,10 @@ export function DayView({
                   >
                     <div className="flex items-center gap-1 md:gap-2">
                       <div className={cn('w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0', colors.dot)} />
-                      <span className="font-medium text-xs md:text-sm truncate">{space.name}</span>
+                      <span className="font-medium text-xs md:text-sm truncate">{column.name}</span>
                     </div>
-                    {space.category && (
-                      <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">{space.category.name}</span>
+                    {column.subtitle && (
+                      <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">{column.subtitle}</span>
                     )}
                   </div>
                 );
@@ -370,30 +407,30 @@ export function DayView({
                   </span>
                 </div>
 
-                {/* Space columns */}
-                {spaces.map((space) => (
+                {/* Column slots */}
+                {columns.map((column) => (
                   <div
-                    key={`${space.id}-${hour}`}
+                    key={`${column.id}-${hour}`}
                     className={cn(
                       'flex-1 min-w-[100px] md:min-w-[140px] lg:min-w-[180px] border-r border-b border-border last:border-r-0 relative cursor-pointer',
                       'transition-colors duration-150',
                       'hover:bg-primary/5',
                       isCurrentTimeSlot(hour) && 'bg-destructive/5'
                     )}
-                    onClick={(e) => handleSlotClick(space.id, hour, e)}
+                    onClick={(e) => handleSlotClickInternal(column.id, hour, e)}
                   />
                 ))}
               </div>
             ))}
 
             {/* Bookings overlay */}
-            {spaces.map((space) => {
-              const spaceBookings = dayBookings.filter((b) => b.space_id === space.id);
-              const spaceIndex = allSpaces.findIndex((s) => s.id === space.id);
-              const colors = getSpaceColor(spaceIndex);
-              const columnIndex = spaces.findIndex((s) => s.id === space.id);
+            {columns.map((column) => {
+              const columnBookings = dayBookings.filter((b) => getBookingColumnId(b) === column.id);
+              const columnIndex = columns.findIndex((c) => c.id === column.id);
+              const allColumnIndex = allColumns.findIndex((c) => c.id === column.id);
+              const colors = getSpaceColor(allColumnIndex);
 
-              return spaceBookings.map((booking) => {
+              return columnBookings.map((booking) => {
                 const { top, height } = getBookingPosition(booking);
                 const isDragging = dragState?.bookingId === booking.id;
                 const previewPos =
@@ -431,8 +468,8 @@ export function DayView({
                     style={{
                       top: previewPos ? previewPos.top : top,
                       height: previewPos ? previewPos.height : height,
-                      left: `calc(48px + ${columnIndex} * (100% - 48px) / ${spaces.length} + 1px)`,
-                      width: `calc((100% - 48px) / ${spaces.length} - 2px)`,
+                      left: `calc(48px + ${columnIndex} * (100% - 48px) / ${columns.length} + 1px)`,
+                      width: `calc((100% - 48px) / ${columns.length} - 2px)`,
                     }}
                     onClick={(e) => {
                       e.stopPropagation();

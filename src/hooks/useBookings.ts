@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 export type Booking = Tables<'bookings'> & {
   space?: Tables<'spaces'> | null;
+  professional_id?: string | null;
 };
 
 // Error codes that indicate permission/auth issues
@@ -261,25 +262,42 @@ export function useBookings(startDate?: Date, endDate?: Date) {
     },
   });
 
-  const checkConflict = async (spaceId: string, startTime: Date, endTime: Date, excludeBookingId?: string) => {
+  const checkConflict = async (
+    startTime: Date,
+    endTime: Date,
+    excludeBookingId?: string,
+    spaceId?: string | null,
+    professionalId?: string | null
+  ) => {
+    // Must have at least one of spaceId or professionalId
+    if (!spaceId && !professionalId) return false;
+
     let query = supabase
       .from('bookings')
       .select('id')
-      .eq('space_id', spaceId)
       .neq('status', 'CANCELLED')
       .or(`and(start_time.lt.${endTime.toISOString()},end_time.gt.${startTime.toISOString()})`);
+
+    // Check conflicts for space OR professional
+    const filters: string[] = [];
+    if (spaceId) filters.push(`space_id.eq.${spaceId}`);
+    if (professionalId) filters.push(`professional_id.eq.${professionalId}`);
+
+    if (filters.length > 0) {
+      query = query.or(filters.join(','));
+    }
 
     if (excludeBookingId) {
       query = query.neq('id', excludeBookingId);
     }
 
     const { data, error } = await query;
-    
+
     if (error) {
       handleAuthError(error as SupabaseError);
       throw error;
     }
-    
+
     return data.length > 0;
   };
 
