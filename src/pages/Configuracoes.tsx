@@ -43,7 +43,7 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { ProfessionalFormDialog } from '@/components/team/ProfessionalFormDialog';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
-import { InviteMemberDialog } from '@/components/team/InviteMemberDialog';
+import { CreateMemberDialog } from '@/components/team/CreateMemberDialog';
 import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
 import type { BookableMember } from '@/types/services';
 import {
@@ -472,7 +472,7 @@ export default function Configuracoes() {
         member={selectedMember}
       />
 
-      <InviteMemberDialog
+      <CreateMemberDialog
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
       />

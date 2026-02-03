@@ -108,11 +108,14 @@ export default function OrdemServicoForm() {
   const watchedTaxRate = watch("taxRate");
   const watchedCustomerId = watch("customerId");
 
+  const persistKey = currentVenue?.id ? `os_form_${currentVenue.id}_${id || "new"}` : null;
+  
   const { clearDraft } = useFormPersist({
     form,
-    key: `os_form_${currentVenue?.id}_${id || "new"}`,
+    key: persistKey || "os_form_temp",
     exclude: [],
     debounceMs: 500,
+    showRecoveryToast: !isEditing, // Only show toast for new OS
   });
 
   useEffect(() => {
