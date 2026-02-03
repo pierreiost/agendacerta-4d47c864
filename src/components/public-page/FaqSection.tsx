@@ -15,37 +15,35 @@ export function FaqSection({ section }: FaqSectionProps) {
   if (!section.enabled || section.items.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-24 px-4 bg-muted/30">
-      <div className="mx-auto max-w-3xl">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 mb-4">
-            <HelpCircle className="h-6 w-6 text-primary" />
+    <section className="py-12">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <HelpCircle className="h-5 w-5 text-primary" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Perguntas Frequentes
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Tire suas dúvidas sobre nossos serviços
-          </p>
+          <h2 className="text-xl font-semibold">Perguntas Frequentes</h2>
         </div>
-
-        <Accordion type="single" collapsible className="space-y-3">
-          {section.items.map((faq, index) => (
-            <AccordionItem
-              key={faq.id}
-              value={faq.id}
-              className="bg-card rounded-xl border shadow-sm px-6 data-[state=open]:shadow-md transition-shadow"
-            >
-              <AccordionTrigger className="text-left font-medium py-5 hover:no-underline">
-                {faq.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        <p className="text-muted-foreground text-sm">
+          Tire suas dúvidas sobre nossos serviços
+        </p>
       </div>
+
+      <Accordion type="single" collapsible className="space-y-2">
+        {section.items.map((faq) => (
+          <AccordionItem
+            key={faq.id}
+            value={faq.id}
+            className="bg-card rounded-lg border px-4 data-[state=open]:bg-muted/30 transition-colors"
+          >
+            <AccordionTrigger className="text-left text-sm font-medium py-4 hover:no-underline">
+              {faq.question}
+            </AccordionTrigger>
+            <AccordionContent className="text-muted-foreground text-sm pb-4 leading-relaxed">
+              {faq.answer}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </section>
   );
 }

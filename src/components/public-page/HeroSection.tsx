@@ -9,6 +9,26 @@ interface HeroSectionProps {
   onCtaClick: () => void;
 }
 
+// Validar se URL de imagem é segura (prevenir CSS injection)
+function isSafeImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    // Aceitar apenas http/https
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+    // Bloquear URLs suspeitas
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('javascript:') || lowerUrl.includes('data:')) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function WaveDecoration() {
   return (
     <div className="absolute bottom-0 left-0 right-0">
@@ -33,18 +53,20 @@ export function HeroSection({ section, venueName, logoUrl, onCtaClick }: HeroSec
 
   const coverStyle: CoverStyle = section.cover_style || 'wave';
   const isFullHero = coverStyle === 'hero';
+  const safeBackgroundUrl = isSafeImageUrl(section.background_image_url) ? section.background_image_url : null;
+  const safeLogoUrl = isSafeImageUrl(logoUrl) ? logoUrl : null;
 
   return (
     <section className={cn(
       "relative overflow-hidden",
       isFullHero && "min-h-[70vh] flex items-center"
     )}>
-      {/* Background */}
-      {section.background_image_url ? (
+      {/* Background - URL validada */}
+      {safeBackgroundUrl ? (
         <>
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${section.background_image_url})` }}
+            style={{ backgroundImage: `url(${safeBackgroundUrl})` }}
           />
           <div className={cn(
             "absolute inset-0",
@@ -68,14 +90,14 @@ export function HeroSection({ section, venueName, logoUrl, onCtaClick }: HeroSec
           "mx-auto max-w-5xl",
           isFullHero ? "text-left" : "text-center"
         )}>
-          {/* Logo - Aligned left */}
-          {logoUrl && (
+          {/* Logo - URL validada */}
+          {safeLogoUrl && (
             <div className={cn(
               "mb-4 animate-fade-in",
               isFullHero ? "flex justify-start" : "flex justify-center"
             )}>
               <img
-                src={logoUrl}
+                src={safeLogoUrl}
                 alt={venueName}
                 className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg"
               />
@@ -89,7 +111,7 @@ export function HeroSection({ section, venueName, logoUrl, onCtaClick }: HeroSec
               isFullHero 
                 ? "text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-4"
                 : "text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-3",
-              section.background_image_url ? "text-white" : "text-primary-foreground"
+              safeBackgroundUrl ? "text-white" : "text-primary-foreground"
             )}
             style={{ animationDelay: '100ms' }}
           >
@@ -104,7 +126,7 @@ export function HeroSection({ section, venueName, logoUrl, onCtaClick }: HeroSec
                 isFullHero
                   ? "text-lg sm:text-xl md:text-2xl mb-8 max-w-2xl"
                   : "text-base sm:text-lg md:text-xl mb-6",
-                section.background_image_url ? "text-white/90" : "text-primary-foreground/90"
+                safeBackgroundUrl ? "text-white/90" : "text-primary-foreground/90"
               )}
               style={{ animationDelay: '200ms' }}
             >
@@ -121,7 +143,7 @@ export function HeroSection({ section, venueName, logoUrl, onCtaClick }: HeroSec
                 className={cn(
                   "px-6 py-5 rounded-full shadow-lg transition-all duration-300",
                   "hover:scale-105 hover:shadow-xl",
-                  section.background_image_url
+                  safeBackgroundUrl
                     ? "bg-white text-primary hover:bg-white/90"
                     : "bg-white text-primary hover:bg-white/90"
                 )}

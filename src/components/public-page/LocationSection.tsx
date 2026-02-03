@@ -6,11 +6,41 @@ interface LocationSectionProps {
   section: LocationSectionType;
 }
 
+// Validar se é uma URL segura do Google Maps (prevenir XSS via iframe)
+function isValidGoogleMapsEmbedUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    // Aceitar apenas domínios legítimos do Google Maps
+    const allowedHosts = [
+      'www.google.com',
+      'google.com',
+      'maps.google.com',
+      'www.google.com.br',
+      'google.com.br'
+    ];
+    if (!allowedHosts.includes(parsed.hostname)) {
+      return false;
+    }
+    // Deve ser um path de embed
+    if (!parsed.pathname.startsWith('/maps/embed') && !parsed.pathname.startsWith('/maps/d/embed')) {
+      return false;
+    }
+    // Protocolo deve ser HTTPS
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function LocationSection({ section }: LocationSectionProps) {
   if (!section.enabled) return null;
 
   const hasAddress = section.address_line1 || section.address_line2;
-  const hasMap = section.show_map && section.google_maps_embed_url;
+  const hasMap = section.show_map && isValidGoogleMapsEmbedUrl(section.google_maps_embed_url);
 
   if (!hasAddress && !hasMap) return null;
 
@@ -60,7 +90,7 @@ export function LocationSection({ section }: LocationSectionProps) {
             </div>
           )}
 
-          {/* Map */}
+          {/* Map - URL já validada por isValidGoogleMapsEmbedUrl */}
           {hasMap && (
             <div className="aspect-video md:aspect-[4/3] rounded-xl overflow-hidden shadow-lg border">
               <iframe
@@ -72,6 +102,7 @@ export function LocationSection({ section }: LocationSectionProps) {
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 title="Mapa da localização"
+                sandbox="allow-scripts allow-same-origin"
               />
             </div>
           )}

@@ -1,21 +1,89 @@
 import { SocialSection as SocialSectionType } from '@/types/public-page';
 import { Button } from '@/components/ui/button';
 import { Phone, Mail, MessageCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface SocialSectionProps {
   section: SocialSectionType;
 }
 
+// Validar e construir URL segura do Instagram
+function getSafeInstagramUrl(input: string | null | undefined): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+
+  // Se começa com http, validar que é realmente Instagram
+  if (trimmed.startsWith('http')) {
+    try {
+      const url = new URL(trimmed);
+      const allowedHosts = ['instagram.com', 'www.instagram.com', 'instagr.am'];
+      if (!allowedHosts.includes(url.hostname)) {
+        return null; // URL não é do Instagram
+      }
+      // Forçar HTTPS
+      url.protocol = 'https:';
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  // Se é username, construir URL segura
+  const username = trimmed.replace('@', '').replace(/[^a-zA-Z0-9._]/g, '');
+  if (username) {
+    return `https://instagram.com/${username}`;
+  }
+  return null;
+}
+
+// Validar e construir URL segura do Facebook
+function getSafeFacebookUrl(input: string | null | undefined): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+
+  // Se começa com http, validar que é realmente Facebook
+  if (trimmed.startsWith('http')) {
+    try {
+      const url = new URL(trimmed);
+      const allowedHosts = ['facebook.com', 'www.facebook.com', 'fb.com', 'www.fb.com', 'm.facebook.com'];
+      if (!allowedHosts.includes(url.hostname)) {
+        return null; // URL não é do Facebook
+      }
+      // Forçar HTTPS
+      url.protocol = 'https:';
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  // Se é username/pagename, construir URL segura
+  const pagename = trimmed.replace(/[^a-zA-Z0-9.]/g, '');
+  if (pagename) {
+    return `https://facebook.com/${pagename}`;
+  }
+  return null;
+}
+
+// Validar email básico
+function isValidEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  // Regex simples para email
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export function SocialSection({ section }: SocialSectionProps) {
   if (!section.enabled) return null;
 
+  const instagramUrl = getSafeInstagramUrl(section.instagram);
+  const facebookUrl = getSafeFacebookUrl(section.facebook);
+  const validEmail = isValidEmail(section.email) ? section.email : null;
+
   const hasAnyLink =
     section.whatsapp ||
-    section.instagram ||
-    section.facebook ||
+    instagramUrl ||
+    facebookUrl ||
     section.phone ||
-    section.email;
+    validEmail;
 
   if (!hasAnyLink) return null;
 
@@ -41,19 +109,15 @@ export function SocialSection({ section }: SocialSectionProps) {
             </Button>
           )}
 
-          {/* Instagram */}
-          {section.instagram && (
+          {/* Instagram - URL validada */}
+          {instagramUrl && (
             <Button
               asChild
               size="lg"
               className="bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:opacity-90 text-white gap-2 rounded-full px-6"
             >
               <a
-                href={
-                  section.instagram.startsWith('http')
-                    ? section.instagram
-                    : `https://instagram.com/${section.instagram.replace('@', '')}`
-                }
+                href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -65,15 +129,15 @@ export function SocialSection({ section }: SocialSectionProps) {
             </Button>
           )}
 
-          {/* Facebook */}
-          {section.facebook && (
+          {/* Facebook - URL validada */}
+          {facebookUrl && (
             <Button
               asChild
               size="lg"
               className="bg-[#1877F2] hover:bg-[#166FE5] text-white gap-2 rounded-full px-6"
             >
               <a
-                href={section.facebook.startsWith('http') ? section.facebook : `https://facebook.com/${section.facebook}`}
+                href={facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -100,17 +164,17 @@ export function SocialSection({ section }: SocialSectionProps) {
             </Button>
           )}
 
-          {/* Email */}
-          {section.email && (
+          {/* Email - validado */}
+          {validEmail && (
             <Button
               asChild
               size="lg"
               variant="outline"
               className="gap-2 rounded-full px-6"
             >
-              <a href={`mailto:${section.email}`}>
+              <a href={`mailto:${validEmail}`}>
                 <Mail className="h-5 w-5" />
-                {section.email}
+                {validEmail}
               </a>
             </Button>
           )}
