@@ -340,48 +340,53 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
   // Success state
   if (submitted) {
     return (
-      <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
-        <CardContent className="py-12 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="rounded-full bg-green-100 p-3">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
+      <div className="p-8 text-center">
+        <div className="flex justify-center mb-6">
+          <div className="rounded-2xl bg-green-100 p-4">
+            <CheckCircle2 className="h-10 w-10 text-green-600" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">
-            {venue.booking_mode === 'calendar' ? 'Reserva Solicitada!' : 'Solicitação Enviada!'}
-          </h3>
-          <p className="text-muted-foreground mb-6">
-            {venue.booking_mode === 'calendar'
-              ? 'Sua reserva foi recebida e está aguardando confirmação.'
-              : 'Sua solicitação foi recebida. Entraremos em contato em breve.'}
-          </p>
-          <Button variant="outline" onClick={() => { setSubmitted(false); resetCalendar(); }}>
-            Fazer nova solicitação
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+        <h3 className="text-2xl font-bold mb-3">
+          {venue.booking_mode === 'calendar' ? 'Reserva Solicitada!' : 'Solicitação Enviada!'}
+        </h3>
+        <p className="text-muted-foreground mb-8 text-base">
+          {venue.booking_mode === 'calendar'
+            ? 'Sua reserva foi recebida e está aguardando confirmação.'
+            : 'Sua solicitação foi recebida. Entraremos em contato em breve.'}
+        </p>
+        <Button
+          variant="outline"
+          size="lg"
+          className="rounded-xl"
+          onClick={() => { setSubmitted(false); resetCalendar(); }}
+        >
+          Fazer nova solicitação
+        </Button>
+      </div>
     );
   }
 
   return (
-    <Card className="shadow-xl border-0 bg-card/95 backdrop-blur-sm">
-      <CardHeader className="pb-4 border-b">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-full bg-primary/10">
-            <Calendar className="h-5 w-5 text-primary" />
+    <div>
+      {/* Header */}
+      <div className="p-6 pb-5 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-primary/15">
+            <Calendar className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-lg">
+            <h2 className="text-xl font-bold text-foreground">
               {venue.booking_mode === 'calendar' ? 'Agendar Horário' : 'Solicitar Orçamento'}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
               {venue.public_settings?.page_instruction || 'Preencha os dados abaixo'}
             </p>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="pt-6">
+      {/* Content */}
+      <div className="p-6">
         {venue.booking_mode === 'calendar' ? (
           <>
             {/* Step indicator */}
@@ -414,22 +419,35 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : spaces && spaces.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {spaces.map((space) => (
                       <button
                         key={space.id}
                         type="button"
                         onClick={() => { setSelectedSpace(space); setCalendarStep('datetime'); }}
-                        className="w-full p-4 text-left rounded-lg border hover:border-primary hover:bg-primary/5 transition-all"
-                      >
-                        <div className="font-medium">{space.name}</div>
-                        {space.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{space.description}</p>
+                        className={cn(
+                          "w-full p-5 text-left rounded-xl border-2 transition-all duration-200",
+                          "hover:border-primary hover:bg-primary/5 hover:shadow-md",
+                          "active:scale-[0.98]"
                         )}
-                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                          {space.capacity && <span>Capacidade: {space.capacity}</span>}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="font-semibold text-base">{space.name}</div>
+                            {space.description && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{space.description}</p>
+                            )}
+                            {space.capacity && (
+                              <p className="text-xs text-muted-foreground mt-2">Capacidade: {space.capacity} pessoas</p>
+                            )}
+                          </div>
                           {space.price_per_hour && (
-                            <span>R$ {space.price_per_hour.toFixed(2)}/hora</span>
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-xl font-bold text-primary">
+                                R$ {space.price_per_hour.toFixed(0)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">/hora</div>
+                            </div>
                           )}
                         </div>
                       </button>
@@ -497,12 +515,12 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                 </div>
 
                 {/* Time slots */}
-                <div className="space-y-2">
-                  <h4 className="font-medium flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4" />
+                <div className="space-y-3">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
                     Selecione o horário
                   </h4>
-                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
                     {TIME_SLOTS.map((slot) => {
                       const booked = isSlotBooked(slot.start);
                       const past = isSlotPast(slot.start);
@@ -514,10 +532,10 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                           disabled={booked || past}
                           onClick={() => toggleSlot(slot.start)}
                           className={cn(
-                            "py-2 px-3 rounded-lg text-xs border transition-all",
-                            selected && "bg-primary text-white border-primary",
-                            !selected && !booked && !past && "hover:border-primary",
-                            (booked || past) && "opacity-50 cursor-not-allowed bg-muted"
+                            "py-3 px-3 rounded-xl text-sm font-medium border-2 transition-all duration-200",
+                            selected && "bg-primary text-white border-primary shadow-md",
+                            !selected && !booked && !past && "hover:border-primary hover:bg-primary/5",
+                            (booked || past) && "opacity-40 cursor-not-allowed bg-muted border-transparent"
                           )}
                         >
                           {slot.label}
@@ -528,7 +546,11 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                 </div>
 
                 {selectedSlots.length > 0 && (
-                  <Button className="w-full" onClick={() => setCalendarStep('info')}>
+                  <Button
+                    size="lg"
+                    className="w-full rounded-xl font-semibold h-12"
+                    onClick={() => setCalendarStep('info')}
+                  >
                     Continuar ({selectedSlots.length}h)
                   </Button>
                 )}
@@ -598,7 +620,12 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={createBooking.isPending}>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full rounded-xl font-semibold h-12"
+                  disabled={createBooking.isPending}
+                >
                   {createBooking.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Solicitar Reserva
                 </Button>
@@ -688,13 +715,18 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={createInquiry.isPending || uploadingPhotos}>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full rounded-xl font-semibold h-12"
+              disabled={createInquiry.isPending || uploadingPhotos}
+            >
               {(createInquiry.isPending || uploadingPhotos) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Enviar Solicitação
             </Button>
           </form>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

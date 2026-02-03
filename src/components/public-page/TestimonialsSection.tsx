@@ -36,9 +36,13 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
         {section.items.slice(0, 3).map((testimonial) => (
           <Card
             key={testimonial.id}
-            className="border bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
+            className={cn(
+              "border bg-white rounded-xl overflow-hidden",
+              "shadow-sm hover:shadow-md transition-all duration-200",
+              "hover:border-primary/30"
+            )}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <div className="flex gap-4">
                 {/* Avatar */}
                 <Avatar className="h-10 w-10 flex-shrink-0">

@@ -23,17 +23,17 @@ export function FaqSection({ section }: FaqSectionProps) {
         <div className="w-12 h-0.5 bg-primary rounded-full" />
       </div>
 
-      <Accordion type="single" collapsible className="space-y-2">
+      <Accordion type="single" collapsible className="space-y-3">
         {section.items.map((faq) => (
           <AccordionItem
             key={faq.id}
             value={faq.id}
-            className="bg-white rounded-lg border shadow-sm px-4 data-[state=open]:shadow-md transition-all"
+            className="bg-white rounded-xl border shadow-sm px-5 data-[state=open]:shadow-md data-[state=open]:border-primary/30 transition-all duration-200 hover:border-primary/20"
           >
-            <AccordionTrigger className="text-left text-sm font-medium py-3.5 hover:no-underline">
+            <AccordionTrigger className="text-left text-sm font-medium py-4 hover:no-underline">
               {faq.question}
             </AccordionTrigger>
-            <AccordionContent className="text-muted-foreground text-sm pb-4 leading-relaxed">
+            <AccordionContent className="text-muted-foreground text-sm pb-5 leading-relaxed">
               {faq.answer}
             </AccordionContent>
           </AccordionItem>
