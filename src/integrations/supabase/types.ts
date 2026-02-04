@@ -1219,6 +1219,7 @@ export type Database = {
           logo_url: string | null
           name: string
           phone: string | null
+          phones: string[] | null
           plan_type: string | null
           primary_color: string | null
           public_page_enabled: boolean | null
@@ -1252,6 +1253,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           phone?: string | null
+          phones?: string[] | null
           plan_type?: string | null
           primary_color?: string | null
           public_page_enabled?: boolean | null
@@ -1285,6 +1287,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string | null
+          phones?: string[] | null
           plan_type?: string | null
           primary_color?: string | null
           public_page_enabled?: boolean | null
@@ -1519,6 +1522,7 @@ export type Database = {
               logo_url: string | null
               name: string
               phone: string | null
+              phones: string[] | null
               plan_type: string | null
               primary_color: string | null
               public_page_enabled: boolean | null
@@ -1567,6 +1571,7 @@ export type Database = {
               logo_url: string | null
               name: string
               phone: string | null
+              phones: string[] | null
               plan_type: string | null
               primary_color: string | null
               public_page_enabled: boolean | null

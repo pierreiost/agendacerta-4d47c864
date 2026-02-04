@@ -31,6 +31,7 @@ import { useFormPersist } from '@/hooks/useFormPersist';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { maskCPFCNPJ, maskPhone, unmask, isValidCPFCNPJ } from '@/lib/masks';
+import { MultiPhoneInput } from './MultiPhoneInput';
 import {
   Loader2,
   Building2,
@@ -41,7 +42,6 @@ import {
   Copy,
   CheckCircle2,
   MapPin,
-  Phone,
   Mail,
   FileText,
   ExternalLink,
@@ -62,7 +62,7 @@ const venueFormSchema = z.object({
     }),
   address: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
-  phone: z.string().optional(),
+  phones: z.array(z.string().max(20)).max(5, 'Máximo de 5 telefones').default([]),
   logo_url: z.string().url('URL inválida').optional().or(z.literal('')),
   dashboard_mode: z.string().optional(),
 });
@@ -90,7 +90,7 @@ export function VenueSettingsTab() {
       whatsapp: '',
       address: '',
       email: '',
-      phone: '',
+      phones: [],
       logo_url: '',
       dashboard_mode: 'bookings',
     },
@@ -103,6 +103,14 @@ export function VenueSettingsTab() {
   const isDirty = useMemo(() => {
     if (!currentVenue) return false;
     
+    // Get phones from venue (with fallback to legacy phone field)
+    const venuePhones = (currentVenue as { phones?: string[] }).phones;
+    const originalPhones = venuePhones?.length
+      ? venuePhones.map((p: string) => maskPhone(p))
+      : currentVenue.phone 
+        ? [maskPhone(currentVenue.phone)]
+        : [];
+    
     const original = {
       name: currentVenue.name || '',
       slug: currentVenue.slug || '',
@@ -110,14 +118,19 @@ export function VenueSettingsTab() {
       whatsapp: currentVenue.whatsapp ? maskPhone(currentVenue.whatsapp) : '',
       address: currentVenue.address || '',
       email: currentVenue.email || '',
-      phone: currentVenue.phone ? maskPhone(currentVenue.phone) : '',
       logo_url: currentVenue.logo_url || '',
       dashboard_mode: (currentVenue as { dashboard_mode?: string }).dashboard_mode || 'bookings',
     };
     
-    return Object.keys(original).some(
+    // Check phones separately (array comparison)
+    const currentPhones = formValues.phones || [];
+    const phonesChanged = JSON.stringify(currentPhones) !== JSON.stringify(originalPhones);
+    
+    const otherFieldsChanged = Object.keys(original).some(
       key => formValues[key as keyof VenueFormData] !== original[key as keyof typeof original]
     );
+    
+    return phonesChanged || otherFieldsChanged;
   }, [formValues, currentVenue]);
 
   // Form persistence for venue settings
@@ -131,6 +144,14 @@ export function VenueSettingsTab() {
   // Reset form when currentVenue changes
   useEffect(() => {
     if (currentVenue) {
+      // Get phones from venue (with fallback to legacy phone field)
+      const venuePhones = (currentVenue as { phones?: string[] }).phones;
+      const initialPhones = venuePhones?.length
+        ? venuePhones.map((p: string) => maskPhone(p))
+        : currentVenue.phone 
+          ? [maskPhone(currentVenue.phone)]
+          : [];
+      
       venueForm.reset({
         name: currentVenue.name || '',
         slug: currentVenue.slug || '',
@@ -138,7 +159,7 @@ export function VenueSettingsTab() {
         whatsapp: currentVenue.whatsapp ? maskPhone(currentVenue.whatsapp) : '',
         address: currentVenue.address || '',
         email: currentVenue.email || '',
-        phone: currentVenue.phone ? maskPhone(currentVenue.phone) : '',
+        phones: initialPhones,
         logo_url: currentVenue.logo_url || '',
         dashboard_mode: (currentVenue as { dashboard_mode?: string }).dashboard_mode || 'bookings',
       });
@@ -149,12 +170,18 @@ export function VenueSettingsTab() {
     if (!currentVenue?.id) return;
     setIsLoading(true);
 
+    // Clean and filter phones
+    const cleanedPhones = (data.phones || [])
+      .map(p => unmask(p))
+      .filter(p => p.length > 0);
+
     const { error } = await supabase
       .from('venues')
       .update({
         name: data.name,
         address: data.address || null,
-        phone: data.phone ? unmask(data.phone) : null,
+        phones: cleanedPhones,
+        phone: cleanedPhones[0] || null, // Keep first phone in legacy field for compatibility
         email: data.email || null,
         logo_url: data.logo_url || null,
         cnpj_cpf: data.cnpj_cpf ? unmask(data.cnpj_cpf) : null,
@@ -534,21 +561,20 @@ export function VenueSettingsTab() {
 
               <FormField
                 control={venueForm.control}
-                name="phone"
+                name="phones"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Telefones da Empresa (máx. 5)</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="(11) 99999-9999"
-                        {...field}
-                        onChange={(e) => {
-                          const masked = maskPhone(e.target.value);
-                          field.onChange(masked);
-                        }}
-                        maxLength={15}
+                      <MultiPhoneInput
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        max={5}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Todos os telefones aparecerão na Ordem de Serviço
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
