@@ -229,7 +229,9 @@ export function useServiceOrderPdf() {
       }
 
       if (order.order_type === 'complete' && Number(order.tax_rate) > 0) {
-        doc.text(`ISS (${order.tax_rate}%):`, totalsX, yPos);
+        // tax_rate is stored as decimal (0.05), display as percentage (5%)
+        const taxRatePercent = Number(order.tax_rate) * 100;
+        doc.text(`ISS (${taxRatePercent.toFixed(0)}%):`, totalsX, yPos);
         doc.text(formatCurrency(Number(order.tax_amount)), 196, yPos, {
           align: 'right',
         });
