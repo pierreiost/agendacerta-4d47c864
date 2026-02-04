@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -110,6 +110,11 @@ export default function OrdemServicoForm() {
 
   const persistKey = currentVenue?.id ? `os_form_${currentVenue.id}_${id || "new"}` : null;
   const [skipDataLoad, setSkipDataLoad] = useState(false);
+
+  // Avoid resetting the form multiple times when orders refetch/update.
+  // This was causing inputs (ISS/Desconto) to "snap back" while typing.
+  const hasInitializedFromDbRef = useRef(false);
+  const lastLoadedIdRef = useRef<string | undefined>(undefined);
   
   const { clearDraft, hasUnsavedData } = useFormPersist({
     form,
@@ -129,8 +134,17 @@ export default function OrdemServicoForm() {
     const loadData = async () => {
       // Skip loading from DB if we restored from draft (for new orders)
       if (skipDataLoad && !isEditing) return;
+
+      // When navigating between OS ids, allow init again
+      if (lastLoadedIdRef.current !== id) {
+        lastLoadedIdRef.current = id;
+        hasInitializedFromDbRef.current = false;
+      }
       
       if (existingOrder && id) {
+        // Only initialize once per OS id; subsequent data refreshes shouldn't wipe user edits.
+        if (hasInitializedFromDbRef.current) return;
+
         const parseAddress = (address: string | null) => {
           return { logradouro: address || "", numero: "", complemento: "", bairro: "" };
         };
@@ -165,6 +179,8 @@ export default function OrdemServicoForm() {
           taxRate: existingOrder.tax_rate != null ? Number(existingOrder.tax_rate) * 100 : 0,
           items: formattedItems,
         });
+
+        hasInitializedFromDbRef.current = true;
       }
     };
 
