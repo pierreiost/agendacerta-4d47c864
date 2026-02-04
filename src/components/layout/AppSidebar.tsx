@@ -18,6 +18,7 @@ import {
   Moon,
   Sun,
   DollarSign,
+  HelpCircle,
   LucideIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -195,6 +196,12 @@ export function AppSidebar() {
               { title: "Página Pública", href: "/pagina-publica", icon: Globe, module: "pagina_publica" as Module },
             ] : []),
             { title: "Configurações", href: "/configuracoes", icon: Settings, module: "configuracoes" as Module },
+          ],
+        },
+        {
+          label: "SUPORTE",
+          items: [
+            { title: "Ajuda", href: "/ajuda", icon: HelpCircle },
           ],
         },
       ];

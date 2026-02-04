@@ -22,6 +22,7 @@ import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
 import OrdensServico from "./pages/OrdensServico";
 import OrdemServicoForm from "./pages/OrdemServicoForm";
+import Ajuda from "./pages/Ajuda";
 import Configuracoes from "./pages/Configuracoes";
 
 import PublicPageConfig from "./pages/PublicPageConfig";
@@ -144,6 +145,7 @@ function AppRoutesWithPersist() {
         <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
         
         <Route path="/pagina-publica" element={<ProtectedRoute><PublicPageConfig /></ProtectedRoute>} />
+        <Route path="/ajuda" element={<ProtectedRoute><Ajuda /></ProtectedRoute>} />
         <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
