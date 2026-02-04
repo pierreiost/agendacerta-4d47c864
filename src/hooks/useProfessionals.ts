@@ -141,15 +141,23 @@ export function useProfessionalAvailability(
 ) {
   const { currentVenue } = useVenue();
 
+  // React Query uses reference equality inside queryKey; arrays coming from form watchers
+  // can be re-created on every render, causing endless refetch/re-render loops.
+  // Convert to a stable, order-insensitive key.
+  const serviceIdsKey = serviceIds?.length ? [...serviceIds].sort().join('|') : '';
+
   return useQuery({
-    queryKey: ['professional-availability', currentVenue?.id, date?.toISOString(), serviceIds, professionalId],
+    queryKey: ['professional-availability', currentVenue?.id, date?.toISOString(), serviceIdsKey, professionalId],
     queryFn: async () => {
       if (!currentVenue?.id || !date || serviceIds.length === 0) return [];
+
+      // Ensure stable ordering for the RPC input as well (helps caching/debugging).
+      const normalizedServiceIds = [...serviceIds].sort();
 
       const { data, error } = await supabase.rpc('get_professional_availability', {
         p_venue_id: currentVenue.id,
         p_date: date.toISOString().split('T')[0],
-        p_service_ids: serviceIds,
+        p_service_ids: normalizedServiceIds,
         p_professional_id: professionalId || null,
       });
 
