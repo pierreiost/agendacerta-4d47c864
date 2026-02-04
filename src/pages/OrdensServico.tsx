@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Trash2, FileText, ClipboardList } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, ClipboardList, FileDown, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useServiceOrders, type ServiceOrder } from "@/hooks/useServiceOrders";
+import { useServiceOrderPdf } from "@/hooks/useServiceOrderPdf";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -60,9 +63,12 @@ const getTypeIcon = (type: "simple" | "complete") => {
 
 export default function OrdensServico() {
   const navigate = useNavigate();
-  const { orders, isLoading, deleteOrder, updateOrder } = useServiceOrders();
+  const { orders, isLoading, deleteOrder, updateOrder, getOrderItems } = useServiceOrders();
+  const { generatePdf } = useServiceOrderPdf();
+  const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -101,6 +107,25 @@ export default function OrdensServico() {
         finished_at: newStatus === "finished" ? new Date().toISOString() : order.finished_at,
       });
     }
+  };
+
+  const handleDownloadPdf = async (e: React.MouseEvent, order: ServiceOrder) => {
+    e.stopPropagation();
+    setDownloadingPdfId(order.id);
+    try {
+      const orderItems = await getOrderItems(order.id);
+      await generatePdf(order, orderItems);
+      toast({ title: "PDF gerado com sucesso!" });
+    } catch (error) {
+      toast({ title: "Erro ao gerar PDF", variant: "destructive" });
+    } finally {
+      setDownloadingPdfId(null);
+    }
+  };
+
+  const isFinalized = (order: ServiceOrder) => {
+    const status = order.order_type === "simple" ? order.status_simple : order.status_complete;
+    return status === "finished" || status === "invoiced";
   };
 
   return (
@@ -197,14 +222,45 @@ export default function OrdensServico() {
                         <TableCell className="text-right font-medium">{formatCurrency(Number(order.total))}</TableCell>
                         <TableCell>{format(new Date(order.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(order)} title="Editar">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(order.id)} title="Excluir">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          <TooltipProvider>
+                            <div className="flex gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={(e) => handleDownloadPdf(e, order)} 
+                                    disabled={downloadingPdfId === order.id}
+                                  >
+                                    {downloadingPdfId === order.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <FileDown className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Baixar PDF</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => handleEdit(order)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{isFinalized(order) ? "Visualizar" : "Editar"}</TooltipContent>
+                              </Tooltip>
+                              {!isFinalized(order) && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(order.id)}>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Excluir</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
                     );
