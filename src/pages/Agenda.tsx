@@ -15,6 +15,8 @@ import { BookingWizard } from '@/components/agenda/BookingWizard';
 import { TechnicianBookingWizard } from '@/components/agenda/TechnicianBookingWizard';
 import { ServiceBookingWizard } from '@/components/agenda/ServiceBookingWizard';
 import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
+import { BeautyBookingSheet } from '@/components/bookings/BeautyBookingSheet';
+import { TechnicianBookingSheet } from '@/components/bookings/TechnicianBookingSheet';
 import { DayViewSkeleton, WeekViewSkeleton, MonthViewSkeleton } from '@/components/agenda/AgendaSkeletons';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import {
@@ -401,12 +403,35 @@ export default function Agenda() {
         );
       })()}
 
-      {/* Booking Details Sheet */}
-      <BookingOrderSheet
-        open={bookingSheetOpen}
-        onOpenChange={setBookingSheetOpen}
-        booking={selectedBooking}
-      />
+      {/* Booking Details Sheet - Conditional by segment */}
+      {(() => {
+        const segment = currentVenue?.segment;
+        if (segment === 'custom') {
+          return (
+            <TechnicianBookingSheet
+              open={bookingSheetOpen}
+              onOpenChange={setBookingSheetOpen}
+              booking={selectedBooking}
+            />
+          );
+        }
+        if (segment === 'beauty' || segment === 'health') {
+          return (
+            <BeautyBookingSheet
+              open={bookingSheetOpen}
+              onOpenChange={setBookingSheetOpen}
+              booking={selectedBooking}
+            />
+          );
+        }
+        return (
+          <BookingOrderSheet
+            open={bookingSheetOpen}
+            onOpenChange={setBookingSheetOpen}
+            booking={selectedBooking}
+          />
+        );
+      })()}
     </AppLayout>
   );
 }
