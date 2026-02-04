@@ -759,12 +759,23 @@ export default function OrdemServicoForm() {
                   <Label htmlFor="discount" className="text-sm">
                     Desconto
                   </Label>
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    min={0} 
-                    disabled={isFinalized()}
-                    {...form.register("discount", { valueAsNumber: true })} 
+                  <Controller
+                    control={control}
+                    name="discount"
+                    render={({ field }) => (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        disabled={isFinalized()}
+                        value={field.value ?? 0}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? 0 : parseFloat(val));
+                        }}
+                        onBlur={field.onBlur}
+                      />
+                    )}
                   />
                 </div>
 
@@ -774,13 +785,24 @@ export default function OrdemServicoForm() {
                       <Label htmlFor="taxRate" className="text-sm">
                         ISS (%)
                       </Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min={0}
-                        max={100}
-                        disabled={isFinalized()}
-                        {...form.register("taxRate", { valueAsNumber: true })}
+                      <Controller
+                        control={control}
+                        name="taxRate"
+                        render={({ field }) => (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            max={100}
+                            disabled={isFinalized()}
+                            value={field.value ?? 0}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              field.onChange(val === "" ? 0 : parseFloat(val));
+                            }}
+                            onBlur={field.onBlur}
+                          />
+                        )}
                       />
                     </div>
                     <div className="flex justify-between text-sm">
