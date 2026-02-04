@@ -23,6 +23,16 @@ export function useFormPersist<T extends FieldValues>({
   const hasRestoredRef = useRef(false);
   const isDirtyRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Store stable references to avoid dependency issues
+  const formRef = useRef(form);
+  const onRestoreRef = useRef(onRestore);
+  const excludeRef = useRef(exclude);
+  
+  // Keep refs updated
+  formRef.current = form;
+  onRestoreRef.current = onRestore;
+  excludeRef.current = exclude;
 
   useEffect(() => {
     if (hasRestoredRef.current) return;
@@ -41,10 +51,10 @@ export function useFormPersist<T extends FieldValues>({
           let hasData = false;
 
           Object.keys(data).forEach((field) => {
-            if (!exclude.includes(field as keyof T)) {
+            if (!excludeRef.current.includes(field as keyof T)) {
               const value = data[field];
               if (value !== undefined && value !== null && value !== "") {
-                form.setValue(field as Path<T>, value as PathValue<T, Path<T>>);
+                formRef.current.setValue(field as Path<T>, value as PathValue<T, Path<T>>);
                 hasData = true;
               }
             }
@@ -57,7 +67,7 @@ export function useFormPersist<T extends FieldValues>({
                 duration: 4000,
               });
             }
-            onRestore?.();
+            onRestoreRef.current?.();
           }
           isDirtyRef.current = hasData;
         } else {
@@ -67,14 +77,14 @@ export function useFormPersist<T extends FieldValues>({
     } catch (error) {
       localStorage.removeItem(storageKey);
     }
-  }, [form, storageKey, exclude, showRecoveryToast, onRestore]);
+  }, [storageKey, showRecoveryToast]);
 
   const saveDraft = useCallback(() => {
-    const values = form.getValues();
+    const values = formRef.current.getValues();
     const filteredValues: Partial<T> = {};
 
     Object.keys(values).forEach((field) => {
-      if (!exclude.includes(field as keyof T)) {
+      if (!excludeRef.current.includes(field as keyof T)) {
         filteredValues[field as keyof T] = values[field as keyof T];
       }
     });
@@ -91,10 +101,10 @@ export function useFormPersist<T extends FieldValues>({
       );
       isDirtyRef.current = true;
     }
-  }, [form, storageKey, exclude]);
+  }, [storageKey]);
 
   useEffect(() => {
-    const subscription = form.watch(() => {
+    const subscription = formRef.current.watch(() => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -107,7 +117,7 @@ export function useFormPersist<T extends FieldValues>({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [form, saveDraft, debounceMs]);
+  }, [saveDraft, debounceMs]);
 
   const clearDraft = useCallback(() => {
     localStorage.removeItem(storageKey);
