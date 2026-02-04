@@ -183,10 +183,20 @@ export function TechnicianBookingWizard({
     }
   }, [open, defaultDate, reset, clearDraft]);
 
-  // Clear time when technicians or duration change
+  // Clear time when technicians or duration change (only if already has a value)
+  const prevTechCountRef = useRef(technicianIds.length);
+  const prevDurationRef = useRef(durationMinutes);
   useEffect(() => {
-    setValue('startTime', '');
-  }, [technicianIds.length, durationMinutes, setValue]);
+    const techCountChanged = prevTechCountRef.current !== technicianIds.length;
+    const durationChanged = prevDurationRef.current !== durationMinutes;
+    
+    if ((techCountChanged || durationChanged) && startTime) {
+      setValue('startTime', '');
+    }
+    
+    prevTechCountRef.current = technicianIds.length;
+    prevDurationRef.current = durationMinutes;
+  }, [technicianIds.length, durationMinutes, startTime, setValue]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers.slice(0, 10);
