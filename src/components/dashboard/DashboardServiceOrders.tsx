@@ -82,6 +82,9 @@ export function DashboardServiceOrders() {
     statusDates.start,
     statusDates.end
   );
+  
+  // Determina se ainda está carregando - prioriza métricas do servidor
+  const isLoading = metricsLoading && !serverMetrics;
 
   // Fallback to client-side calculation if server metrics not available
   const metrics = useMemo(() => {
@@ -232,7 +235,7 @@ export function DashboardServiceOrders() {
     return colors[status] || colors.draft;
   };
 
-  if (ordersLoading || metricsLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
