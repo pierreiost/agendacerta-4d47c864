@@ -3,7 +3,6 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -76,8 +75,8 @@ export function DashboardServiceOrders() {
   const [recentDateRange, setRecentDateRange] = useState<DateRange>("7d");
   
   // Get date ranges for filters
-  const statusDates = getDateRange(statusDateRange);
-  const recentDates = getDateRange(recentDateRange);
+  const statusDates = useMemo(() => getDateRange(statusDateRange), [statusDateRange]);
+  const recentDates = useMemo(() => getDateRange(recentDateRange), [recentDateRange]);
   
   // Use server-side metrics
   const { data: serverMetrics, isLoading: metricsLoading } = useServiceOrderMetrics(
