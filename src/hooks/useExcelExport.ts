@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 
 interface ExportOptions {
@@ -7,46 +7,69 @@ interface ExportOptions {
 }
 
 export function useExcelExport() {
-  const exportToExcel = <T extends Record<string, unknown>>(
+  const exportToExcel = async <T extends Record<string, unknown>>(
     data: T[],
     columns: { key: keyof T; header: string; transform?: (value: unknown) => string | number }[],
     options: ExportOptions
   ) => {
-    // Transform data to rows with headers
-    const rows = data.map((item) =>
-      columns.reduce((acc, col) => {
+    // Create workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(options.sheetName || 'Dados');
+
+    // Add headers
+    worksheet.columns = columns.map((col) => ({
+      header: col.header,
+      key: String(col.key),
+      width: Math.min(col.header.length + 5, 50),
+    }));
+
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' },
+    };
+
+    // Add data rows
+    data.forEach((item) => {
+      const rowData: Record<string, string | number> = {};
+      columns.forEach((col) => {
         const value = item[col.key];
-        acc[col.header] = col.transform ? col.transform(value) : (value as string | number);
-        return acc;
-      }, {} as Record<string, string | number>)
-    );
-
-    // Create worksheet
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-
-    // Auto-size columns
-    const colWidths = columns.map((col) => {
-      const maxLength = Math.max(
-        col.header.length,
-        ...rows.map((row) => String(row[col.header] || '').length)
-      );
-      return { wch: Math.min(maxLength + 2, 50) };
+        rowData[String(col.key)] = col.transform ? col.transform(value) : (value as string | number) || '';
+      });
+      worksheet.addRow(rowData);
     });
-    worksheet['!cols'] = colWidths;
 
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, options.sheetName || 'Dados');
+    // Auto-size columns based on content
+    worksheet.columns.forEach((column) => {
+      let maxLength = column.header?.toString().length || 10;
+      column.eachCell?.({ includeEmpty: false }, (cell) => {
+        const cellLength = cell.value?.toString().length || 0;
+        if (cellLength > maxLength) {
+          maxLength = cellLength;
+        }
+      });
+      column.width = Math.min(maxLength + 2, 50);
+    });
 
     // Generate filename with date
     const dateStr = format(new Date(), 'yyyy-MM-dd');
     const filename = `${options.filename}-${dateStr}.xlsx`;
 
     // Download file
-    XLSX.writeFile(workbook, filename);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
   };
 
-  const exportCustomers = (
+  const exportCustomers = async (
     customers: {
       id: string;
       name: string;
@@ -58,7 +81,7 @@ export function useExcelExport() {
       created_at: string;
     }[]
   ) => {
-    exportToExcel(
+    await exportToExcel(
       customers,
       [
         { key: 'name', header: 'Nome' },
@@ -77,7 +100,7 @@ export function useExcelExport() {
     );
   };
 
-  const exportServiceOrders = (
+  const exportServiceOrders = async (
     orders: {
       order_number: number;
       customer_name: string;
@@ -142,48 +165,70 @@ export function useExcelExport() {
       };
     });
 
-    // Build rows manually to handle the status correctly
-    const rows = ordersWithBreakdown.map((order) => ({
-      'Nº OS': order.order_number,
-      'Cliente': order.customer_name,
-      'Telefone': order.customer_phone || '-',
-      'Descrição': order.description,
-      'Tipo': order.order_type === 'simple' ? 'Simples' : 'Completa',
-      'Status': getStatusLabel(order),
-      'Qtd Itens': order.itemsCount,
-      'Peças': formatCurrency(order.partsTotal),
-      'Mão de Obra': formatCurrency(order.laborTotal),
-      'Subtotal': formatCurrency(order.subtotal),
-      'Desconto': formatCurrency(order.discount),
-      'Total': formatCurrency(order.total),
-      'Data Criação': format(new Date(order.created_at), 'dd/MM/yyyy'),
-      'Data Conclusão': order.finished_at ? format(new Date(order.finished_at), 'dd/MM/yyyy') : '-',
-    }));
+    // Create workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Ordens de Serviço');
 
-    // Create worksheet
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    // Define columns
+    worksheet.columns = [
+      { header: 'Nº OS', key: 'orderNumber', width: 10 },
+      { header: 'Cliente', key: 'customer', width: 25 },
+      { header: 'Telefone', key: 'phone', width: 15 },
+      { header: 'Descrição', key: 'description', width: 30 },
+      { header: 'Tipo', key: 'type', width: 12 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Qtd Itens', key: 'itemsCount', width: 10 },
+      { header: 'Peças', key: 'parts', width: 15 },
+      { header: 'Mão de Obra', key: 'labor', width: 15 },
+      { header: 'Subtotal', key: 'subtotal', width: 15 },
+      { header: 'Desconto', key: 'discount', width: 12 },
+      { header: 'Total', key: 'total', width: 15 },
+      { header: 'Data Criação', key: 'createdAt', width: 15 },
+      { header: 'Data Conclusão', key: 'finishedAt', width: 15 },
+    ];
 
-    // Auto-size columns
-    const headers = Object.keys(rows[0] || {});
-    const colWidths = headers.map((header) => {
-      const maxLength = Math.max(
-        header.length,
-        ...rows.map((row) => String(row[header as keyof typeof row] || '').length)
-      );
-      return { wch: Math.min(maxLength + 2, 50) };
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' },
+    };
+
+    // Add data rows
+    ordersWithBreakdown.forEach((order) => {
+      worksheet.addRow({
+        orderNumber: order.order_number,
+        customer: order.customer_name,
+        phone: order.customer_phone || '-',
+        description: order.description,
+        type: order.order_type === 'simple' ? 'Simples' : 'Completa',
+        status: getStatusLabel(order),
+        itemsCount: order.itemsCount,
+        parts: formatCurrency(order.partsTotal),
+        labor: formatCurrency(order.laborTotal),
+        subtotal: formatCurrency(order.subtotal),
+        discount: formatCurrency(order.discount),
+        total: formatCurrency(order.total),
+        createdAt: format(new Date(order.created_at), 'dd/MM/yyyy'),
+        finishedAt: order.finished_at ? format(new Date(order.finished_at), 'dd/MM/yyyy') : '-',
+      });
     });
-    worksheet['!cols'] = colWidths;
 
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ordens de Serviço');
-
-    // Generate filename with date
+    // Download file
     const dateStr = format(new Date(), 'yyyy-MM-dd');
-    XLSX.writeFile(workbook, `ordens-servico-${dateStr}.xlsx`);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ordens-servico-${dateStr}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   };
 
-  const exportServiceOrdersDetailed = (
+  const exportServiceOrdersDetailed = async (
     orders: {
       order_number: number;
       customer_name: string;
@@ -193,10 +238,10 @@ export function useExcelExport() {
       items?: { description: string; quantity: number; unit_price: number; subtotal: number }[];
     }[]
   ) => {
-    // Flatten orders with items for detailed export
     const formatCurrency = (value: number) =>
       new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+    // Flatten orders with items for detailed export
     const flatData: {
       order_number: number;
       customer_name: string;
@@ -233,7 +278,7 @@ export function useExcelExport() {
       }
     });
 
-    exportToExcel(
+    await exportToExcel(
       flatData,
       [
         { key: 'order_number', header: 'Nº OS' },

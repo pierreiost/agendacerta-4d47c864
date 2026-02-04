@@ -228,24 +228,24 @@ export default function Relatorios() {
     doc.save(`relatorio-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
-  const handleExportCustomers = () => {
-    exportCustomers(customers);
+  const handleExportCustomers = async () => {
+    await exportCustomers(customers);
   };
 
-  const handleExportOrders = () => {
+  const handleExportOrders = async () => {
     const filteredOrders = orders.filter((o) => {
       const createdAt = new Date(o.created_at);
       return createdAt >= dateRange.start && createdAt <= dateRange.end;
     });
-    exportServiceOrders(filteredOrders);
+    await exportServiceOrders(filteredOrders);
   };
 
-  const handleExportOrdersDetailed = () => {
+  const handleExportOrdersDetailed = async () => {
     const filteredOrders = orders.filter((o) => {
       const createdAt = new Date(o.created_at);
       return createdAt >= dateRange.start && createdAt <= dateRange.end;
     });
-    exportServiceOrdersDetailed(filteredOrders);
+    await exportServiceOrdersDetailed(filteredOrders);
   };
 
   if (isLoading) {
