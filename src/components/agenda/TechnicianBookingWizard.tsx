@@ -142,6 +142,13 @@ export function TechnicianBookingWizard({
     exclude: ['customerId'],
     debounceMs: 300,
     showRecoveryToast: open,
+    onRestore: () => {
+      // Convert date string back to Date object after restoration
+      const dateValue = form.getValues('date');
+      if (dateValue && typeof dateValue === 'string') {
+        form.setValue('date', new Date(dateValue));
+      }
+    },
   });
 
   const customerName = watch('customerName');
