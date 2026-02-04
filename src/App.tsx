@@ -30,6 +30,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PublicPageVenue from "./pages/public/PublicPageVenue";
 import { Loader2 } from "lucide-react";
+import { AppErrorBoundary } from "@/components/shared/AppErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -172,7 +173,9 @@ const App = () => (
         <VenueProvider>
           <Toaster />
           <Sonner />
-          <AppWithProviders />
+          <AppErrorBoundary>
+            <AppWithProviders />
+          </AppErrorBoundary>
         </VenueProvider>
       </AuthProvider>
     </TooltipProvider>
