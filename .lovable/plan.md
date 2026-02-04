@@ -1,122 +1,215 @@
 
+# Plano: Central de Ajuda/Suporte do AgendaCerta
 
-## Plano: Múltiplos Telefones para a Empresa (até 5)
+## Visão Geral
 
-### Objetivo
-
-Permitir que a empresa cadastre até **5 números de telefone** nas configurações da unidade, e exibir todos eles no cabeçalho da Ordem de Serviço (OS) gerada em PDF.
-
----
-
-### Resumo das Alterações
-
-| Área | O que muda |
-|------|------------|
-| **Banco de Dados** | Nova coluna `phones TEXT[]` na tabela `venues` |
-| **Configurações** | Campo dinâmico para adicionar/remover telefones |
-| **PDF da OS** | Exibir todos os telefones no cabeçalho |
+Criar uma seção de ajuda/suporte completa e estruturada que explique como o sistema funciona para todos os clientes, considerando as diferenças entre segmentos (Quadras, Salões/Clínicas, Assistência Técnica) e planos (Basic e Max).
 
 ---
 
-### Experiência do Usuário
+## Estrutura do Guia de Ajuda
 
-**Tela de Configurações > Comunicação:**
+### 1. Nova Página: `/ajuda`
+Uma página dedicada acessível a todos os usuários autenticados, organizada em seções navegáveis.
+
+### 2. Organização do Conteúdo
 
 ```text
-Telefones da Empresa (máx. 5)
-┌─────────────────────────────────┐
-│ (11) 3333-4444             [X]  │  ← Remover
-└─────────────────────────────────┘
-┌─────────────────────────────────┐
-│ (11) 99999-8888            [X]  │
-└─────────────────────────────────┘
-┌─────────────────────────────────┐
-│ (11) 2222-1111             [X]  │
-└─────────────────────────────────┘
-        [+ Adicionar telefone]        ← Aparece se < 5
+Central de Ajuda
+├── Primeiros Passos
+│   ├── Bem-vindo ao AgendaCerta
+│   ├── Escolhendo seu segmento
+│   └── Entendendo seu plano (Basic vs Max)
+│
+├── Módulos do Sistema (por segmento)
+│   ├── Dashboard
+│   ├── Agenda
+│   ├── Clientes
+│   ├── Espaços / Serviços (condicional)
+│   ├── Produtos
+│   ├── Ordens de Serviço
+│   ├── Financeiro
+│   ├── Relatórios
+│   └── Configurações
+│
+├── Integrações
+│   ├── Google Calendar
+│   └── Página Pública (Plano Max)
+│
+└── FAQ / Perguntas Frequentes
 ```
 
-**PDF da OS (cabeçalho):**
+---
+
+## Conteúdo por Segmento
+
+### Quadras & Espaços (sports)
+| Módulo | Descrição |
+|--------|-----------|
+| Dashboard | Foco em ocupação e reservas futuras |
+| Agenda | Visualização por espaço/quadra, reservas por hora |
+| Espaços | Cadastro de quadras com preço/hora e capacidade |
+| Produtos | Bebidas, lanches e itens de consumo |
+| Checkout | Valor do espaço + produtos consumidos |
+
+### Salões & Clínicas (beauty/health)
+| Módulo | Descrição |
+|--------|-----------|
+| Dashboard | Foco em ticket médio e performance de profissionais |
+| Agenda | Visualização por profissional, múltiplos serviços |
+| Serviços | Catálogo com duração e preço |
+| Produtos | Itens de venda no checkout |
+| Checkout | Serviços agendados + produtos consumidos |
+| Equipe | Configuração de profissionais que atendem |
+
+### Assistência Técnica (custom)
+| Módulo | Descrição |
+|--------|-----------|
+| Dashboard | Foco em OS abertas, faturamento peças vs mão de obra |
+| Agenda | Agendamento de visitas técnicas |
+| Ordens de Serviço | Fluxo completo: aberta > finalizada > faturada |
+| Checkout | Vinculação com OS para faturamento |
+
+---
+
+## Diferenças entre Planos
+
+### Plano Basic (R$ 59,90/mês)
+- Todos os módulos operacionais
+- Limite: 1 Admin + 3 Colaboradores
+- Suporte via WhatsApp
+- **Sem** Página Pública
+
+### Plano Max (R$ 89,90/mês)
+- Tudo do Basic
+- Limite: 1 Admin + 10 Colaboradores
+- **Página Pública** personalizada
+- Identidade visual customizada
+
+---
+
+## Arquitetura Técnica
+
+### Arquivos a Criar
 
 ```text
-┌─────────────────────────────────────────────┐
-│  [LOGO]  NOME DA EMPRESA                    │
-│          CNPJ: 00.000.000/0001-00           │
-│          Rua Exemplo, 123 - Centro          │
-│          (11) 3333-4444 | (11) 99999-8888   │  ← Todos os telefones
-│          contato@empresa.com                │
-└─────────────────────────────────────────────┘
+src/
+├── pages/
+│   └── Ajuda.tsx                    # Página principal de ajuda
+├── components/
+│   └── help/
+│       ├── HelpSidebar.tsx          # Navegação lateral
+│       ├── HelpArticle.tsx          # Componente de artigo
+│       ├── HelpSearch.tsx           # Busca de artigos
+│       ├── SegmentFilter.tsx        # Filtro por segmento
+│       └── articles/
+│           ├── GettingStarted.tsx   # Primeiros passos
+│           ├── DashboardHelp.tsx    # Ajuda do Dashboard
+│           ├── AgendaHelp.tsx       # Ajuda da Agenda
+│           ├── ClientesHelp.tsx     # Ajuda de Clientes
+│           ├── EspacosHelp.tsx      # Ajuda de Espaços
+│           ├── ServicosHelp.tsx     # Ajuda de Serviços
+│           ├── ProdutosHelp.tsx     # Ajuda de Produtos
+│           ├── OSHelp.tsx           # Ajuda de Ordens de Serviço
+│           ├── FinanceiroHelp.tsx   # Ajuda do Financeiro
+│           ├── RelatoriosHelp.tsx   # Ajuda de Relatórios
+│           ├── ConfiguracoesHelp.tsx# Ajuda de Configurações
+│           ├── IntegracaoHelp.tsx   # Ajuda de Integrações
+│           ├── PaginaPublicaHelp.tsx# Ajuda da Página Pública
+│           └── PlanosHelp.tsx       # Comparativo de planos
+└── data/
+    └── help-content.ts              # Dados estruturados dos artigos
 ```
+
+### Rotas
+Adicionar rota `/ajuda` no `App.tsx` acessível a todos os usuários autenticados.
+
+### Menu
+Adicionar item "Ajuda" no sidebar com ícone `HelpCircle`.
 
 ---
 
-### Arquivos a Modificar
+## Features da Página de Ajuda
 
-| Arquivo | Alteração |
-|---------|-----------|
-| **Migração SQL** | Adicionar coluna `phones TEXT[]` em `venues` |
-| `src/components/settings/VenueSettingsTab.tsx` | Substituir campo único por lista dinâmica |
-| `src/hooks/useServiceOrderPdf.ts` | Usar array de telefones no cabeçalho |
+### 1. Busca Inteligente
+- Campo de pesquisa com resultados em tempo real
+- Busca por palavras-chave nos títulos e conteúdo
 
----
+### 2. Filtro por Segmento
+- Exibir automaticamente conteúdo relevante ao segmento do usuário
+- Opção de ver conteúdo de outros segmentos
 
-### Detalhes Técnicos
+### 3. Indicadores de Plano
+- Badges para funcionalidades exclusivas do plano Max
+- CTAs para upgrade quando relevante
 
-#### 1. Migração do Banco de Dados
+### 4. Navegação Contextual
+- Links "Como isso funciona" dentro de cada módulo
+- Botão de ajuda (?) em componentes complexos
 
-```sql
--- Adicionar coluna phones como array de texto
-ALTER TABLE venues 
-ADD COLUMN phones TEXT[] DEFAULT '{}';
-
--- Migrar dados existentes do campo phone para o array
-UPDATE venues 
-SET phones = ARRAY[phone] 
-WHERE phone IS NOT NULL AND phone != '';
-```
-
-#### 2. Formulário de Configurações
-
-Modificar `VenueSettingsTab.tsx`:
-
-- Adicionar campo `phones` ao schema Zod:
-```typescript
-phones: z.array(z.string().max(20)).max(5).default([]),
-```
-
-- Criar componente para gerenciar lista de telefones:
-  - Lista de inputs com máscara de telefone
-  - Botão "Adicionar" (visível quando < 5 telefones)
-  - Botão "Remover" em cada linha (visível quando > 1 telefone)
-
-- Atualizar `onSubmit` para salvar o array:
-```typescript
-phones: data.phones.map(p => unmask(p)).filter(Boolean),
-```
-
-#### 3. Geração do PDF
-
-Modificar `useServiceOrderPdf.ts`:
-
-- Buscar telefones do array `phones` (com fallback para `phone`):
-```typescript
-const phones = currentVenue?.phones?.length 
-  ? currentVenue.phones.map(p => maskPhone(p)).join(' | ')
-  : currentVenue?.phone 
-    ? maskPhone(currentVenue.phone)
-    : null;
-```
-
-- Exibir na linha de contato:
-```typescript
-const contactParts = [phones, currentVenue?.email].filter(Boolean);
-```
+### 5. Conteúdo Rico
+- Capturas de tela ilustrativas
+- Vídeos tutoriais (opcional, para futuro)
+- Passo a passo com imagens
 
 ---
 
-### Compatibilidade
+## Exemplo de Artigo: Agenda (por segmento)
 
-- O campo `phone` (singular) será mantido para retrocompatibilidade
-- Ao salvar, o primeiro telefone do array também será salvo em `phone`
-- Sistemas legados que usam `venue.phone` continuarão funcionando
+### Para Quadras (sports):
+> **Agenda de Espaços**
+> 
+> Visualize a ocupação das suas quadras em tempo real. Clique em um horário vazio para criar uma reserva. Os valores são calculados automaticamente com base no preço/hora do espaço.
+> 
+> **Funcionalidades:**
+> - Visualização por dia, semana ou mês
+> - Filtro por espaço
+> - Reservas recorrentes
 
+### Para Salões (beauty/health):
+> **Agenda de Atendimentos**
+> 
+> Gerencie os atendimentos por profissional. Cada agendamento pode incluir múltiplos serviços do mesmo cliente.
+> 
+> **Funcionalidades:**
+> - Slots de 30 minutos
+> - Seleção de profissional
+> - Múltiplos serviços por agendamento
+
+### Para Assistência Técnica (custom):
+> **Agenda de Visitas Técnicas**
+> 
+> Agende visitas técnicas e vincule-as a Ordens de Serviço. O agendamento reserva o tempo do técnico, enquanto o faturamento é feito pela OS.
+> 
+> **Funcionalidades:**
+> - Vinculação com OS
+> - Controle de disponibilidade
+> - Histórico de visitas
+
+---
+
+## Entregas
+
+### Fase 1: Estrutura Base
+1. Criar página `/ajuda` com layout responsivo
+2. Implementar navegação lateral com seções
+3. Criar componentes reutilizáveis de artigo
+
+### Fase 2: Conteúdo por Módulo
+4. Escrever artigos para cada módulo
+5. Implementar conteúdo condicional por segmento
+6. Adicionar indicadores de plano (Basic/Max)
+
+### Fase 3: Integrações
+7. Adicionar item no menu lateral
+8. Implementar busca de artigos
+9. Adicionar links de ajuda contextual nos módulos
+
+---
+
+## Considerações
+
+- O conteúdo será estático inicialmente (hardcoded), mas estruturado para fácil manutenção
+- Preparado para futura migração para CMS ou banco de dados
+- Acessível em todos os dispositivos (mobile-first)
+- Segue o design system existente do AgendaCerta
