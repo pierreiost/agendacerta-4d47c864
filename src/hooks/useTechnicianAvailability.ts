@@ -26,8 +26,15 @@ export function useTechnicianAvailability(
   const { currentVenue } = useVenue();
   const slotInterval = currentVenue?.slot_interval_minutes || 30;
 
+  // React Query uses reference equality inside queryKey; arrays coming from form watchers
+  // can be re-created on every render, causing endless refetch/re-render loops.
+  // Convert to a stable, order-insensitive key.
+  const technicianIdsKey = technicianIds?.length
+    ? [...technicianIds].sort().join('|')
+    : '';
+
   return useQuery({
-    queryKey: ['technician-availability', currentVenue?.id, date?.toISOString(), durationMinutes, technicianIds],
+    queryKey: ['technician-availability', currentVenue?.id, date?.toISOString(), durationMinutes, technicianIdsKey],
     queryFn: async () => {
       if (!currentVenue?.id || !date) return [];
 
@@ -38,8 +45,8 @@ export function useTechnicianAvailability(
         .eq('venue_id', currentVenue.id)
         .eq('is_bookable', true);
 
-      if (technicianIds && technicianIds.length > 0) {
-        membersQuery = membersQuery.in('id', technicianIds);
+       if (technicianIds && technicianIds.length > 0) {
+         membersQuery = membersQuery.in('id', technicianIds);
       }
 
       const { data: members, error: membersError } = await membersQuery;
