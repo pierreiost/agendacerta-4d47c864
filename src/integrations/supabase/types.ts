@@ -1644,6 +1644,16 @@ export type Database = {
           slug: string
         }[]
       }
+      get_service_order_metrics: {
+        Args: { p_end_date?: string; p_start_date?: string; p_venue_id: string }
+        Returns: {
+          finished_today: number
+          month_revenue: number
+          open_orders: number
+          revenue_sparkline: number[]
+          status_distribution: Json
+        }[]
+      }
       get_space_bookings_for_date: {
         Args: { p_date: string; p_space_id: string; p_venue_id: string }
         Returns: {
