@@ -161,7 +161,8 @@ export default function OrdemServicoForm() {
           description: existingOrder.description,
           notes: existingOrder.notes || "",
           discount: Number(existingOrder.discount) || 0,
-          taxRate: Number(existingOrder.tax_rate) || 5,
+          // Convert decimal from DB (0.05) to percentage for form (5)
+          taxRate: existingOrder.tax_rate ? Number(existingOrder.tax_rate) * 100 : 0,
           items: formattedItems,
         });
       }
@@ -266,7 +267,8 @@ export default function OrdemServicoForm() {
       notes: data.orderType === "complete" ? data.notes || null : null,
       subtotal,
       discount: data.discount,
-      tax_rate: data.orderType === "complete" ? data.taxRate : null,
+      // Convert percentage (5) to decimal (0.05) for DB
+      tax_rate: data.orderType === "complete" ? data.taxRate / 100 : null,
       tax_amount: taxAmount,
       total,
       status_simple: data.orderType === "simple" ? ("open" as const) : null,
