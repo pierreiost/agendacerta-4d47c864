@@ -3,6 +3,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { DashboardServiceOrdersSkeleton } from "./DashboardServiceOrdersSkeleton";
 
 const STATUS_COLORS: Record<string, string> = {
   open: "#f59e0b", // warning
@@ -83,9 +85,6 @@ export function DashboardServiceOrders() {
     statusDates.end
   );
   
-  // Determina se ainda está carregando - prioriza métricas do servidor
-  const isLoading = metricsLoading && !serverMetrics;
-
   // Fallback to client-side calculation if server metrics not available
   const metrics = useMemo(() => {
     if (serverMetrics) {
@@ -235,12 +234,9 @@ export function DashboardServiceOrders() {
     return colors[status] || colors.draft;
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+  // Mostra skeleton apenas se as métricas ainda estão carregando pela primeira vez
+  if (metricsLoading && !serverMetrics) {
+    return <DashboardServiceOrdersSkeleton />;
   }
 
   return (
