@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useVenue } from '@/contexts/VenueContext';
 import { ServiceOrder, ServiceOrderItem } from '@/hooks/useServiceOrders';
+import { maskPhone } from '@/lib/masks';
 
 export function useServiceOrderPdf() {
   const { currentVenue } = useVenue();
@@ -61,7 +62,15 @@ export function useServiceOrderPdf() {
         doc.text(currentVenue.address, xOffset, yPos);
       }
 
-      const contactParts = [currentVenue?.phone, currentVenue?.email].filter(Boolean);
+      // Get phones from array with fallback to legacy phone field
+      const venuePhones = (currentVenue as { phones?: string[] } | null)?.phones;
+      const phonesDisplay = venuePhones?.length
+        ? venuePhones.map((p: string) => maskPhone(p)).join(' | ')
+        : currentVenue?.phone
+          ? maskPhone(currentVenue.phone)
+          : null;
+
+      const contactParts = [phonesDisplay, currentVenue?.email].filter(Boolean);
       if (contactParts.length > 0) {
         yPos += 5;
         doc.text(contactParts.join(' | '), xOffset, yPos);
