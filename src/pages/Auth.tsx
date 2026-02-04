@@ -16,11 +16,11 @@ import {
   BarChart3,
   Users,
   FileText,
-  CheckCircle2,
   ArrowRight,
 } from "lucide-react";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ForgotPasswordFlow } from "@/components/auth/ForgotPasswordFlow";
 
 interface RateLimitResponse {
   allowed: boolean;
@@ -128,19 +128,7 @@ export default function Auth() {
     setRateLimitInfo(null);
 
     try {
-      if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth`,
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Email enviado!",
-          description: "Verifique sua caixa de entrada para redefinir sua senha.",
-        });
-        setMode("login");
-      } else if (mode === "login") {
+      if (mode === "login") {
         // Check rate limit before attempting login
         const rateLimitCheck = await checkRateLimit(email);
 
@@ -292,11 +280,16 @@ export default function Auth() {
             </p>
           </div>
 
-          {/* Welcome heading */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-foreground tracking-wide">{getHeading()}</h2>
-            <p className="text-muted-foreground mt-2">{getSubheading()}</p>
-          </div>
+          {/* Render ForgotPasswordFlow when in forgot mode */}
+          {mode === "forgot" ? (
+            <ForgotPasswordFlow onBack={() => setMode("login")} />
+          ) : (
+            <>
+              {/* Welcome heading */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-foreground tracking-wide">{getHeading()}</h2>
+                <p className="text-muted-foreground mt-2">{getSubheading()}</p>
+              </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === "signup" && (
@@ -331,7 +324,7 @@ export default function Auth() {
               />
             </div>
 
-            {mode !== "forgot" && (
+            {/* Password fields only show for login/signup modes */}
               <>
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-foreground font-medium">
@@ -426,7 +419,6 @@ export default function Auth() {
                   </div>
                 )}
               </>
-            )}
 
             {mode === "login" && (
               <div className="text-right">
@@ -475,36 +467,24 @@ export default function Auth() {
               disabled={loading || (rateLimitInfo && !rateLimitInfo.allowed) || (mode === "signup" && !isPasswordValid)}
             >
               {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-              {mode === "forgot" ? "ENVIAR LINK" : mode === "login" ? "ENTRAR" : "CADASTRAR"}
+              {mode === "login" ? "ENTRAR" : "CADASTRAR"}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            {mode === "forgot" ? (
-              <button
-                type="button"
-                className="text-primary font-semibold hover:underline transition-all"
-                onClick={() => setMode("login")}
-              >
-                Voltar ao login
-              </button>
-            ) : (
-              <>
-                <span className="text-muted-foreground">
-                  {mode === "login" ? "Não tem uma conta? " : "Já tem uma conta? "}
-                </span>
-                <button
-                  type="button"
-                  className="text-primary font-semibold hover:underline transition-all"
-                  onClick={() => {
-                    setMode(mode === "login" ? "signup" : "login");
-                    setConfirmPassword("");
-                  }}
-                >
-                  {mode === "login" ? "Cadastre-se" : "Entre"}
-                </button>
-              </>
-            )}
+            <span className="text-muted-foreground">
+              {mode === "login" ? "Não tem uma conta? " : "Já tem uma conta? "}
+            </span>
+            <button
+              type="button"
+              className="text-primary font-semibold hover:underline transition-all"
+              onClick={() => {
+                setMode(mode === "login" ? "signup" : "login");
+                setConfirmPassword("");
+              }}
+            >
+              {mode === "login" ? "Cadastre-se" : "Entre"}
+            </button>
           </div>
 
           {/* Link to Pricing */}
@@ -527,6 +507,8 @@ export default function Auth() {
               Política de Privacidade
             </Link>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>

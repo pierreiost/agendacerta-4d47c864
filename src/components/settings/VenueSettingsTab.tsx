@@ -45,7 +45,9 @@ import {
   Mail,
   FileText,
   ExternalLink,
+  Shield,
 } from 'lucide-react';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
 
 const venueFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -661,6 +663,30 @@ export function VenueSettingsTab() {
             </CardContent>
           </Card>
         )}
+
+        {/* Security Section */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Segurança da Conta
+            </CardTitle>
+            <CardDescription>
+              Gerencie a segurança da sua conta
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Senha de Acesso</p>
+                <p className="text-xs text-muted-foreground">
+                  Altere sua senha para manter sua conta segura
+                </p>
+              </div>
+              <ChangePasswordDialog />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Save Button */}
         <div className="flex justify-end">
