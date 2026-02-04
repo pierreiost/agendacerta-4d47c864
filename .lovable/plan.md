@@ -1,215 +1,207 @@
 
-# Plano: Central de Ajuda/Suporte do AgendaCerta
 
-## Visão Geral
+# Plano: Redefinição de Senha com Verificação por Codigo
 
-Criar uma seção de ajuda/suporte completa e estruturada que explique como o sistema funciona para todos os clientes, considerando as diferenças entre segmentos (Quadras, Salões/Clínicas, Assistência Técnica) e planos (Basic e Max).
+## Visao Geral
+
+Implementar dois fluxos de redefinicao de senha:
+1. **Botao interno nas Configuracoes** - Para usuarios logados alterarem sua propria senha
+2. **Fluxo na tela de login** - Para usuarios que esqueceram a senha, usando verificacao por codigo OTP via email
 
 ---
 
-## Estrutura do Guia de Ajuda
+## Arquitetura da Solucao
 
-### 1. Nova Página: `/ajuda`
-Uma página dedicada acessível a todos os usuários autenticados, organizada em seções navegáveis.
+### Fluxo 1: Alteracao de Senha (Usuario Logado)
 
-### 2. Organização do Conteúdo
+Botao dentro da aba "Unidade" ou nova aba "Perfil" nas Configuracoes que permite ao usuario alterar sua senha atual.
 
 ```text
-Central de Ajuda
-├── Primeiros Passos
-│   ├── Bem-vindo ao AgendaCerta
-│   ├── Escolhendo seu segmento
-│   └── Entendendo seu plano (Basic vs Max)
-│
-├── Módulos do Sistema (por segmento)
-│   ├── Dashboard
-│   ├── Agenda
-│   ├── Clientes
-│   ├── Espaços / Serviços (condicional)
-│   ├── Produtos
-│   ├── Ordens de Serviço
-│   ├── Financeiro
-│   ├── Relatórios
-│   └── Configurações
-│
-├── Integrações
-│   ├── Google Calendar
-│   └── Página Pública (Plano Max)
-│
-└── FAQ / Perguntas Frequentes
+Usuario logado -> Configuracoes -> "Alterar Senha"
+-> Insere senha atual + nova senha + confirmacao
+-> Valida senha atual via Supabase
+-> Atualiza senha via supabase.auth.updateUser()
+```
+
+### Fluxo 2: Recuperacao de Senha (Tela de Login)
+
+Fluxo completo com verificacao por codigo OTP enviado por email:
+
+```text
+Tela Login -> "Esqueci minha senha"
+-> Insere email
+-> Sistema envia codigo OTP de 6 digitos via email
+-> Usuario digita codigo OTP
+-> Sistema valida codigo
+-> Usuario define nova senha
+-> Redireciona para login
 ```
 
 ---
 
-## Conteúdo por Segmento
+## Componentes a Criar/Modificar
 
-### Quadras & Espaços (sports)
-| Módulo | Descrição |
-|--------|-----------|
-| Dashboard | Foco em ocupação e reservas futuras |
-| Agenda | Visualização por espaço/quadra, reservas por hora |
-| Espaços | Cadastro de quadras com preço/hora e capacidade |
-| Produtos | Bebidas, lanches e itens de consumo |
-| Checkout | Valor do espaço + produtos consumidos |
+### Arquivos Novos
 
-### Salões & Clínicas (beauty/health)
-| Módulo | Descrição |
-|--------|-----------|
-| Dashboard | Foco em ticket médio e performance de profissionais |
-| Agenda | Visualização por profissional, múltiplos serviços |
-| Serviços | Catálogo com duração e preço |
-| Produtos | Itens de venda no checkout |
-| Checkout | Serviços agendados + produtos consumidos |
-| Equipe | Configuração de profissionais que atendem |
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/settings/ChangePasswordDialog.tsx` | Dialog para alterar senha (usuario logado) |
+| `src/components/auth/ForgotPasswordFlow.tsx` | Componente com fluxo completo de recuperacao |
 
-### Assistência Técnica (custom)
-| Módulo | Descrição |
-|--------|-----------|
-| Dashboard | Foco em OS abertas, faturamento peças vs mão de obra |
-| Agenda | Agendamento de visitas técnicas |
-| Ordens de Serviço | Fluxo completo: aberta > finalizada > faturada |
-| Checkout | Vinculação com OS para faturamento |
+### Arquivos a Modificar
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/Configuracoes.tsx` | Adicionar botao/secao "Alterar Senha" |
+| `src/pages/Auth.tsx` | Substituir fluxo simples de "forgot" pelo novo com OTP |
 
 ---
 
-## Diferenças entre Planos
+## Detalhamento Tecnico
 
-### Plano Basic (R$ 59,90/mês)
-- Todos os módulos operacionais
-- Limite: 1 Admin + 3 Colaboradores
-- Suporte via WhatsApp
-- **Sem** Página Pública
+### 1. Dialog de Alteracao de Senha (Usuario Logado)
 
-### Plano Max (R$ 89,90/mês)
-- Tudo do Basic
-- Limite: 1 Admin + 10 Colaboradores
-- **Página Pública** personalizada
-- Identidade visual customizada
+**Campos:**
+- Senha atual (para verificacao)
+- Nova senha (com validacao de forca)
+- Confirmar nova senha
 
----
+**Fluxo:**
+1. Valida que senhas novas coincidem
+2. Valida requisitos de forca da senha
+3. Reautentica o usuario com senha atual: `supabase.auth.signInWithPassword()`
+4. Atualiza senha: `supabase.auth.updateUser({ password: novaSenha })`
 
-## Arquitetura Técnica
+**Codigo exemplo:**
+```typescript
+// Reautentica para confirmar senha atual
+const { error: authError } = await supabase.auth.signInWithPassword({
+  email: user.email!,
+  password: currentPassword,
+});
 
-### Arquivos a Criar
+if (authError) {
+  toast({ title: "Senha atual incorreta", variant: "destructive" });
+  return;
+}
 
-```text
-src/
-├── pages/
-│   └── Ajuda.tsx                    # Página principal de ajuda
-├── components/
-│   └── help/
-│       ├── HelpSidebar.tsx          # Navegação lateral
-│       ├── HelpArticle.tsx          # Componente de artigo
-│       ├── HelpSearch.tsx           # Busca de artigos
-│       ├── SegmentFilter.tsx        # Filtro por segmento
-│       └── articles/
-│           ├── GettingStarted.tsx   # Primeiros passos
-│           ├── DashboardHelp.tsx    # Ajuda do Dashboard
-│           ├── AgendaHelp.tsx       # Ajuda da Agenda
-│           ├── ClientesHelp.tsx     # Ajuda de Clientes
-│           ├── EspacosHelp.tsx      # Ajuda de Espaços
-│           ├── ServicosHelp.tsx     # Ajuda de Serviços
-│           ├── ProdutosHelp.tsx     # Ajuda de Produtos
-│           ├── OSHelp.tsx           # Ajuda de Ordens de Serviço
-│           ├── FinanceiroHelp.tsx   # Ajuda do Financeiro
-│           ├── RelatoriosHelp.tsx   # Ajuda de Relatórios
-│           ├── ConfiguracoesHelp.tsx# Ajuda de Configurações
-│           ├── IntegracaoHelp.tsx   # Ajuda de Integrações
-│           ├── PaginaPublicaHelp.tsx# Ajuda da Página Pública
-│           └── PlanosHelp.tsx       # Comparativo de planos
-└── data/
-    └── help-content.ts              # Dados estruturados dos artigos
+// Atualiza para nova senha
+const { error } = await supabase.auth.updateUser({ password: newPassword });
 ```
 
-### Rotas
-Adicionar rota `/ajuda` no `App.tsx` acessível a todos os usuários autenticados.
+### 2. Fluxo de Recuperacao com OTP na Tela de Login
 
-### Menu
-Adicionar item "Ajuda" no sidebar com ícone `HelpCircle`.
+**Etapas do Wizard:**
+1. **Etapa 1 - Email**: Usuario digita email
+2. **Etapa 2 - Codigo**: Usuario recebe e digita codigo OTP de 6 digitos
+3. **Etapa 3 - Nova Senha**: Usuario define nova senha
+
+**Implementacao com Supabase:**
+
+```typescript
+// Etapa 1: Enviar OTP para email
+await supabase.auth.signInWithOtp({
+  email,
+  options: {
+    shouldCreateUser: false, // Nao cria usuario se nao existir
+  }
+});
+
+// Etapa 2: Verificar OTP e autenticar
+const { error } = await supabase.auth.verifyOtp({
+  email,
+  token: otpCode, // Codigo de 6 digitos
+  type: 'email',
+});
+
+// Etapa 3: Atualizar senha (usuario ja autenticado apos verifyOtp)
+await supabase.auth.updateUser({ password: newPassword });
+```
+
+### 3. Componente OTP Input
+
+Reutilizaremos o componente existente `InputOTP` de `src/components/ui/input-otp.tsx`:
+
+```typescript
+<InputOTP maxLength={6} value={otp} onChange={setOtp}>
+  <InputOTPGroup>
+    <InputOTPSlot index={0} />
+    <InputOTPSlot index={1} />
+    <InputOTPSlot index={2} />
+    <InputOTPSlot index={3} />
+    <InputOTPSlot index={4} />
+    <InputOTPSlot index={5} />
+  </InputOTPGroup>
+</InputOTP>
+```
 
 ---
 
-## Features da Página de Ajuda
+## Interface do Usuario
 
-### 1. Busca Inteligente
-- Campo de pesquisa com resultados em tempo real
-- Busca por palavras-chave nos títulos e conteúdo
+### Configuracoes - Alterar Senha
 
-### 2. Filtro por Segmento
-- Exibir automaticamente conteúdo relevante ao segmento do usuário
-- Opção de ver conteúdo de outros segmentos
+Nova secao ou card na aba "Unidade" com:
+- Icone de cadeado
+- Titulo: "Seguranca da Conta"
+- Botao: "Alterar Senha"
+- Ao clicar, abre dialog com formulario
 
-### 3. Indicadores de Plano
-- Badges para funcionalidades exclusivas do plano Max
-- CTAs para upgrade quando relevante
+### Tela de Login - Recuperacao
 
-### 4. Navegação Contextual
-- Links "Como isso funciona" dentro de cada módulo
-- Botão de ajuda (?) em componentes complexos
-
-### 5. Conteúdo Rico
-- Capturas de tela ilustrativas
-- Vídeos tutoriais (opcional, para futuro)
-- Passo a passo com imagens
+Ao clicar em "Esqueci minha senha":
+1. **Tela Email**: Campo de email + botao "Enviar Codigo"
+2. **Tela Codigo**: Input OTP de 6 digitos + timer de reenvio + botao "Reenviar codigo"
+3. **Tela Nova Senha**: Campos de senha com validacao visual + botao "Redefinir"
+4. **Tela Sucesso**: Icone de check + mensagem + redirecionamento automatico
 
 ---
 
-## Exemplo de Artigo: Agenda (por segmento)
+## Validacoes de Seguranca
 
-### Para Quadras (sports):
-> **Agenda de Espaços**
-> 
-> Visualize a ocupação das suas quadras em tempo real. Clique em um horário vazio para criar uma reserva. Os valores são calculados automaticamente com base no preço/hora do espaço.
-> 
-> **Funcionalidades:**
-> - Visualização por dia, semana ou mês
-> - Filtro por espaço
-> - Reservas recorrentes
+### Senha
+- Minimo 8 caracteres
+- Ao menos 1 letra maiuscula
+- Ao menos 1 numero
+- Ao menos 1 caractere especial
+- Validacao visual em tempo real
 
-### Para Salões (beauty/health):
-> **Agenda de Atendimentos**
-> 
-> Gerencie os atendimentos por profissional. Cada agendamento pode incluir múltiplos serviços do mesmo cliente.
-> 
-> **Funcionalidades:**
-> - Slots de 30 minutos
-> - Seleção de profissional
-> - Múltiplos serviços por agendamento
+### OTP
+- Codigo de 6 digitos
+- Expira em 10 minutos (padrao Supabase)
+- Reenvio disponivel apos 60 segundos
+- Limite de tentativas
 
-### Para Assistência Técnica (custom):
-> **Agenda de Visitas Técnicas**
-> 
-> Agende visitas técnicas e vincule-as a Ordens de Serviço. O agendamento reserva o tempo do técnico, enquanto o faturamento é feito pela OS.
-> 
-> **Funcionalidades:**
-> - Vinculação com OS
-> - Controle de disponibilidade
-> - Histórico de visitas
+---
+
+## Acessibilidade e UX
+
+- Botoes de mostrar/ocultar senha
+- Indicadores visuais de progresso (steps)
+- Feedback claro de erros
+- Timer de reenvio de codigo
+- Suporte a paste no campo OTP
+- Auto-focus entre campos OTP
 
 ---
 
 ## Entregas
 
-### Fase 1: Estrutura Base
-1. Criar página `/ajuda` com layout responsivo
-2. Implementar navegação lateral com seções
-3. Criar componentes reutilizáveis de artigo
-
-### Fase 2: Conteúdo por Módulo
-4. Escrever artigos para cada módulo
-5. Implementar conteúdo condicional por segmento
-6. Adicionar indicadores de plano (Basic/Max)
-
-### Fase 3: Integrações
-7. Adicionar item no menu lateral
-8. Implementar busca de artigos
-9. Adicionar links de ajuda contextual nos módulos
+1. Criar `ChangePasswordDialog.tsx` para alteracao de senha interna
+2. Adicionar secao "Seguranca" em Configuracoes com botao
+3. Refatorar `Auth.tsx` para usar novo fluxo OTP no modo "forgot"
+4. Criar estados e steps para o wizard de recuperacao
+5. Implementar timer de reenvio de codigo
+6. Aplicar validacoes de senha em tempo real
+7. Testar fluxos completos
 
 ---
 
-## Considerações
+## Consideracoes
 
-- O conteúdo será estático inicialmente (hardcoded), mas estruturado para fácil manutenção
-- Preparado para futura migração para CMS ou banco de dados
-- Acessível em todos os dispositivos (mobile-first)
-- Segue o design system existente do AgendaCerta
+- O Supabase envia emails automaticamente com o codigo OTP
+- Nao e necessario criar edge function para envio de email
+- O codigo OTP e valido por 60 segundos a 1 hora dependendo da config
+- A funcao `verifyOtp` com type 'email' autentica o usuario automaticamente
+- Apos `verifyOtp` bem-sucedido, podemos chamar `updateUser` imediatamente
+
