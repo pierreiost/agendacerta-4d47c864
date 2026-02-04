@@ -64,7 +64,7 @@ const formSchema = z.object({
   description: z.string().min(1, "Descrição do serviço é obrigatória"),
   notes: z.string().optional(),
   discount: z.number().default(0),
-  taxRate: z.number().default(5),
+  taxRate: z.number().min(0).max(100).default(0),
   items: z.array(itemSchema).default([]),
 });
 
@@ -93,7 +93,7 @@ export default function OrdemServicoForm() {
     defaultValues: {
       orderType: "complete",
       discount: 0,
-      taxRate: 5,
+      taxRate: 0,
       items: [],
       customerName: "",
       description: "",
@@ -161,8 +161,8 @@ export default function OrdemServicoForm() {
           description: existingOrder.description,
           notes: existingOrder.notes || "",
           discount: Number(existingOrder.discount) || 0,
-          // Convert decimal from DB (0.05) to percentage for form (5)
-          taxRate: existingOrder.tax_rate ? Number(existingOrder.tax_rate) * 100 : 0,
+          // Convert decimal from DB (0.05) to percentage for form (5). Use 0 as default, not 5
+          taxRate: existingOrder.tax_rate != null ? Number(existingOrder.tax_rate) * 100 : 0,
           items: formattedItems,
         });
       }
@@ -426,10 +426,12 @@ export default function OrdemServicoForm() {
                 )}
               </>
             )}
-            <Button type="submit">
-              <Save className="h-4 w-4 mr-2" />
-              Salvar
-            </Button>
+            {!isFinalized() && (
+              <Button type="submit">
+                <Save className="h-4 w-4 mr-2" />
+                Salvar
+              </Button>
+            )}
           </div>
         </div>
 
@@ -676,7 +678,7 @@ export default function OrdemServicoForm() {
             <Card>
               <CardHeader className="py-3 md:py-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base">Itens do Serviço</CardTitle>
-                {!showAddItemForm && (
+                {!showAddItemForm && !isFinalized() && (
                   <Button type="button" size="sm" onClick={() => setShowAddItemForm(true)}>
                     <Plus className="h-4 w-4 mr-1" />
                     Adicionar
@@ -715,15 +717,17 @@ export default function OrdemServicoForm() {
                               <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
                               <TableCell className="text-right font-medium">{formatCurrency(item.subtotal)}</TableCell>
                               <TableCell>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleRemoveItem(index)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                                {!isFinalized() && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleRemoveItem(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -755,7 +759,13 @@ export default function OrdemServicoForm() {
                   <Label htmlFor="discount" className="text-sm">
                     Desconto
                   </Label>
-                  <Input type="number" step="0.01" min={0} {...form.register("discount", { valueAsNumber: true })} />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    min={0} 
+                    disabled={isFinalized()}
+                    {...form.register("discount", { valueAsNumber: true })} 
+                  />
                 </div>
 
                 {watchedOrderType === "complete" && (
@@ -769,11 +779,12 @@ export default function OrdemServicoForm() {
                         step="0.01"
                         min={0}
                         max={100}
+                        disabled={isFinalized()}
                         {...form.register("taxRate", { valueAsNumber: true })}
                       />
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">ISS ({watchedTaxRate}%)</span>
+                      <span className="text-muted-foreground">ISS ({watchedTaxRate || 0}%)</span>
                       <span>{formatCurrency(totals.taxAmount)}</span>
                     </div>
                   </>
@@ -784,21 +795,29 @@ export default function OrdemServicoForm() {
                   <span className="text-lg font-bold">{formatCurrency(totals.total)}</span>
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar OS
-                </Button>
+                {!isFinalized() ? (
+                  <>
+                    <Button type="submit" className="w-full" size="lg">
+                      <Save className="h-4 w-4 mr-2" />
+                      Salvar OS
+                    </Button>
 
-                {isEditing && !isFinalized() && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => setShowFinalizeDialog(true)}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Finalizar OS
-                  </Button>
+                    {isEditing && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => setShowFinalizeDialog(true)}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Finalizar OS
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-2 text-sm text-muted-foreground border rounded-md bg-muted/50">
+                    OS finalizada - somente visualização
+                  </div>
                 )}
               </CardContent>
             </Card>
