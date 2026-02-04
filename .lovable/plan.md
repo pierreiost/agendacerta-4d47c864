@@ -1,86 +1,122 @@
 
 
-## Plano de Correção: Bugs nas Ordens de Serviço (OS)
+## Plano: Múltiplos Telefones para a Empresa (até 5)
 
-### Resumo dos Problemas Encontrados
+### Objetivo
 
-Foram identificados **3 bugs principais** no módulo de Ordens de Serviço:
-
-1. **Bug de cálculo do ISS (imposto)**: ✅ CORRIGIDO - O valor do imposto está sendo **multiplicado ao invés de calculado como porcentagem**
-   - Exemplo: Subtotal R$50 com ISS 5% mostra R$250 (50 × 5) ao invés de R$2,50 (50 × 0.05)
-   
-2. **Campo de imposto não editável**: ✅ CORRIGIDO - O campo de alíquota ISS não permite alteração adequada
-
-3. **Vinculação OS-Reserva**: ✅ CORRIGIDO - Implementado fluxo especializado para segmento `custom`
+Permitir que a empresa cadastre até **5 números de telefone** nas configurações da unidade, e exibir todos eles no cabeçalho da Ordem de Serviço (OS) gerada em PDF.
 
 ---
 
-## Fluxos de Comanda por Segmento
+### Resumo das Alterações
 
-### Segmento Sports (padrão)
-- **Componente**: `BookingOrderSheet`
-- **Custo principal**: Espaço (hora)
-- **Consumo extra**: Produtos (`order_items`)
-- **Checkout**: Espaço + Produtos
-
-### Segmento Beauty/Health ✅ IMPLEMENTADO
-- **Componente**: `BeautyBookingSheet`
-- **Custo principal**: Serviços agendados (`booking_services`)
-- **Consumo extra**: Produtos (`order_items`)
-- **Checkout**: Serviços + Produtos
-- **Hook**: `useBookingServices` busca serviços vinculados à reserva
-
-### Segmento Custom (Assistência Técnica) ✅ IMPLEMENTADO
-- **Componente**: `TechnicianBookingSheet`
-- **Custo principal**: Ordem de Serviço (OS) vinculada
-- **Faturamento**: Via OS (não via comanda tradicional)
-- **Hook**: `useLinkedServiceOrder` busca OS vinculada via `metadata.service_order_id`
-- **Ações**: 
-  - Criar OS (pré-preenchida com dados do cliente)
-  - Abrir OS completa (navega para edição)
-  - Finalizar atendimento
+| Área | O que muda |
+|------|------------|
+| **Banco de Dados** | Nova coluna `phones TEXT[]` na tabela `venues` |
+| **Configurações** | Campo dinâmico para adicionar/remover telefones |
+| **PDF da OS** | Exibir todos os telefones no cabeçalho |
 
 ---
 
-## Arquivos Criados
+### Experiência do Usuário
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/hooks/useLinkedServiceOrder.ts` | Hook para buscar OS vinculada à reserva |
-| `src/hooks/useBookingServices.ts` | Hook para buscar serviços da reserva |
-| `src/components/bookings/TechnicianBookingSheet.tsx` | Sheet para segmento custom |
-| `src/components/bookings/BeautyBookingSheet.tsx` | Sheet para segmento beauty/health |
+**Tela de Configurações > Comunicação:**
 
-## Arquivos Modificados
+```text
+Telefones da Empresa (máx. 5)
+┌─────────────────────────────────┐
+│ (11) 3333-4444             [X]  │  ← Remover
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ (11) 99999-8888            [X]  │
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ (11) 2222-1111             [X]  │
+└─────────────────────────────────┘
+        [+ Adicionar telefone]        ← Aparece se < 5
+```
+
+**PDF da OS (cabeçalho):**
+
+```text
+┌─────────────────────────────────────────────┐
+│  [LOGO]  NOME DA EMPRESA                    │
+│          CNPJ: 00.000.000/0001-00           │
+│          Rua Exemplo, 123 - Centro          │
+│          (11) 3333-4444 | (11) 99999-8888   │  ← Todos os telefones
+│          contato@empresa.com                │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+### Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/Agenda.tsx` | Renderização condicional dos 3 sheets por segmento |
-| `src/pages/OrdemServicoForm.tsx` | Converter `tax_rate` para decimal ao salvar e vice-versa ao carregar |
-| `src/hooks/useServiceOrderPdf.ts` | Exibir tax_rate como porcentagem no PDF |
+| **Migração SQL** | Adicionar coluna `phones TEXT[]` em `venues` |
+| `src/components/settings/VenueSettingsTab.tsx` | Substituir campo único por lista dinâmica |
+| `src/hooks/useServiceOrderPdf.ts` | Usar array de telefones no cabeçalho |
 
 ---
 
-## Fluxo de Dados
+### Detalhes Técnicos
 
-### Beauty/Health
-```text
-[Reserva]
-     │
-     ├── booking_services (serviços agendados)
-     │     ├── service_id → services.title, services.price
-     │     └── professional_id → venue_members.display_name
-     │
-     └── order_items (produtos consumidos)
-           └── product_id → products.name, products.price
+#### 1. Migração do Banco de Dados
 
-[Total] = Σ booking_services.price + Σ order_items.subtotal
+```sql
+-- Adicionar coluna phones como array de texto
+ALTER TABLE venues 
+ADD COLUMN phones TEXT[] DEFAULT '{}';
+
+-- Migrar dados existentes do campo phone para o array
+UPDATE venues 
+SET phones = ARRAY[phone] 
+WHERE phone IS NOT NULL AND phone != '';
 ```
 
-### Custom (Assistência Técnica)
-```text
-[Booking]                    [Service Order]
-metadata.service_order_id ──→ service_orders.id
-                              └── items (service_order_items)
-                              └── totals (subtotal, discount, tax, total)
+#### 2. Formulário de Configurações
+
+Modificar `VenueSettingsTab.tsx`:
+
+- Adicionar campo `phones` ao schema Zod:
+```typescript
+phones: z.array(z.string().max(20)).max(5).default([]),
 ```
+
+- Criar componente para gerenciar lista de telefones:
+  - Lista de inputs com máscara de telefone
+  - Botão "Adicionar" (visível quando < 5 telefones)
+  - Botão "Remover" em cada linha (visível quando > 1 telefone)
+
+- Atualizar `onSubmit` para salvar o array:
+```typescript
+phones: data.phones.map(p => unmask(p)).filter(Boolean),
+```
+
+#### 3. Geração do PDF
+
+Modificar `useServiceOrderPdf.ts`:
+
+- Buscar telefones do array `phones` (com fallback para `phone`):
+```typescript
+const phones = currentVenue?.phones?.length 
+  ? currentVenue.phones.map(p => maskPhone(p)).join(' | ')
+  : currentVenue?.phone 
+    ? maskPhone(currentVenue.phone)
+    : null;
+```
+
+- Exibir na linha de contato:
+```typescript
+const contactParts = [phones, currentVenue?.email].filter(Boolean);
+```
+
+---
+
+### Compatibilidade
+
+- O campo `phone` (singular) será mantido para retrocompatibilidade
+- Ao salvar, o primeiro telefone do array também será salvo em `phone`
+- Sistemas legados que usam `venue.phone` continuarão funcionando
+
