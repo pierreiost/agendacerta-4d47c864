@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -133,37 +133,59 @@ export function VenueSettingsTab() {
     return phonesChanged || otherFieldsChanged;
   }, [formValues, currentVenue]);
 
+  // Track venue ID to detect actual venue changes vs re-renders
+  const prevVenueIdRef = useRef<string | null>(null);
+  const skipDataLoadRef = useRef(false);
+
   // Form persistence for venue settings
   const { clearDraft: clearVenueDraft } = useFormPersist({
     form: venueForm,
     key: `venue_settings_${currentVenue?.id || 'default'}`,
     debounceMs: 500,
     showRecoveryToast: true,
+    onRestore: () => {
+      // Mark that we restored from draft - skip overwriting with DB data
+      skipDataLoadRef.current = true;
+    },
   });
 
-  // Reset form when currentVenue changes
+  // Reset form when currentVenue changes (but respect restored drafts)
   useEffect(() => {
-    if (currentVenue) {
-      // Get phones from venue (with fallback to legacy phone field)
-      const venuePhones = (currentVenue as { phones?: string[] }).phones;
-      const initialPhones = venuePhones?.length
-        ? venuePhones.map((p: string) => maskPhone(p))
-        : currentVenue.phone 
-          ? [maskPhone(currentVenue.phone)]
-          : [];
-      
-      venueForm.reset({
-        name: currentVenue.name || '',
-        slug: currentVenue.slug || '',
-        cnpj_cpf: currentVenue.cnpj_cpf ? maskCPFCNPJ(currentVenue.cnpj_cpf) : '',
-        whatsapp: currentVenue.whatsapp ? maskPhone(currentVenue.whatsapp) : '',
-        address: currentVenue.address || '',
-        email: currentVenue.email || '',
-        phones: initialPhones,
-        logo_url: currentVenue.logo_url || '',
-        dashboard_mode: (currentVenue as { dashboard_mode?: string }).dashboard_mode || 'bookings',
-      });
+    if (!currentVenue) return;
+    
+    // Check if this is a real venue change
+    const venueChanged = prevVenueIdRef.current !== null && prevVenueIdRef.current !== currentVenue.id;
+    prevVenueIdRef.current = currentVenue.id;
+    
+    // If venue changed, clear the skip flag (new venue = fresh start)
+    if (venueChanged) {
+      skipDataLoadRef.current = false;
     }
+    
+    // If we restored a draft, don't overwrite with DB data
+    if (skipDataLoadRef.current) {
+      return;
+    }
+    
+    // Get phones from venue (with fallback to legacy phone field)
+    const venuePhones = (currentVenue as { phones?: string[] }).phones;
+    const initialPhones = venuePhones?.length
+      ? venuePhones.map((p: string) => maskPhone(p))
+      : currentVenue.phone 
+        ? [maskPhone(currentVenue.phone)]
+        : [];
+    
+    venueForm.reset({
+      name: currentVenue.name || '',
+      slug: currentVenue.slug || '',
+      cnpj_cpf: currentVenue.cnpj_cpf ? maskCPFCNPJ(currentVenue.cnpj_cpf) : '',
+      whatsapp: currentVenue.whatsapp ? maskPhone(currentVenue.whatsapp) : '',
+      address: currentVenue.address || '',
+      email: currentVenue.email || '',
+      phones: initialPhones,
+      logo_url: currentVenue.logo_url || '',
+      dashboard_mode: (currentVenue as { dashboard_mode?: string }).dashboard_mode || 'bookings',
+    });
   }, [currentVenue?.id, currentVenue, venueForm]);
 
   const onSubmit = async (data: VenueFormData) => {
