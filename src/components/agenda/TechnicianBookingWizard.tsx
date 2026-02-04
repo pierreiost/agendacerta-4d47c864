@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
@@ -41,9 +40,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
-import { useProfessionals } from '@/hooks/useProfessionals';
 import { useServiceOrders, ServiceOrder } from '@/hooks/useServiceOrders';
-import { useTechnicianAvailability } from '@/hooks/useTechnicianAvailability';
 import { useVenue } from '@/contexts/VenueContext';
 import { useFormPersist } from '@/hooks/useFormPersist';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
@@ -51,7 +48,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { format, isBefore, startOfDay, addMinutes } from 'date-fns';
+import { format, isBefore, startOfDay, addMinutes, setHours, setMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   User,
@@ -64,9 +61,7 @@ import {
   Search,
   Mail,
   Phone,
-  Wrench,
   FileText,
-  Users,
   Loader2,
 } from 'lucide-react';
 
@@ -85,13 +80,36 @@ const DURATION_OPTIONS = [
   { value: '240', label: '4 horas' },
 ];
 
+// Generate time slots for a given date (8:00 - 18:00)
+function generateTimeSlots(date: Date, slotInterval: number = 30): { time: string; label: string }[] {
+  const slots: { time: string; label: string }[] = [];
+  const now = new Date();
+  const workStart = 8;
+  const workEnd = 18;
+
+  let current = setMinutes(setHours(date, workStart), 0);
+  const endOfWork = setMinutes(setHours(date, workEnd), 0);
+
+  while (isBefore(current, endOfWork)) {
+    // Skip past times for today
+    if (!isBefore(current, now)) {
+      slots.push({
+        time: current.toISOString(),
+        label: format(current, 'HH:mm'),
+      });
+    }
+    current = addMinutes(current, slotInterval);
+  }
+
+  return slots;
+}
+
 const schema = z.object({
   customerId: z.string().optional(),
   customerName: z.string().min(1, 'Nome é obrigatório'),
   customerEmail: z.string().email('Email inválido').optional().or(z.literal('')),
   customerPhone: z.string().optional(),
-  serviceOrderId: z.string().optional(), // Optional link to OS
-  technicianIds: z.array(z.string()).min(1, 'Selecione ao menos um técnico'),
+  serviceOrderId: z.string().optional(),
   date: z.date({ required_error: 'Data é obrigatória' }),
   startTime: z.string().min(1, 'Selecione um horário'),
   durationMinutes: z.string().min(1, 'Duração é obrigatória'),
@@ -115,10 +133,11 @@ export function TechnicianBookingWizard({
   const { currentVenue } = useVenue();
   const { user } = useAuth();
   const { customers } = useCustomers();
-  const { bookableProfessionals, isLoading: professionalsLoading } = useProfessionals();
   const { orders: serviceOrders, isLoading: ordersLoading } = useServiceOrders();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const slotInterval = currentVenue?.slot_interval_minutes || 30;
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -127,7 +146,6 @@ export function TechnicianBookingWizard({
       customerEmail: '',
       customerPhone: '',
       serviceOrderId: '',
-      technicianIds: [],
       durationMinutes: '60',
       startTime: '',
       notes: '',
@@ -143,7 +161,6 @@ export function TechnicianBookingWizard({
     debounceMs: 300,
     showRecoveryToast: open,
     onRestore: () => {
-      // Convert date string back to Date object after restoration
       const dateValue = form.getValues('date');
       if (dateValue && typeof dateValue === 'string') {
         form.setValue('date', new Date(dateValue));
@@ -153,17 +170,15 @@ export function TechnicianBookingWizard({
 
   const customerName = watch('customerName');
   const serviceOrderId = watch('serviceOrderId');
-  const technicianIds = watch('technicianIds');
   const selectedDate = watch('date');
   const startTime = watch('startTime');
-  const durationMinutes = parseInt(watch('durationMinutes') || '60');
+  const durationMinutes = watch('durationMinutes');
 
-  // Fetch availability
-  const { data: availability, isLoading: availabilityLoading } = useTechnicianAvailability(
-    selectedDate || null,
-    durationMinutes,
-    technicianIds.length > 0 ? technicianIds : undefined
-  );
+  // Generate available slots based on selected date
+  const availableSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return generateTimeSlots(selectedDate, slotInterval);
+  }, [selectedDate, slotInterval]);
 
   // Reset when dialog opens
   const initialLoadRef = useRef(true);
@@ -176,7 +191,6 @@ export function TechnicianBookingWizard({
           customerEmail: '',
           customerPhone: '',
           serviceOrderId: '',
-          technicianIds: [],
           date: defaultDate,
           durationMinutes: '60',
           startTime: '',
@@ -189,28 +203,6 @@ export function TechnicianBookingWizard({
       initialLoadRef.current = true;
     }
   }, [open, defaultDate, reset, clearDraft]);
-
-  // Clear time when technicians or duration change (only if already has a value)
-  const prevTechCountRef = useRef<number | null>(null);
-  const prevDurationRef = useRef<number | null>(null);
-  useEffect(() => {
-    // Skip first run to initialize refs
-    if (prevTechCountRef.current === null || prevDurationRef.current === null) {
-      prevTechCountRef.current = technicianIds.length;
-      prevDurationRef.current = durationMinutes;
-      return;
-    }
-    
-    const techCountChanged = prevTechCountRef.current !== technicianIds.length;
-    const durationChanged = prevDurationRef.current !== durationMinutes;
-    
-    if ((techCountChanged || durationChanged) && startTime) {
-      setValue('startTime', '');
-    }
-    
-    prevTechCountRef.current = technicianIds.length;
-    prevDurationRef.current = durationMinutes;
-  }, [technicianIds.length, durationMinutes, startTime, setValue]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers.slice(0, 10);
@@ -231,28 +223,6 @@ export function TechnicianBookingWizard({
     );
   }, [serviceOrders]);
 
-  // Get common available slots for all selected technicians
-  const availableSlots = useMemo(() => {
-    if (!availability || availability.length === 0 || technicianIds.length === 0) return [];
-    
-    // For multiple technicians, find common slots
-    if (technicianIds.length === 1) {
-      const tech = availability.find(a => a.technician_id === technicianIds[0]);
-      return tech?.available_slots || [];
-    }
-
-    // Get slots available for ALL selected technicians
-    const selectedTechs = availability.filter(a => technicianIds.includes(a.technician_id));
-    if (selectedTechs.length !== technicianIds.length) return [];
-
-    const firstTechSlots = selectedTechs[0]?.available_slots || [];
-    return firstTechSlots.filter(slot =>
-      selectedTechs.every(tech => 
-        tech.available_slots.some(s => s.time === slot.time)
-      )
-    );
-  }, [availability, technicianIds]);
-
   const handleSelectCustomer = (customer: Customer) => {
     setValue('customerId', customer.id);
     setValue('customerName', customer.name);
@@ -267,15 +237,6 @@ export function TechnicianBookingWizard({
     setNewCustomerDialogOpen(false);
   };
 
-  const handleTechnicianToggle = (techId: string) => {
-    const current = technicianIds;
-    if (current.includes(techId)) {
-      setValue('technicianIds', current.filter(id => id !== techId));
-    } else {
-      setValue('technicianIds', [...current, techId]);
-    }
-  };
-
   const handleSelectServiceOrder = (order: ServiceOrder) => {
     setValue('serviceOrderId', order.id);
     setValue('customerId', order.customer_id || undefined);
@@ -286,8 +247,7 @@ export function TechnicianBookingWizard({
   };
 
   const canProceedToStep2 = customerName && customerName.trim().length > 0;
-  const canProceedToStep3 = technicianIds.length > 0 && selectedDate;
-  const canProceedToStep4 = startTime;
+  const canProceedToStep3 = selectedDate && startTime;
 
   const selectedOrder = useMemo(() => {
     if (!serviceOrderId) return null;
@@ -302,34 +262,28 @@ export function TechnicianBookingWizard({
       const startDateTime = new Date(data.startTime);
       const endDateTime = addMinutes(startDateTime, parseInt(data.durationMinutes));
 
-      // Create bookings for each technician
-      for (const techId of data.technicianIds) {
-        const { error } = await supabase.from('bookings').insert({
-          venue_id: currentVenue.id,
-          space_id: (await getDefaultSpace()) || '', // Need a default space
-          professional_id: techId,
-          customer_name: data.customerName,
-          customer_email: data.customerEmail || null,
-          customer_phone: data.customerPhone || null,
-          customer_id: data.customerId || null,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          status: 'CONFIRMED',
-          booking_type: 'service',
-          notes: data.notes || null,
-          created_by: user?.id,
-          metadata: data.serviceOrderId ? { service_order_id: data.serviceOrderId } : null,
-        });
+      // Get or create a default space for the venue
+      const defaultSpaceId = await getOrCreateDefaultSpace();
 
-        if (error) throw error;
-      }
-
-      toast({ 
-        title: 'Agendamento criado!',
-        description: data.technicianIds.length > 1 
-          ? `${data.technicianIds.length} técnicos agendados`
-          : 'Técnico agendado com sucesso'
+      const { error } = await supabase.from('bookings').insert({
+        venue_id: currentVenue.id,
+        space_id: defaultSpaceId,
+        customer_name: data.customerName,
+        customer_email: data.customerEmail || null,
+        customer_phone: data.customerPhone || null,
+        customer_id: data.customerId || null,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        status: 'CONFIRMED',
+        booking_type: 'service',
+        notes: data.notes || null,
+        created_by: user?.id,
+        metadata: data.serviceOrderId ? { service_order_id: data.serviceOrderId } : null,
       });
+
+      if (error) throw error;
+
+      toast({ title: 'Agendamento criado com sucesso!' });
       clearDraft();
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       onOpenChange(false);
@@ -344,16 +298,32 @@ export function TechnicianBookingWizard({
     }
   };
 
-  // Helper to get a default space for the venue (technical appointments still need a space_id)
-  const getDefaultSpace = async () => {
-    const { data } = await supabase
+  // Helper to get or create a default space for the venue
+  const getOrCreateDefaultSpace = async (): Promise<string> => {
+    // Try to get existing active space
+    const { data: existingSpace } = await supabase
       .from('spaces')
       .select('id')
       .eq('venue_id', currentVenue?.id || '')
       .eq('is_active', true)
       .limit(1)
       .single();
-    return data?.id;
+
+    if (existingSpace?.id) return existingSpace.id;
+
+    // Create a default space for custom segment
+    const { data: newSpace, error } = await supabase
+      .from('spaces')
+      .insert({
+        venue_id: currentVenue?.id || '',
+        name: 'Atendimentos',
+        is_active: true,
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newSpace.id;
   };
 
   const formatCurrency = (value: number) => {
@@ -367,9 +337,9 @@ export function TechnicianBookingWizard({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
-          {/* Progress indicator */}
+          {/* Progress indicator - 3 steps now */}
           <div className="flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div
                   className={cn(
@@ -381,7 +351,7 @@ export function TechnicianBookingWizard({
                 >
                   {step > s ? <Check className="h-4 w-4" /> : s}
                 </div>
-                {s < 4 && (
+                {s < 3 && (
                   <div
                     className={cn(
                       'w-8 h-1 rounded-full transition-all duration-200',
@@ -396,9 +366,8 @@ export function TechnicianBookingWizard({
           <DialogHeader className="px-6 pt-4">
             <DialogTitle>
               {step === 1 && 'Cliente e OS'}
-              {step === 2 && 'Técnicos e Data'}
-              {step === 3 && 'Horário'}
-              {step === 4 && 'Confirmação'}
+              {step === 2 && 'Data e Horário'}
+              {step === 3 && 'Confirmação'}
             </DialogTitle>
           </DialogHeader>
 
@@ -557,70 +526,9 @@ export function TechnicianBookingWizard({
                 </div>
               )}
 
-              {/* Step 2: Technicians & Date */}
+              {/* Step 2: Date & Time */}
               {step === 2 && (
                 <div className="space-y-4 animate-fade-in">
-                  <div>
-                    <Label className="mb-2 flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Técnicos
-                    </Label>
-                    {professionalsLoading ? (
-                      <div className="space-y-2">
-                        {[1, 2].map(i => <Skeleton key={i} className="h-14 w-full" />)}
-                      </div>
-                    ) : bookableProfessionals.length === 0 ? (
-                      <Card className="p-6 text-center">
-                        <Wrench className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">Nenhum técnico disponível</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Configure técnicos em Equipe → Profissionais
-                        </p>
-                      </Card>
-                    ) : (
-                      <ScrollArea className="h-[140px] pr-4">
-                        <div className="space-y-2">
-                          {bookableProfessionals.map((tech) => {
-                            const isSelected = technicianIds.includes(tech.id);
-                            const displayName = tech.display_name || tech.profile?.full_name || 'Técnico';
-                            return (
-                              <Card
-                                key={tech.id}
-                                className={cn(
-                                  'p-3 cursor-pointer transition-all duration-200 border-2',
-                                  isSelected
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-transparent hover:border-muted-foreground/30'
-                                )}
-                                onClick={() => handleTechnicianToggle(tech.id)}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <Checkbox checked={isSelected} className="pointer-events-none" />
-                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Wrench className="h-4 w-4 text-primary" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="font-medium">{displayName}</div>
-                                    {tech.bio && (
-                                      <div className="text-xs text-muted-foreground line-clamp-1">
-                                        {tech.bio}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      </ScrollArea>
-                    )}
-                    {errors.technicianIds && (
-                      <p className="text-sm text-destructive mt-1">{errors.technicianIds.message}</p>
-                    )}
-                  </div>
-
-                  <Separator />
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="mb-2 flex items-center gap-2">
@@ -640,7 +548,10 @@ export function TechnicianBookingWizard({
                             mode="single"
                             selected={selectedDate}
                             onSelect={(date) => {
-                              if (date) setValue('date', date);
+                              if (date) {
+                                setValue('date', date);
+                                setValue('startTime', ''); // Reset time when date changes
+                              }
                               setDatePickerOpen(false);
                             }}
                             disabled={(date) => isBefore(date, startOfDay(new Date()))}
@@ -648,18 +559,22 @@ export function TechnicianBookingWizard({
                           />
                         </PopoverContent>
                       </Popover>
+                      {errors.date && (
+                        <p className="text-sm text-destructive mt-1">{errors.date.message}</p>
+                      )}
                     </div>
+
                     <div>
                       <Label className="mb-2 flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         Duração
                       </Label>
                       <Select
-                        value={watch('durationMinutes')}
+                        value={durationMinutes}
                         onValueChange={(val) => setValue('durationMinutes', val)}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Duração" />
                         </SelectTrigger>
                         <SelectContent>
                           {DURATION_OPTIONS.map((opt) => (
@@ -671,161 +586,149 @@ export function TechnicianBookingWizard({
                       </Select>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Step 3: Time Selection */}
-              {step === 3 && (
-                <div className="space-y-4 animate-fade-in">
-                  <div>
-                    <Label className="mb-2 flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Horários Disponíveis
-                    </Label>
-                    {availabilityLoading ? (
-                      <div className="grid grid-cols-4 gap-2">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                          <Skeleton key={i} className="h-10 w-full" />
-                        ))}
-                      </div>
-                    ) : availableSlots.length === 0 ? (
-                      <Card className="p-6 text-center">
-                        <Clock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">
-                          {technicianIds.length > 1 
-                            ? 'Nenhum horário comum disponível para os técnicos selecionados'
-                            : 'Nenhum horário disponível para esta data'}
-                        </p>
-                      </Card>
-                    ) : (
-                      <ScrollArea className="h-[200px] pr-4">
-                        <div className="grid grid-cols-4 gap-2">
-                          {availableSlots.map((slot) => (
-                            <Button
-                              key={slot.time}
-                              type="button"
-                              variant={startTime === slot.time ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setValue('startTime', slot.time)}
-                            >
-                              {slot.label}
-                            </Button>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </div>
 
                   <Separator />
 
                   <div>
-                    <Label className="mb-2">Observações</Label>
+                    <Label className="mb-2 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Horário de Início
+                    </Label>
+                    {selectedDate ? (
+                      availableSlots.length > 0 ? (
+                        <ScrollArea className="h-[180px] pr-4">
+                          <div className="grid grid-cols-4 gap-2">
+                            {availableSlots.map((slot) => {
+                              const isSelected = startTime === slot.time;
+                              return (
+                                <Button
+                                  key={slot.time}
+                                  type="button"
+                                  variant={isSelected ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setValue('startTime', slot.time)}
+                                  className={cn(
+                                    'h-10',
+                                    isSelected && 'ring-2 ring-primary ring-offset-2'
+                                  )}
+                                >
+                                  {slot.label}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      ) : (
+                        <Card className="p-6 text-center">
+                          <Clock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-muted-foreground">Nenhum horário disponível</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Todos os horários já passaram para esta data
+                          </p>
+                        </Card>
+                      )
+                    ) : (
+                      <Card className="p-6 text-center">
+                        <CalendarIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground">Selecione uma data primeiro</p>
+                      </Card>
+                    )}
+                    {errors.startTime && (
+                      <p className="text-sm text-destructive mt-1">{errors.startTime.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="mb-2">Observações (opcional)</Label>
                     <Textarea
-                      placeholder="Detalhes do serviço, equipamentos necessários, etc."
+                      placeholder="Informações adicionais sobre o atendimento..."
                       {...form.register('notes')}
-                      rows={3}
+                      rows={2}
                     />
                   </div>
                 </div>
               )}
 
-              {/* Step 4: Confirmation */}
-              {step === 4 && (
+              {/* Step 3: Confirmation */}
+              {step === 3 && (
                 <div className="space-y-4 animate-fade-in">
                   <Card className="p-4 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Resumo do Agendamento</h3>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cliente:</span>
+                        <span className="font-medium">{customerName}</span>
                       </div>
-                      <div>
-                        <div className="font-medium">{customerName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {watch('customerEmail') || watch('customerPhone') || 'Sem contato'}
+                      
+                      {selectedOrder && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">OS:</span>
+                          <Badge variant="secondary">
+                            #{selectedOrder.order_number}
+                          </Badge>
                         </div>
+                      )}
+                      
+                      <Separator />
+                      
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Data:</span>
+                        <span className="font-medium">
+                          {selectedDate && format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        </span>
                       </div>
-                    </div>
-
-                    <Separator />
-
-                    {selectedOrder && (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <div className="text-sm text-muted-foreground">Ordem de Serviço</div>
-                            <div className="font-medium">#{selectedOrder.order_number}</div>
-                          </div>
-                        </div>
-                        <Separator />
-                      </>
-                    )}
-
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <div className="text-sm text-muted-foreground">Técnicos</div>
-                        <div className="font-medium">
-                          {technicianIds.map(id => {
-                            const tech = bookableProfessionals.find(p => p.id === id);
-                            return tech?.display_name || tech?.profile?.full_name || 'Técnico';
-                          }).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex items-center gap-3">
-                      <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <div className="text-sm text-muted-foreground">Data e Horário</div>
-                        <div className="font-medium">
-                          {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                          {' às '}
+                      
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Horário:</span>
+                        <span className="font-medium">
                           {startTime && format(new Date(startTime), 'HH:mm')}
                           {' - '}
-                          {startTime && format(addMinutes(new Date(startTime), durationMinutes), 'HH:mm')}
-                        </div>
+                          {startTime && format(addMinutes(new Date(startTime), parseInt(durationMinutes)), 'HH:mm')}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Duração:</span>
+                        <span className="font-medium">
+                          {DURATION_OPTIONS.find(o => o.value === durationMinutes)?.label}
+                        </span>
                       </div>
                     </div>
-
-                    {watch('notes') && (
-                      <>
-                        <Separator />
-                        <div>
-                          <div className="text-sm text-muted-foreground mb-1">Observações</div>
-                          <div className="text-sm">{watch('notes')}</div>
-                        </div>
-                      </>
-                    )}
                   </Card>
+
+                  {form.watch('notes') && (
+                    <Card className="p-4">
+                      <h4 className="text-sm font-medium mb-2">Observações</h4>
+                      <p className="text-sm text-muted-foreground">{form.watch('notes')}</p>
+                    </Card>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/30">
+            {/* Footer navigation */}
+            <div className="flex items-center justify-between p-4 border-t bg-muted/20">
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => step > 1 && setStep(step - 1)}
+                onClick={() => setStep(s => Math.max(1, s - 1))}
                 disabled={step === 1}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Voltar
               </Button>
 
-              {step < 4 ? (
+              {step < 3 ? (
                 <Button
                   type="button"
-                  onClick={() => setStep(step + 1)}
+                  onClick={() => setStep(s => s + 1)}
                   disabled={
                     (step === 1 && !canProceedToStep2) ||
-                    (step === 2 && !canProceedToStep3) ||
-                    (step === 3 && !canProceedToStep4)
+                    (step === 2 && !canProceedToStep3)
                   }
                 >
-                  Próximo
+                  Continuar
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
@@ -833,12 +736,12 @@ export function TechnicianBookingWizard({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Agendando...
+                      Criando...
                     </>
                   ) : (
                     <>
                       <Check className="h-4 w-4 mr-2" />
-                      Confirmar
+                      Confirmar Agendamento
                     </>
                   )}
                 </Button>
