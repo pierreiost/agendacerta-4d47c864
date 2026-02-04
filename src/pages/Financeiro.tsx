@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTabPersist } from "@/hooks/useTabPersist";
 import { Plus, DollarSign } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,8 @@ export default function Financeiro() {
   const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
   const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  
+  const { activeTab, onTabChange } = useTabPersist({ key: 'financeiro', defaultValue: 'overview' });
 
   const { canCreate } = usePermissions("financeiro");
 
@@ -85,7 +88,7 @@ export default function Financeiro() {
         />
 
         {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Resumo</TabsTrigger>
             <TabsTrigger value="revenue">Receitas</TabsTrigger>

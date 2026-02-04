@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useStatePersist } from '@/hooks/useStatePersist';
+import { useTabPersist } from '@/hooks/useTabPersist';
 import {
   Loader2, Globe, Image, MessageSquare, BarChart3, HelpCircle,
   MapPin, Clock, Share2, Plus, Trash2, Upload, X, ExternalLink, 
@@ -55,6 +56,8 @@ export default function PublicPageConfig() {
   const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const hasLoadedFromDbRef = useRef(false);
+  
+  const { activeTab, onTabChange } = useTabPersist({ key: 'public_page_config', defaultValue: 'branding' });
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
 
@@ -261,7 +264,7 @@ export default function PublicPageConfig() {
           </div>
         </div>
 
-        <Tabs defaultValue="branding" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
           <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-auto gap-1 p-1">
             <TabsTrigger value="branding" className="flex-col py-1.5 h-auto">
               <Palette className="h-4 w-4 mb-0.5" />
