@@ -184,9 +184,16 @@ export function TechnicianBookingWizard({
   }, [open, defaultDate, reset, clearDraft]);
 
   // Clear time when technicians or duration change (only if already has a value)
-  const prevTechCountRef = useRef(technicianIds.length);
-  const prevDurationRef = useRef(durationMinutes);
+  const prevTechCountRef = useRef<number | null>(null);
+  const prevDurationRef = useRef<number | null>(null);
   useEffect(() => {
+    // Skip first run to initialize refs
+    if (prevTechCountRef.current === null || prevDurationRef.current === null) {
+      prevTechCountRef.current = technicianIds.length;
+      prevDurationRef.current = durationMinutes;
+      return;
+    }
+    
     const techCountChanged = prevTechCountRef.current !== technicianIds.length;
     const durationChanged = prevDurationRef.current !== durationMinutes;
     
