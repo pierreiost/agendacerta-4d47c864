@@ -91,7 +91,7 @@ export type Database = {
           notes: string | null
           professional_id: string | null
           reminder_sent: boolean | null
-          space_id: string
+          space_id: string | null
           space_total: number | null
           start_time: string
           status: Database["public"]["Enums"]["booking_status"]
@@ -116,7 +116,7 @@ export type Database = {
           notes?: string | null
           professional_id?: string | null
           reminder_sent?: boolean | null
-          space_id: string
+          space_id?: string | null
           space_total?: number | null
           start_time: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -141,7 +141,7 @@ export type Database = {
           notes?: string | null
           professional_id?: string | null
           reminder_sent?: boolean | null
-          space_id?: string
+          space_id?: string | null
           space_total?: number | null
           start_time?: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -636,6 +636,59 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professionals: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          specialties: string[] | null
+          updated_at: string | null
+          venue_id: string
+          work_schedule: Json | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          specialties?: string[] | null
+          updated_at?: string | null
+          venue_id: string
+          work_schedule?: Json | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          specialties?: string[] | null
+          updated_at?: string | null
+          venue_id?: string
+          work_schedule?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professionals_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
