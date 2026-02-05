@@ -19,6 +19,7 @@ import {
   Sun,
   DollarSign,
   HelpCircle,
+  Heart,
   LucideIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -181,7 +182,7 @@ export function AppSidebar() {
           items: [
             { title: "Clientes", href: "/clientes", icon: Users, module: "clientes" as Module },
             ...(isServiceVenue 
-              ? [{ title: "Serviços", href: "/servicos", icon: Scissors, module: "servicos" as Module }]
+              ? [{ title: "Serviços", href: "/servicos", icon: venueSegment === 'health' ? Heart : Scissors, module: "servicos" as Module }]
               : [{ title: "Espaços", href: "/espacos", icon: MapPin, module: "espacos" as Module }]
             ),
             { title: "Produtos", href: "/produtos", icon: Package, module: "produtos" as Module },
