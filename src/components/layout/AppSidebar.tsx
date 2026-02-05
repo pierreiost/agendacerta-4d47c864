@@ -108,7 +108,8 @@ export function AppSidebar() {
   
   // Check venue segment for conditional menu items
   const venueSegment = (currentVenue as { segment?: string })?.segment;
-  const isServiceVenue = venueSegment && (venueSegment === 'beauty' || venueSegment === 'health');
+  const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
+  const isSportsVenue = venueSegment === 'sports';
 
   // Check if user is superadmin from database
   const { data: isSuperAdmin } = useQuery({
@@ -181,9 +182,15 @@ export function AppSidebar() {
           label: "CADASTROS",
           items: [
             { title: "Clientes", href: "/clientes", icon: Users, module: "clientes" as Module },
+            // Espaços apenas para sports
+            ...(isSportsVenue 
+              ? [{ title: "Espaços", href: "/espacos", icon: MapPin, module: "espacos" as Module }]
+              : []
+            ),
+            // Serviços apenas para beauty/health
             ...(isServiceVenue 
               ? [{ title: "Serviços", href: "/servicos", icon: venueSegment === 'health' ? Heart : Scissors, module: "servicos" as Module }]
-              : [{ title: "Espaços", href: "/espacos", icon: MapPin, module: "espacos" as Module }]
+              : []
             ),
             { title: "Produtos", href: "/produtos", icon: Package, module: "produtos" as Module },
           ],

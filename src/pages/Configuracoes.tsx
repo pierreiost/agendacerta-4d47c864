@@ -93,9 +93,9 @@ export default function Configuracoes() {
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
   
-  // Check venue segment for conditional UI
+  // Check venue segment for conditional UI (only beauty and health show professionals)
   const venueSegment = (currentVenue as { segment?: string })?.segment;
-  const isServiceVenue = venueSegment && venueSegment !== 'sports';
+  const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
   const ServiceIcon = getServiceIcon(venueSegment);
 
   useEffect(() => {

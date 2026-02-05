@@ -97,9 +97,9 @@ export default function Servicos() {
     await toggleActive.mutateAsync({ id: service.id, is_active: !service.is_active });
   };
 
-  // Check if venue segment supports services
+  // Check if venue segment supports services (only beauty and health)
   const venueSegment = (currentVenue as { segment?: string })?.segment;
-  const isServiceVenue = venueSegment && venueSegment !== 'sports';
+  const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
   const ServiceIcon = getServiceIcon(venueSegment);
 
   if (!isServiceVenue) {
@@ -112,8 +112,9 @@ export default function Servicos() {
           <h2 className="text-xl font-semibold mb-2">Funcionalidade não disponível</h2>
           <p className="text-muted-foreground max-w-md">
             A gestão de serviços está disponível apenas para estabelecimentos do tipo
-            Barbearia, Clínica ou Estética. Seu estabelecimento está configurado como
-            Espaço Esportivo.
+            Salão de Beleza ou Clínica de Saúde.
+            {venueSegment === 'sports' && ' Seu estabelecimento está configurado como Espaço Esportivo.'}
+            {venueSegment === 'custom' && ' Para Assistência Técnica, utilize as Ordens de Serviço.'}
           </p>
         </div>
       </AppLayout>
