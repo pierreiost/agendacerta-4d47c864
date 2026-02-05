@@ -1,6 +1,24 @@
 
 # Revisao Completa do Sistema AgendaCerta
 
+## ✅ IMPLEMENTADO (05/02/2026)
+
+### Bugs Corrigidos
+- [x] Link `/p/` corrigido para `/v/` em PublicPageConfig.tsx
+- [x] `logo_url` agora é salvo no update da página pública
+- [x] Heart adicionado ao iconMap em HelpArticle.tsx
+- [x] RevenueList agora recebe `period` via props e filtra corretamente
+
+### Performance Otimizada
+- [x] Criada RPC `get_financial_metrics` - reduz 18+ queries para 1
+- [x] Hook `useFinancialMetrics` atualizado para usar a RPC
+
+### Segurança
+- [x] RLS policies verificadas - todas as tabelas críticas têm policies
+- [ ] Leaked Password Protection - **REQUER AÇÃO MANUAL** no Supabase Dashboard
+
+---
+
 ## Resumo Executivo
 
 Apos analise detalhada do codigo, banco de dados e configuracoes de seguranca, identifiquei **47 itens** divididos em 6 categorias: Seguranca (criticos), Bugs, Performance, Usabilidade, Testes e Documentacao.
