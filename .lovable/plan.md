@@ -1,236 +1,204 @@
 
-# Revisao Completa do Sistema AgendaCerta
 
-## ✅ IMPLEMENTADO (05/02/2026)
+# Plano: Correção de Layouts e Denominações por Segmento
 
-### Bugs Corrigidos
-- [x] Link `/p/` corrigido para `/v/` em PublicPageConfig.tsx
-- [x] `logo_url` agora é salvo no update da página pública
-- [x] Heart adicionado ao iconMap em HelpArticle.tsx
-- [x] RevenueList agora recebe `period` via props e filtra corretamente
+## Problema Identificado
 
-### Performance Otimizada
-- [x] Criada RPC `get_financial_metrics` - reduz 18+ queries para 1
-- [x] Hook `useFinancialMetrics` atualizado para usar a RPC
+A lógica de `isServiceVenue` está **inconsistente** entre os arquivos:
 
-### Segurança
-- [x] RLS policies verificadas - todas as tabelas críticas têm policies
-- [ ] Leaked Password Protection - **REQUER AÇÃO MANUAL** no Supabase Dashboard
+| Arquivo | Definição Atual | Problema |
+|---------|-----------------|----------|
+| `AppSidebar.tsx` (L111) | `beauty \|\| health` | Segmento `custom` cai no else → mostra **Espaços** ❌ |
+| `Servicos.tsx` (L102) | `!= sports` | Segmento `custom` passa → mostra página de Serviços ❌ |
+| `Configuracoes.tsx` (L98) | `!= sports` | Segmento `custom` mostra seção de Profissionais ❌ |
+
+## Comportamento Esperado por Segmento
+
+```text
+┌─────────────┬────────────────┬─────────────┬────────────────┬──────────────────┐
+│ Segmento    │ Menu Principal │ Dashboard   │ Profissionais  │ Página Serviços  │
+├─────────────┼────────────────┼─────────────┼────────────────┼──────────────────┤
+│ sports      │ Espaços        │ bookings    │ Oculto         │ Bloqueada        │
+│ beauty      │ Serviços       │ appointments│ Visível        │ Acessível        │
+│ health      │ Serviços       │ appointments│ Visível        │ Acessível        │
+│ custom      │ NENHUM*        │ service_ord │ Oculto         │ Bloqueada        │
+└─────────────┴────────────────┴─────────────┴────────────────┴──────────────────┘
+
+* custom: Foco em Ordens de Serviço, não gerencia Espaços nem Serviços manualmente
+```
+SÓ LEMBRE DE QUE A AGENDA TEM QUE FUNCIONAR EM TODOS, SPORTS TEM QUE TER ESPAÇO CADASTRADO.
+SERVIÇOS TEM QUE MOSTRAR NORMALMENTE, E FUNCIONAR COM SERVIÇOS VINCULADO
+CUSTOM TEM QUE FUNCIONAR PARA MARCAR HORÁRIO NORMAL (SEM EPAÇO CADASTRADO)
+---
+
+## Correções Necessárias
+
+### 1. AppSidebar.tsx - Menu de Navegação
+
+**Problema:** Segmento `custom` mostra "Espaços" quando deveria ocultar ambos (Espaços e Serviços).
+
+**Solução:** Criar lógica separada para cada tipo:
+
+```typescript
+// Linha 109-111 - substituir:
+const venueSegment = (currentVenue as { segment?: string })?.segment;
+const isServiceVenue = venueSegment && (venueSegment === 'beauty' || venueSegment === 'health');
+
+// Por:
+const venueSegment = (currentVenue as { segment?: string })?.segment;
+const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
+const isSportsVenue = venueSegment === 'sports';
+const isCustomVenue = venueSegment === 'custom';
+```
+
+**Menu CADASTROS (linhas 181-189) - substituir:**
+
+```typescript
+items: [
+  { title: "Clientes", href: "/clientes", icon: Users, module: "clientes" as Module },
+  // Espaços apenas para sports
+  ...(isSportsVenue 
+    ? [{ title: "Espaços", href: "/espacos", icon: MapPin, module: "espacos" as Module }]
+    : []
+  ),
+  // Serviços apenas para beauty/health
+  ...(isServiceVenue 
+    ? [{ title: "Serviços", href: "/servicos", icon: venueSegment === 'health' ? Heart : Scissors, module: "servicos" as Module }]
+    : []
+  ),
+  { title: "Produtos", href: "/produtos", icon: Package, module: "produtos" as Module },
+],
+```
 
 ---
 
-## Resumo Executivo
+### 2. Servicos.tsx - Página de Serviços
 
-Apos analise detalhada do codigo, banco de dados e configuracoes de seguranca, identifiquei **47 itens** divididos em 6 categorias: Seguranca (criticos), Bugs, Performance, Usabilidade, Testes e Documentacao.
+**Problema:** Segmento `custom` consegue acessar página de Serviços porque `venueSegment !== 'sports'` inclui custom.
 
----
+**Solução:** Alterar verificação para ser explícita:
 
-## 1. SEGURANCA (CRITICO)
+```typescript
+// Linha 101-102 - substituir:
+const venueSegment = (currentVenue as { segment?: string })?.segment;
+const isServiceVenue = venueSegment && venueSegment !== 'sports';
 
-### 1.1 RLS - Problemas Identificados pelo Scanner
+// Por:
+const venueSegment = (currentVenue as { segment?: string })?.segment;
+const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
+```
 
-| Tabela | Problema | Severidade | Acao |
-|--------|----------|------------|------|
-| `professionals` | PII exposto (email, phone) sem bloqueio anonimo | ERRO | Adicionar policy `auth.uid() IS NOT NULL` |
-| `customers` | Base completa pode ser acessada anonimamente | ERRO | Adicionar policy explicita para authenticated |
-| `service_orders` | Dados financeiros e fiscais expostos | ERRO | Restringir SELECT a authenticated + venue_member |
-| `google_calendar_tokens` | OAuth tokens em texto claro para admins | AVISO | Documentar como risco aceito ou implementar rotacao |
-| `login_attempts` | Emails podem ser colhidos | ERRO | Verificar policy superadmin-only |
-| `profiles` | Telefones e nomes expostos | ERRO | Adicionar bloqueio anonimo |
-| `venues` | CNPJ/CPF e IDs de pagamento expostos | ERRO | Restringir SELECT |
+**Atualizar mensagem de bloqueio (linhas 112-117):**
 
-### 1.2 Autenticacao
-
-| Item | Status | Acao |
-|------|--------|------|
-| Leaked Password Protection | DESABILITADO | Habilitar no dashboard Supabase Auth |
-| Rate limiting de login | OK | Implementado via edge function |
-| Validacao de senha forte | OK | 8+ chars, maiuscula, numero, especial |
-| Confirmacao de senha | OK | Campo implementado com validacao |
-
-### 1.3 Codigo - Vulnerabilidades
-
-| Arquivo | Problema | Acao |
-|---------|----------|------|
-| `src/components/ui/chart.tsx` | `dangerouslySetInnerHTML` | SEGURO - apenas CSS de config controlada |
-| `PublicPageVenue.tsx` | URL validation | OK - `isSafeUrl()` implementado |
-| `BookingWidget.tsx` | File upload | OK - validacao MIME + tamanho implementada |
+```typescript
+<p className="text-muted-foreground max-w-md">
+  A gestão de serviços está disponível apenas para estabelecimentos do tipo
+  Salão de Beleza ou Clínica de Saúde.
+  {venueSegment === 'sports' && ' Seu estabelecimento está configurado como Espaço Esportivo.'}
+  {venueSegment === 'custom' && ' Para Assistência Técnica, utilize as Ordens de Serviço.'}
+</p>
+```
 
 ---
 
-## 2. BUGS IDENTIFICADOS
+### 3. Configuracoes.tsx - Seção Profissionais
 
-### 2.1 Modulo Financeiro
+**Problema:** Seção "Profissionais que Atendem" aparece para `custom` quando não deveria.
 
-| Bug | Arquivo | Correcao |
-|-----|---------|----------|
-| Performance: 18 queries sequenciais para monthlyData | `useFinancialMetrics.ts` | Criar RPC `get_financial_metrics` no servidor |
-| Filtro de periodo nao afeta RevenueList | `Financeiro.tsx` / `RevenueList.tsx` | Passar `period` como prop e aplicar filtro |
-| RevenueList sempre mostra "este mes" fixo | `RevenueList.tsx` | Receber startDate/endDate via props |
+**Solução:** Alterar verificação para ser explícita:
 
-### 2.2 Pagina Publica
+```typescript
+// Linha 97-98 - substituir:
+const venueSegment = (currentVenue as { segment?: string })?.segment;
+const isServiceVenue = venueSegment && venueSegment !== 'sports';
 
-| Bug | Arquivo | Correcao |
-|-----|---------|----------|
-| Link "Visualizar" usa `/p/slug` mas rota e `/v/slug` | `PublicPageConfig.tsx` L254 | Trocar `/p/` por `/v/` |
-| Logo URL nao salva no banco | `PublicPageConfig.tsx` | Adicionar `logo_url` ao update |
-
-### 2.3 Tipagem
-
-| Bug | Arquivo | Correcao |
-|-----|---------|----------|
-| TRANSFER em PaymentMethod | `useExpenses.ts` | O enum ja inclui TRANSFER no DB - remover cast desnecessario |
-
-### 2.4 Ajuda
-
-| Bug | Arquivo | Correcao |
-|-----|---------|----------|
-| Falta icone Heart no iconMap | `HelpArticle.tsx` | Adicionar Heart ao mapeamento |
+// Por:
+const venueSegment = (currentVenue as { segment?: string })?.segment;
+const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
+```
 
 ---
 
-## 3. PERFORMANCE
+### 4. Espacos.tsx - Proteção de Acesso
 
-### 3.1 Queries N+1
+**Problema:** Página de Espaços não tem proteção - qualquer segmento pode acessar via URL direta.
 
-| Local | Problema | Solucao |
-|-------|----------|---------|
-| `useFinancialMetrics.ts` | Loop de 6 meses com 3 queries cada = 18 queries | Criar RPC unica com CTE para agregar dados |
-| `RevenueList.tsx` | 2 queries separadas para bookings e service_orders | Unificar com UNION no servidor |
+**Solução:** Adicionar verificação no início do componente:
 
-### 3.2 Recomendacoes
+```typescript
+// Após linha 41, adicionar:
+const venueSegment = (currentVenue as { segment?: string })?.segment;
 
-| Item | Acao |
-|------|------|
-| Supabase Query Limit | Queries retornam max 1000 rows - adicionar paginacao onde necessario |
-| React Query staleTime | Aumentar para dados que mudam pouco (ex: venues, services) |
-
----
-
-## 4. USABILIDADE (UX)
-
-### 4.1 Segmento Health - Terminologia
-
-| Componente | Status |
-|------------|--------|
-| Dashboard "Proximos Pacientes" | IMPLEMENTADO |
-| Sidebar icone Heart | IMPLEMENTADO |
-| ProfessionalFormDialog | IMPLEMENTADO |
-| Configuracoes "Atende Pacientes" | IMPLEMENTADO |
-
-### 4.2 Melhorias Sugeridas
-
-| Item | Descricao |
-|------|-----------|
-| Financeiro - Exportacao | Adicionar botao "Exportar Excel" na tab de despesas |
-| RevenueList - Filtro por tipo | Permitir filtrar "Apenas Reservas" ou "Apenas OS" |
-| Ajuda - Busca mobile | Melhorar visibilidade da busca em telas pequenas |
-| Pagina Publica - Preview | Adicionar preview em tempo real no editor |
+// Se não for sports, bloquear acesso
+if (venueSegment && venueSegment !== 'sports') {
+  return (
+    <AppLayout>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <div className="rounded-full bg-muted p-6 mb-4">
+          <MapPin className="h-12 w-12 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2">Funcionalidade não disponível</h2>
+        <p className="text-muted-foreground max-w-md">
+          A gestão de espaços está disponível apenas para Espaços Esportivos.
+          {venueSegment === 'beauty' || venueSegment === 'health' 
+            ? ' Para seu tipo de negócio, utilize a página de Serviços.' 
+            : ' Para Assistência Técnica, utilize as Ordens de Serviço.'}
+        </p>
+      </div>
+    </AppLayout>
+  );
+}
+```
 
 ---
 
-## 5. TESTES
+### 5. Utilitário Centralizado (Opcional mas Recomendado)
 
-### 5.1 Status Atual
+Adicionar funções helper em `src/lib/segment-utils.ts`:
 
-- **Nenhum teste automatizado encontrado**
-- Diretorio `src/test` existe mas esta vazio
-- Dependencias de teste NAO instaladas (`vitest`, `@testing-library/react`)
+```typescript
+/**
+ * Returns true if the venue segment is service-based (beauty or health)
+ */
+export function isServiceSegment(segment?: string | null): boolean {
+  return segment === 'beauty' || segment === 'health';
+}
 
-### 5.2 Plano de Implementacao
+/**
+ * Returns true if the venue segment is space-based (sports)
+ */
+export function isSportsSegment(segment?: string | null): boolean {
+  return segment === 'sports';
+}
 
-1. Instalar dependencias de teste
-2. Configurar `vitest.config.ts`
-3. Criar `src/test/setup.ts`
-4. Adicionar testes prioritarios:
-
-| Prioridade | Componente | Tipo de Teste |
-|------------|------------|---------------|
-| ALTA | `usePayments` | Unit test - finalizeBooking |
-| ALTA | `CheckoutDialog` | Integration - split payment |
-| ALTA | `useFinancialMetrics` | Unit test - calculos |
-| MEDIA | `BookingWidget` | E2E - fluxo completo |
-| MEDIA | Auth login/signup | E2E - rate limiting |
-
----
-
-## 6. DOCUMENTACAO E AJUDA
-
-### 6.1 Conteudo Existente
-
-| Secao | Status |
-|-------|--------|
-| Primeiros Passos | OK - 3 artigos |
-| Modulos do Sistema | OK - 10 artigos |
-| Integracoes | OK - 2 artigos |
-| FAQ | OK - 1 artigo generico |
-
-### 6.2 Melhorias
-
-| Item | Acao |
-|------|------|
-| Artigo Financeiro | Expandir com exemplos de relatorios |
-| Artigo Pagina Publica | Adicionar prints/GIFs do editor |
-| FAQ Segmento Health | Criar FAQ especifico para clinicas |
-| Artigo Equipe | Documentar fluxo de permissoes |
+/**
+ * Returns true if the venue segment is custom (assistência técnica)
+ */
+export function isCustomSegment(segment?: string | null): boolean {
+  return segment === 'custom';
+}
+```
 
 ---
 
-## PRIORIDADE DE IMPLEMENTACAO
+## Resumo de Alterações
 
-### Fase 1 - Seguranca (URGENTE)
-
-1. Habilitar Leaked Password Protection
-2. Adicionar policies RLS para bloqueio anonimo em tabelas criticas
-3. Revisar policy de `login_attempts`
-
-### Fase 2 - Bugs Criticos
-
-1. Corrigir link `/p/` para `/v/` na pagina publica
-2. Salvar `logo_url` no update da pagina publica
-3. Adicionar Heart ao iconMap do HelpArticle
-
-### Fase 3 - Performance
-
-1. Criar RPC `get_financial_metrics` para consolidar queries
-2. Otimizar RevenueList com query unificada
-
-### Fase 4 - Testes
-
-1. Setup do ambiente de testes
-2. Testes unitarios para hooks financeiros
-3. Testes E2E para fluxos criticos
-
-### Fase 5 - UX e Documentacao
-
-1. Exportacao Excel no financeiro
-2. Filtros adicionais no RevenueList
-3. Expandir artigos de ajuda
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/lib/segment-utils.ts` | Adicionar 3 funções helper |
+| `src/components/layout/AppSidebar.tsx` | Refatorar lógica de menu CADASTROS |
+| `src/pages/Servicos.tsx` | Corrigir verificação isServiceVenue + mensagem |
+| `src/pages/Configuracoes.tsx` | Corrigir verificação isServiceVenue |
+| `src/pages/Espacos.tsx` | Adicionar proteção de acesso por segmento |
 
 ---
 
-## ARQUIVOS A MODIFICAR
+## Validação Pós-Implementação
 
-| Arquivo | Alteracoes |
-|---------|------------|
-| Migrations SQL | Adicionar policies RLS (6+ tabelas) |
-| `src/pages/PublicPageConfig.tsx` | Corrigir link + salvar logo_url |
-| `src/components/financeiro/RevenueList.tsx` | Receber period via props |
-| `src/hooks/useFinancialMetrics.ts` | Refatorar para usar RPC |
-| `src/components/help/HelpArticle.tsx` | Adicionar Heart ao iconMap |
-| `vitest.config.ts` | Criar configuracao de testes |
-| `package.json` | Adicionar devDependencies de teste |
-
----
-
-## RESUMO QUANTITATIVO
-
-| Categoria | Qtd Itens | Criticidade |
-|-----------|-----------|-------------|
-| Seguranca RLS | 7 tabelas | CRITICO |
-| Seguranca Auth | 1 config | ALTO |
-| Bugs | 5 | MEDIO |
-| Performance | 2 | MEDIO |
-| Testes | 0 existentes | ALTO |
-| Documentacao | 4 melhorias | BAIXO |
+| Segmento | Verificar |
+|----------|-----------|
+| **sports** | Menu mostra "Espaços", página Serviços bloqueada, sem Profissionais em Config |
+| **beauty** | Menu mostra "Serviços", página Espaços bloqueada, Profissionais visível |
+| **health** | Igual beauty + ícone Heart e "Pacientes" |
+| **custom** | Menu NÃO mostra Espaços NEM Serviços, ambas páginas bloqueadas, sem Profissionais |
 
