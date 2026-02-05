@@ -13,6 +13,9 @@ import {
   isSameDay,
   isToday,
   isWithinInterval,
+  isBefore,
+  setHours,
+  setMinutes,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { User, MapPin } from 'lucide-react';
@@ -263,14 +266,28 @@ export function WeekViewNew({
                   )}
                 >
                   {/* Slots de hora */}
-                  {HOURS.map((hour) => (
-                    <div
-                      key={hour}
-                      className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                      style={{ height: HOUR_HEIGHT }}
-                      onClick={() => primarySpaceId && onSlotClick(primarySpaceId, day, hour)}
-                    />
-                  ))}
+                  {HOURS.map((hour) => {
+                    const slotDateTime = setMinutes(setHours(day, hour), 0);
+                    const isPast = isBefore(slotDateTime, now);
+                    
+                    return (
+                      <div
+                        key={hour}
+                        className={cn(
+                          'border-b border-border transition-colors',
+                          isPast 
+                            ? 'bg-muted/30 cursor-not-allowed' 
+                            : 'hover:bg-muted/50 cursor-pointer'
+                        )}
+                        style={{ height: HOUR_HEIGHT }}
+                        onClick={() => {
+                          if (!isPast && primarySpaceId) {
+                            onSlotClick(primarySpaceId, day, hour);
+                          }
+                        }}
+                      />
+                    );
+                  })}
 
                   {/* Reservas do dia */}
                   {dayBookings.map((booking) => {
