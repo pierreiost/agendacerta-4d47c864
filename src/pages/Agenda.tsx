@@ -48,8 +48,10 @@ export default function Agenda() {
   const { toast } = useToast();
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('agenda');
 
-  // Custom segment doesn't require spaces
-  const isCustomSegment = currentVenue?.segment === 'custom';
+  // Service-based segments (beauty, health, custom) don't require spaces
+  const isServiceBasedSegment = currentVenue?.segment === 'beauty' || 
+                                 currentVenue?.segment === 'health' || 
+                                 currentVenue?.segment === 'custom';
   // State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
@@ -332,7 +334,7 @@ export default function Agenda() {
               {viewMode === 'week' && <WeekViewSkeleton />}
               {viewMode === 'month' && <MonthViewSkeleton />}
             </>
-          ) : activeSpaces.length === 0 && !isCustomSegment ? (
+          ) : activeSpaces.length === 0 && !isServiceBasedSegment ? (
             <Card className="flex-1 flex flex-col items-center justify-center text-center p-4 md:p-8">
               <div className="rounded-full bg-muted p-3 md:p-4 mb-3 md:mb-4">
                 <Calendar className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
