@@ -15,6 +15,8 @@ import {
   isSameMonth,
   isSameDay,
   isToday,
+  isBefore,
+  startOfDay,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -102,17 +104,25 @@ export function MonthView({
               const spaceDots = getSpaceDotsForDay(day);
               const isCurrentMonth = isSameMonth(day, date);
               const today = isToday(day);
+              const isPastDay = isBefore(day, startOfDay(new Date()));
 
               return (
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    'min-h-[50px] md:min-h-[70px] p-1 md:p-1.5 border-r border-border last:border-r-0 cursor-pointer',
-                    'transition-colors duration-200 hover:bg-muted/50',
+                    'min-h-[50px] md:min-h-[70px] p-1 md:p-1.5 border-r border-border last:border-r-0',
+                    'transition-colors duration-200',
                     !isCurrentMonth && 'bg-muted/20 text-muted-foreground',
-                    today && 'bg-primary/5'
+                    today && 'bg-primary/5',
+                    isPastDay 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'hover:bg-muted/50 cursor-pointer'
                   )}
-                  onClick={() => onDayClick(day)}
+                  onClick={() => {
+                    if (!isPastDay) {
+                      onDayClick(day);
+                    }
+                  }}
                 >
                   {/* Day number */}
                   <div className="flex items-center justify-between mb-0.5 md:mb-2">

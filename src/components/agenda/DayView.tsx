@@ -14,6 +14,8 @@ import {
   differenceInMinutes,
   isWithinInterval,
   addMinutes,
+  isBefore,
+  isToday as isDateToday,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { User, Clock, DollarSign, GripVertical, MapPin } from 'lucide-react';
@@ -338,6 +340,11 @@ export function DayView({
     const finalMinutes = minutes % 60;
     const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
     
+    // Bloquear horários passados
+    if (isBefore(slotDate, new Date())) {
+      return;
+    }
+    
     // Usar o primeiro espaço visível como padrão
     const primarySpaceId = spaces.length > 0 ? spaces[0].id : '';
     if (primarySpaceId) {
@@ -403,32 +410,38 @@ export function DayView({
               </div>
             )}
 
-            {HOURS.map((hour) => (
-              <div key={hour} className="flex" style={{ height: HOUR_HEIGHT }}>
-                {/* Label da hora */}
-                <div className="w-14 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2 text-right flex items-start justify-end">
-                  <span
-                    className={cn(
-                      'text-[10px] md:text-xs',
-                      isCurrentTimeSlot(hour) ? 'text-destructive font-semibold' : 'text-muted-foreground'
-                    )}
-                  >
-                    {format(setMinutes(setHours(date, hour), 0), 'HH:mm')}
-                  </span>
-                </div>
+            {HOURS.map((hour) => {
+              const slotDateTime = setMinutes(setHours(date, hour), 0);
+              const isPastSlot = isBefore(addMinutes(slotDateTime, 59), new Date());
+              
+              return (
+                <div key={hour} className="flex" style={{ height: HOUR_HEIGHT }}>
+                  {/* Label da hora */}
+                  <div className="w-14 md:w-16 flex-shrink-0 border-r border-border p-1 md:p-2 text-right flex items-start justify-end">
+                    <span
+                      className={cn(
+                        'text-[10px] md:text-xs',
+                        isCurrentTimeSlot(hour) ? 'text-destructive font-semibold' : 'text-muted-foreground'
+                      )}
+                    >
+                      {format(slotDateTime, 'HH:mm')}
+                    </span>
+                  </div>
 
-                {/* Área clicável única */}
-                <div
-                  className={cn(
-                    'flex-1 border-b border-border relative cursor-pointer',
-                    'transition-colors duration-150',
-                    'hover:bg-primary/5',
-                    isCurrentTimeSlot(hour) && 'bg-destructive/5'
-                  )}
-                  onClick={(e) => handleSlotClick(hour, e)}
-                />
-              </div>
-            ))}
+                  {/* Área clicável única */}
+                  <div
+                    className={cn(
+                      'flex-1 border-b border-border relative transition-colors duration-150',
+                      isPastSlot 
+                        ? 'bg-muted/30 cursor-not-allowed' 
+                        : 'cursor-pointer hover:bg-primary/5',
+                      isCurrentTimeSlot(hour) && !isPastSlot && 'bg-destructive/5'
+                    )}
+                    onClick={(e) => !isPastSlot && handleSlotClick(hour, e)}
+                  />
+                </div>
+              );
+            })}
 
             {/* Reservas overlay */}
             {dayBookings.map((booking) => {

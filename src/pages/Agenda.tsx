@@ -26,6 +26,9 @@ import {
   endOfMonth,
   startOfDay,
   endOfDay,
+  setHours,
+  setMinutes,
+  isBefore,
 } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Loader2, Filter } from 'lucide-react';
@@ -169,6 +172,12 @@ export default function Agenda() {
   }, []);
 
   const handleSlotClick = useCallback((spaceId: string, date: Date, hour: number) => {
+    // Validação de segurança: não permitir horários passados
+    const slotTime = setMinutes(setHours(date, hour), 0);
+    if (isBefore(slotTime, new Date())) {
+      return;
+    }
+    
     // Use the primary space if a slot click comes from the grid, otherwise use the clicked space
     const targetSpaceId = primarySpaceId || spaceId;
     setDefaultSlot({ spaceId: targetSpaceId, date, hour });
