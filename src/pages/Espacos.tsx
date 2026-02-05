@@ -46,23 +46,47 @@ export default function Espacos() {
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [deletingSpace, setDeletingSpace] = useState<Space | null>(null);
 
+  // Check venue segment - Espaços only available for sports
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const isBlockedSegment = venueSegment && venueSegment !== 'sports';
+
   // Restore modal state on mount
   useEffect(() => {
-    if (isReady) {
+    if (isReady && !isBlockedSegment) {
       const wasSpaceDialogOpen = registerModal('spaceForm', false);
       if (wasSpaceDialogOpen) {
         setSpaceDialogOpen(true);
         setEditingSpace(null);
       }
     }
-  }, [isReady, registerModal]);
+  }, [isReady, registerModal, isBlockedSegment]);
 
   // Track modal state changes
   useEffect(() => {
-    if (isReady) {
+    if (isReady && !isBlockedSegment) {
       setModalState('spaceForm', spaceDialogOpen);
     }
-  }, [spaceDialogOpen, isReady, setModalState]);
+  }, [spaceDialogOpen, isReady, setModalState, isBlockedSegment]);
+
+  // Block access for non-sports venues (after all hooks)
+  if (isBlockedSegment) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <div className="rounded-full bg-muted p-6 mb-4">
+            <Tag className="h-12 w-12 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Funcionalidade não disponível</h2>
+          <p className="text-muted-foreground max-w-md">
+            A gestão de espaços está disponível apenas para Espaços Esportivos.
+            {(venueSegment === 'beauty' || venueSegment === 'health') 
+              ? ' Para seu tipo de negócio, utilize a página de Serviços.' 
+              : ' Para Assistência Técnica, utilize as Ordens de Serviço.'}
+          </p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   const handleSpaceDialogChange = (open: boolean) => {
     setSpaceDialogOpen(open);
