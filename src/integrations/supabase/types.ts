@@ -1608,6 +1608,18 @@ export type Database = {
           total_today: number
         }[]
       }
+      get_financial_metrics: {
+        Args: { p_period?: string; p_venue_id: string }
+        Returns: {
+          balance: number
+          expense_change: number
+          monthly_data: Json
+          pending_expenses: number
+          revenue_change: number
+          total_expenses: number
+          total_revenue: number
+        }[]
+      }
       get_professional_availability: {
         Args: {
           p_date: string
