@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Table,
@@ -23,14 +23,18 @@ interface Revenue {
   amount: number;
 }
 
-export function RevenueList() {
+interface RevenueListProps {
+  period?: "month" | "year";
+}
+
+export function RevenueList({ period = "month" }: RevenueListProps) {
   const { currentVenue } = useVenue();
   const now = new Date();
-  const startDate = startOfMonth(now);
-  const endDate = endOfMonth(now);
+  const startDate = period === "year" ? startOfYear(now) : startOfMonth(now);
+  const endDate = period === "year" ? endOfYear(now) : endOfMonth(now);
 
   const { data: revenues, isLoading } = useQuery({
-    queryKey: ["revenues", currentVenue?.id, startDate.toISOString()],
+    queryKey: ["revenues", currentVenue?.id, period, startDate.toISOString()],
     queryFn: async (): Promise<Revenue[]> => {
       if (!currentVenue?.id) return [];
 
@@ -116,12 +120,13 @@ export function RevenueList() {
   }
 
   const totalRevenue = revenues.reduce((sum, r) => sum + r.amount, 0);
+  const periodLabel = period === "year" ? "neste ano" : "neste mês";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {revenues.length} receita(s) neste mês
+          {revenues.length} receita(s) {periodLabel}
         </p>
         <p className="font-semibold text-emerald-600 dark:text-emerald-400">
           Total: {formatCurrency(totalRevenue)}
