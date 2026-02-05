@@ -1,174 +1,140 @@
 
-# Plano: Bloquear Cliques em Horários/Dias Retroativos na Agenda
+# Plano: Corrigir Agenda para Segmentos de Serviço (Sem Espaços)
 
 ## Problema Identificado
 
-Os componentes de visualização da agenda permitem cliques em:
-1. **DayView**: Slots de hora passados (mesmo no dia atual)
-2. **WeekViewNew**: Qualquer dia/hora já passados
-3. **MonthView**: Qualquer dia passado
+Para segmentos **beauty**, **health** e **custom**, não existem espaços cadastrados. Isso causa:
 
-Os wizards de agendamento já têm validação no calendário (`disabled={(date) => isBefore(date, startOfDay(new Date()))}`), mas o usuário consegue iniciar o fluxo clicando em horários passados na agenda.
+| Componente | Comportamento Atual | Problema |
+|------------|---------------------|----------|
+| `DayView.tsx` | Verifica `spaces.length === 0` → Mostra "Nenhum espaço selecionado" | ❌ Bloqueia a visualização |
+| `WeekViewNew.tsx` | Verifica `spaces.length === 0` → Mostra "Nenhum espaço selecionado" | ❌ Bloqueia a visualização |
+| `MonthView.tsx` | Não tem verificação | ✅ Funciona |
+| `Agenda.tsx` | Já trata `isServiceBasedSegment` para a mensagem principal | ✅ OK |
 
 ## Solução
 
-Adicionar validação nos handlers de clique de cada view para bloquear interações com horários retroativos.
+Passar uma nova prop `isServiceBased` para as views, ou remover a verificação de espaços vazios e deixar renderizar normalmente (já que os bookings são filtrados por segmento no backend).
+
+### Opção Escolhida: Passar prop de contexto
+
+Passar `venueSegment` ou `isServiceBased` para `DayView` e `WeekViewNew` para que saibam que não precisam de espaços.
 
 ---
 
-## Alterações por Componente
+## Alterações
 
-### 1. DayView.tsx (Visualização Diária)
+### 1. Agenda.tsx - Passar prop para as views
 
-**Arquivo:** `src/components/agenda/DayView.tsx`
-
-**Alteração na função `handleSlotClick` (linha ~328-346):**
+**Linhas 349-369:**
 
 ```typescript
-const handleSlotClick = (hour: number, event?: React.MouseEvent) => {
-  // Calcular minutos do clique
-  let minutes = 0;
-  if (event) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickY = event.clientY - rect.top;
-    const rawMinutes = (clickY / HOUR_HEIGHT) * 60;
-    minutes = snapMinutesToSlot(rawMinutes);
-  }
-
-  const finalHour = hour + Math.floor(minutes / 60);
-  const finalMinutes = minutes % 60;
-  const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
-  
-  // NOVO: Bloquear horários passados
-  const now = new Date();
-  if (isBefore(slotDate, now)) {
-    return; // Não fazer nada para horários passados
-  }
-  
-  const primarySpaceId = spaces.length > 0 ? spaces[0].id : '';
-  if (primarySpaceId) {
-    onSlotClick(primarySpaceId, slotDate, finalHour);
-  }
-};
+{viewMode === 'day' && (
+  <DayView
+    date={currentDate}
+    spaces={filteredSpaces}
+    bookings={filteredBookings}
+    allSpaces={activeSpaces}
+    onSlotClick={handleSlotClick}
+    onBookingClick={handleBookingClick}
+    onBookingMove={handleBookingMove}
+    onBookingResize={handleBookingResize}
+    isServiceBased={isServiceBasedSegment}  // NOVO
+  />
+)}
+{viewMode === 'week' && (
+  <WeekViewNew
+    date={currentDate}
+    spaces={filteredSpaces}
+    bookings={filteredBookings}
+    allSpaces={activeSpaces}
+    onSlotClick={handleSlotClick}
+    onBookingClick={handleBookingClick}
+    isServiceBased={isServiceBasedSegment}  // NOVO
+  />
+)}
 ```
-
-**Alteração visual nos slots (linha ~420-429):**
-- Adicionar estilo visual para indicar slots passados (opacidade reduzida, cursor not-allowed)
-- Remover `hover:bg-primary/10` para slots passados
 
 ---
 
-### 2. WeekViewNew.tsx (Visualização Semanal)
+### 2. DayView.tsx - Aceitar prop e remover bloqueio
 
-**Arquivo:** `src/components/agenda/WeekViewNew.tsx`
+**Interface (linha ~27-36):**
 
-**Adicionar imports necessários:**
 ```typescript
-import { isBefore, setHours, setMinutes } from 'date-fns';
+interface DayViewProps {
+  date: Date;
+  spaces: Space[];
+  bookings: Booking[];
+  allSpaces: Space[];
+  onSlotClick: (spaceId: string, date: Date, hour: number) => void;
+  onBookingClick: (booking: Booking) => void;
+  onBookingMove?: (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => void;
+  onBookingResize?: (bookingId: string, newStart: Date, newEnd: Date) => void;
+  isServiceBased?: boolean;  // NOVO
+}
 ```
 
-**Alteração nos slots de hora (linha ~266-272):**
+**Verificação de espaços vazios (linhas 367-376):**
 
 ```typescript
-{HOURS.map((hour) => {
-  const slotDateTime = setMinutes(setHours(day, hour), 0);
-  const isPast = isBefore(slotDateTime, now);
-  
+// Só mostrar erro de espaços vazios para segmentos que precisam de espaços (sports)
+if (spaces.length === 0 && !isServiceBased) {
   return (
-    <div
-      key={hour}
-      className={cn(
-        'border-b border-border transition-colors',
-        isPast 
-          ? 'bg-muted/30 cursor-not-allowed' 
-          : 'hover:bg-muted/50 cursor-pointer'
-      )}
-      style={{ height: HOUR_HEIGHT }}
-      onClick={() => {
-        if (!isPast && primarySpaceId) {
-          onSlotClick(primarySpaceId, day, hour);
-        }
-      }}
-    />
+    <Card className="flex-1 flex items-center justify-center p-8">
+      <div className="text-center text-muted-foreground">
+        <p>Nenhum espaço selecionado</p>
+        <p className="text-sm">Selecione espaços na barra lateral para visualizar a agenda</p>
+      </div>
+    </Card>
   );
-})}
+}
 ```
 
 ---
 
-### 3. MonthView.tsx (Visualização Mensal)
+### 3. WeekViewNew.tsx - Aceitar prop e remover bloqueio
 
-**Arquivo:** `src/components/agenda/MonthView.tsx`
+**Interface (linha ~27-34):**
 
-**Adicionar import necessário:**
 ```typescript
-import { isBefore, startOfDay } from 'date-fns';
+interface WeekViewNewProps {
+  date: Date;
+  spaces: Space[];
+  bookings: Booking[];
+  allSpaces: Space[];
+  onSlotClick: (spaceId: string, date: Date, hour: number) => void;
+  onBookingClick: (booking: Booking) => void;
+  isServiceBased?: boolean;  // NOVO
+}
 ```
 
-**Alteração no clique de dia (linha ~106-116):**
+**Verificação de espaços vazios (linhas 197-205):**
 
 ```typescript
-{week.map((day) => {
-  const dayBookings = getBookingsForDay(day);
-  const spaceDots = getSpaceDotsForDay(day);
-  const isCurrentMonth = isSameMonth(day, date);
-  const today = isToday(day);
-  const isPastDay = isBefore(day, startOfDay(new Date())); // NOVO
-
+// Só mostrar erro de espaços vazios para segmentos que precisam de espaços (sports)
+if (spaces.length === 0 && !isServiceBased) {
   return (
-    <div
-      key={day.toISOString()}
-      className={cn(
-        'min-h-[50px] md:min-h-[70px] p-1 md:p-1.5 border-r border-border last:border-r-0',
-        'transition-colors duration-200',
-        !isCurrentMonth && 'bg-muted/20 text-muted-foreground',
-        today && 'bg-primary/5',
-        isPastDay 
-          ? 'opacity-50 cursor-not-allowed' 
-          : 'hover:bg-muted/50 cursor-pointer'
-      )}
-      onClick={() => {
-        if (!isPastDay) { // NOVO: só permite clique se não for dia passado
-          onDayClick(day);
-        }
-      }}
-    >
+    <Card className="flex-1 flex items-center justify-center p-8">
+      <div className="text-center text-muted-foreground">
+        <p>Nenhum espaço selecionado</p>
+      </div>
+    </Card>
+  );
+}
 ```
 
 ---
 
-### 4. Agenda.tsx (Handler Principal)
+## Comportamento Final
 
-**Arquivo:** `src/pages/Agenda.tsx`
-
-**Alteração no `handleSlotClick` (linha ~171-176):**
-
-Adicionar validação extra como fallback de segurança:
-
-```typescript
-const handleSlotClick = useCallback((spaceId: string, date: Date, hour: number) => {
-  // Validação de segurança: não permitir horários passados
-  const slotTime = setMinutes(setHours(date, hour), 0);
-  if (isBefore(slotTime, new Date())) {
-    return;
-  }
-  
-  const targetSpaceId = primarySpaceId || spaceId;
-  setDefaultSlot({ spaceId: targetSpaceId, date, hour });
-  setWizardOpen(true);
-}, [primarySpaceId]);
-```
-
----
-
-## Feedback Visual
-
-Para melhorar a UX, os slots/dias passados terão:
-
-| Estado | Estilo |
-|--------|--------|
-| Passado | `opacity-50`, `cursor-not-allowed`, sem hover effect |
-| Disponível | `cursor-pointer`, `hover:bg-muted/50` ou `hover:bg-primary/10` |
+| Segmento | Espaços | DayView | WeekView | MonthView |
+|----------|---------|---------|----------|-----------|
+| **sports** | Tem | Renderiza grade + bookings | Renderiza grade + bookings | ✅ |
+| **sports** | Nenhum selecionado | Mostra "Nenhum espaço selecionado" | Mostra mensagem | ✅ |
+| **beauty** | Não tem | Renderiza grade + bookings (sem espaço) | ✅ | ✅ |
+| **health** | Não tem | Renderiza grade + bookings | ✅ | ✅ |
+| **custom** | Não tem | Renderiza grade + bookings | ✅ | ✅ |
 
 ---
 
@@ -176,29 +142,6 @@ Para melhorar a UX, os slots/dias passados terão:
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/agenda/DayView.tsx` | Bloquear slots passados + estilo visual |
-| `src/components/agenda/WeekViewNew.tsx` | Bloquear slots passados + estilo visual |
-| `src/components/agenda/MonthView.tsx` | Bloquear dias passados + estilo visual |
-| `src/pages/Agenda.tsx` | Validação de fallback no handler |
-
----
-
-## Validação
-
-| Cenário | Comportamento Esperado |
-|---------|------------------------|
-| Clicar em horário passado no dia atual | Nada acontece, cursor indica bloqueio |
-| Clicar em dia passado na visualização mensal | Nada acontece |
-| Clicar em horário futuro | Abre wizard normalmente |
-| Arrastar reserva para horário passado | Já é bloqueado pelo handler existente |
-
----
-
-## Impacto em Segmentos
-
-Esta correção afeta **todos os segmentos** uniformemente:
-- **Sports**: DayView, WeekViewNew, MonthView
-- **Beauty/Health**: Mesmo comportamento
-- **Custom (Técnico)**: Mesmo comportamento
-
-Não há lógica específica por segmento necessária - o bloqueio de horários retroativos é universal.
+| `src/pages/Agenda.tsx` | Passar `isServiceBased={isServiceBasedSegment}` para DayView e WeekViewNew |
+| `src/components/agenda/DayView.tsx` | Adicionar prop `isServiceBased` + condicional na verificação |
+| `src/components/agenda/WeekViewNew.tsx` | Adicionar prop `isServiceBased` + condicional na verificação |
