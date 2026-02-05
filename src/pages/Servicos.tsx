@@ -99,7 +99,7 @@ export default function Servicos() {
 
   // Check if venue segment supports services (only beauty and health)
   const venueSegment = (currentVenue as { segment?: string })?.segment;
-  const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
+  const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health' || venueSegment === 'custom';
   const ServiceIcon = getServiceIcon(venueSegment);
 
   if (!isServiceVenue) {

@@ -342,11 +342,6 @@ export function DayView({
     const finalMinutes = minutes % 60;
     const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
     
-    // Bloquear horários passados
-    if (isBefore(slotDate, new Date())) {
-      return;
-    }
-    
     // Usar o primeiro espaço visível como padrão
     const primarySpaceId = spaces.length > 0 ? spaces[0].id : '';
     if (primarySpaceId) {
@@ -415,7 +410,6 @@ export function DayView({
 
             {HOURS.map((hour) => {
               const slotDateTime = setMinutes(setHours(date, hour), 0);
-              const isPastSlot = isBefore(addMinutes(slotDateTime, 59), new Date());
               
               return (
                 <div key={hour} className="flex" style={{ height: HOUR_HEIGHT }}>
@@ -434,13 +428,10 @@ export function DayView({
                   {/* Área clicável única */}
                   <div
                     className={cn(
-                      'flex-1 border-b border-border relative transition-colors duration-150',
-                      isPastSlot 
-                        ? 'bg-muted/30 cursor-not-allowed' 
-                        : 'cursor-pointer hover:bg-primary/5',
-                      isCurrentTimeSlot(hour) && !isPastSlot && 'bg-destructive/5'
+                      'flex-1 border-b border-border relative transition-colors duration-150 cursor-pointer hover:bg-primary/5',
+                      isCurrentTimeSlot(hour) && 'bg-destructive/5'
                     )}
-                    onClick={(e) => !isPastSlot && handleSlotClick(hour, e)}
+                    onClick={(e) => handleSlotClick(hour, e)}
                   />
                 </div>
               );

@@ -269,28 +269,18 @@ export function WeekViewNew({
                   )}
                 >
                   {/* Slots de hora */}
-                  {HOURS.map((hour) => {
-                    const slotDateTime = setMinutes(setHours(day, hour), 0);
-                    const isPast = isBefore(slotDateTime, now);
-                    
-                    return (
-                      <div
-                        key={hour}
-                        className={cn(
-                          'border-b border-border transition-colors',
-                          isPast 
-                            ? 'bg-muted/30 cursor-not-allowed' 
-                            : 'hover:bg-muted/50 cursor-pointer'
-                        )}
-                        style={{ height: HOUR_HEIGHT }}
-                        onClick={() => {
-                          if (!isPast && primarySpaceId) {
-                            onSlotClick(primarySpaceId, day, hour);
-                          }
-                        }}
-                      />
-                    );
-                  })}
+                  {HOURS.map((hour) => (
+                    <div
+                      key={hour}
+                      className="border-b border-border transition-colors hover:bg-muted/50 cursor-pointer"
+                      style={{ height: HOUR_HEIGHT }}
+                      onClick={() => {
+                        if (primarySpaceId) {
+                          onSlotClick(primarySpaceId, day, hour);
+                        }
+                      }}
+                    />
+                  ))}
 
                   {/* Reservas do dia */}
                   {dayBookings.map((booking) => {

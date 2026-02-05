@@ -108,7 +108,7 @@ export function AppSidebar() {
   
   // Check venue segment for conditional menu items
   const venueSegment = (currentVenue as { segment?: string })?.segment;
-  const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
+  const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health' || venueSegment === 'custom';
   const isSportsVenue = venueSegment === 'sports';
 
   // Check if user is superadmin from database

@@ -99,30 +99,22 @@ export function MonthView({
       <div className="flex-1">
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="grid grid-cols-7 border-b border-border last:border-b-0">
-            {week.map((day) => {
+          {week.map((day) => {
               const dayBookings = getBookingsForDay(day);
               const spaceDots = getSpaceDotsForDay(day);
               const isCurrentMonth = isSameMonth(day, date);
               const today = isToday(day);
-              const isPastDay = isBefore(day, startOfDay(new Date()));
 
               return (
                 <div
                   key={day.toISOString()}
                   className={cn(
                     'min-h-[50px] md:min-h-[70px] p-1 md:p-1.5 border-r border-border last:border-r-0',
-                    'transition-colors duration-200',
+                    'transition-colors duration-200 hover:bg-muted/50 cursor-pointer',
                     !isCurrentMonth && 'bg-muted/20 text-muted-foreground',
-                    today && 'bg-primary/5',
-                    isPastDay 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-muted/50 cursor-pointer'
+                    today && 'bg-primary/5'
                   )}
-                  onClick={() => {
-                    if (!isPastDay) {
-                      onDayClick(day);
-                    }
-                  }}
+                  onClick={() => onDayClick(day)}
                 >
                   {/* Day number */}
                   <div className="flex items-center justify-between mb-0.5 md:mb-2">
