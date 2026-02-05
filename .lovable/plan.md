@@ -1,204 +1,204 @@
 
-
-# Plano: Correção de Layouts e Denominações por Segmento
+# Plano: Bloquear Cliques em Horários/Dias Retroativos na Agenda
 
 ## Problema Identificado
 
-A lógica de `isServiceVenue` está **inconsistente** entre os arquivos:
+Os componentes de visualização da agenda permitem cliques em:
+1. **DayView**: Slots de hora passados (mesmo no dia atual)
+2. **WeekViewNew**: Qualquer dia/hora já passados
+3. **MonthView**: Qualquer dia passado
 
-| Arquivo | Definição Atual | Problema |
-|---------|-----------------|----------|
-| `AppSidebar.tsx` (L111) | `beauty \|\| health` | Segmento `custom` cai no else → mostra **Espaços** ❌ |
-| `Servicos.tsx` (L102) | `!= sports` | Segmento `custom` passa → mostra página de Serviços ❌ |
-| `Configuracoes.tsx` (L98) | `!= sports` | Segmento `custom` mostra seção de Profissionais ❌ |
+Os wizards de agendamento já têm validação no calendário (`disabled={(date) => isBefore(date, startOfDay(new Date()))}`), mas o usuário consegue iniciar o fluxo clicando em horários passados na agenda.
 
-## Comportamento Esperado por Segmento
+## Solução
 
-```text
-┌─────────────┬────────────────┬─────────────┬────────────────┬──────────────────┐
-│ Segmento    │ Menu Principal │ Dashboard   │ Profissionais  │ Página Serviços  │
-├─────────────┼────────────────┼─────────────┼────────────────┼──────────────────┤
-│ sports      │ Espaços        │ bookings    │ Oculto         │ Bloqueada        │
-│ beauty      │ Serviços       │ appointments│ Visível        │ Acessível        │
-│ health      │ Serviços       │ appointments│ Visível        │ Acessível        │
-│ custom      │ NENHUM*        │ service_ord │ Oculto         │ Bloqueada        │
-└─────────────┴────────────────┴─────────────┴────────────────┴──────────────────┘
-
-* custom: Foco em Ordens de Serviço, não gerencia Espaços nem Serviços manualmente
-```
-SÓ LEMBRE DE QUE A AGENDA TEM QUE FUNCIONAR EM TODOS, SPORTS TEM QUE TER ESPAÇO CADASTRADO.
-SERVIÇOS TEM QUE MOSTRAR NORMALMENTE, E FUNCIONAR COM SERVIÇOS VINCULADO
-CUSTOM TEM QUE FUNCIONAR PARA MARCAR HORÁRIO NORMAL (SEM EPAÇO CADASTRADO)
----
-
-## Correções Necessárias
-
-### 1. AppSidebar.tsx - Menu de Navegação
-
-**Problema:** Segmento `custom` mostra "Espaços" quando deveria ocultar ambos (Espaços e Serviços).
-
-**Solução:** Criar lógica separada para cada tipo:
-
-```typescript
-// Linha 109-111 - substituir:
-const venueSegment = (currentVenue as { segment?: string })?.segment;
-const isServiceVenue = venueSegment && (venueSegment === 'beauty' || venueSegment === 'health');
-
-// Por:
-const venueSegment = (currentVenue as { segment?: string })?.segment;
-const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
-const isSportsVenue = venueSegment === 'sports';
-const isCustomVenue = venueSegment === 'custom';
-```
-
-**Menu CADASTROS (linhas 181-189) - substituir:**
-
-```typescript
-items: [
-  { title: "Clientes", href: "/clientes", icon: Users, module: "clientes" as Module },
-  // Espaços apenas para sports
-  ...(isSportsVenue 
-    ? [{ title: "Espaços", href: "/espacos", icon: MapPin, module: "espacos" as Module }]
-    : []
-  ),
-  // Serviços apenas para beauty/health
-  ...(isServiceVenue 
-    ? [{ title: "Serviços", href: "/servicos", icon: venueSegment === 'health' ? Heart : Scissors, module: "servicos" as Module }]
-    : []
-  ),
-  { title: "Produtos", href: "/produtos", icon: Package, module: "produtos" as Module },
-],
-```
+Adicionar validação nos handlers de clique de cada view para bloquear interações com horários retroativos.
 
 ---
 
-### 2. Servicos.tsx - Página de Serviços
+## Alterações por Componente
 
-**Problema:** Segmento `custom` consegue acessar página de Serviços porque `venueSegment !== 'sports'` inclui custom.
+### 1. DayView.tsx (Visualização Diária)
 
-**Solução:** Alterar verificação para ser explícita:
+**Arquivo:** `src/components/agenda/DayView.tsx`
 
-```typescript
-// Linha 101-102 - substituir:
-const venueSegment = (currentVenue as { segment?: string })?.segment;
-const isServiceVenue = venueSegment && venueSegment !== 'sports';
-
-// Por:
-const venueSegment = (currentVenue as { segment?: string })?.segment;
-const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
-```
-
-**Atualizar mensagem de bloqueio (linhas 112-117):**
+**Alteração na função `handleSlotClick` (linha ~328-346):**
 
 ```typescript
-<p className="text-muted-foreground max-w-md">
-  A gestão de serviços está disponível apenas para estabelecimentos do tipo
-  Salão de Beleza ou Clínica de Saúde.
-  {venueSegment === 'sports' && ' Seu estabelecimento está configurado como Espaço Esportivo.'}
-  {venueSegment === 'custom' && ' Para Assistência Técnica, utilize as Ordens de Serviço.'}
-</p>
+const handleSlotClick = (hour: number, event?: React.MouseEvent) => {
+  // Calcular minutos do clique
+  let minutes = 0;
+  if (event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const clickY = event.clientY - rect.top;
+    const rawMinutes = (clickY / HOUR_HEIGHT) * 60;
+    minutes = snapMinutesToSlot(rawMinutes);
+  }
+
+  const finalHour = hour + Math.floor(minutes / 60);
+  const finalMinutes = minutes % 60;
+  const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
+  
+  // NOVO: Bloquear horários passados
+  const now = new Date();
+  if (isBefore(slotDate, now)) {
+    return; // Não fazer nada para horários passados
+  }
+  
+  const primarySpaceId = spaces.length > 0 ? spaces[0].id : '';
+  if (primarySpaceId) {
+    onSlotClick(primarySpaceId, slotDate, finalHour);
+  }
+};
 ```
+
+**Alteração visual nos slots (linha ~420-429):**
+- Adicionar estilo visual para indicar slots passados (opacidade reduzida, cursor not-allowed)
+- Remover `hover:bg-primary/10` para slots passados
 
 ---
 
-### 3. Configuracoes.tsx - Seção Profissionais
+### 2. WeekViewNew.tsx (Visualização Semanal)
 
-**Problema:** Seção "Profissionais que Atendem" aparece para `custom` quando não deveria.
+**Arquivo:** `src/components/agenda/WeekViewNew.tsx`
 
-**Solução:** Alterar verificação para ser explícita:
-
+**Adicionar imports necessários:**
 ```typescript
-// Linha 97-98 - substituir:
-const venueSegment = (currentVenue as { segment?: string })?.segment;
-const isServiceVenue = venueSegment && venueSegment !== 'sports';
-
-// Por:
-const venueSegment = (currentVenue as { segment?: string })?.segment;
-const isServiceVenue = venueSegment === 'beauty' || venueSegment === 'health';
+import { isBefore, setHours, setMinutes } from 'date-fns';
 ```
 
----
-
-### 4. Espacos.tsx - Proteção de Acesso
-
-**Problema:** Página de Espaços não tem proteção - qualquer segmento pode acessar via URL direta.
-
-**Solução:** Adicionar verificação no início do componente:
+**Alteração nos slots de hora (linha ~266-272):**
 
 ```typescript
-// Após linha 41, adicionar:
-const venueSegment = (currentVenue as { segment?: string })?.segment;
-
-// Se não for sports, bloquear acesso
-if (venueSegment && venueSegment !== 'sports') {
+{HOURS.map((hour) => {
+  const slotDateTime = setMinutes(setHours(day, hour), 0);
+  const isPast = isBefore(slotDateTime, now);
+  
   return (
-    <AppLayout>
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="rounded-full bg-muted p-6 mb-4">
-          <MapPin className="h-12 w-12 text-muted-foreground" />
-        </div>
-        <h2 className="text-xl font-semibold mb-2">Funcionalidade não disponível</h2>
-        <p className="text-muted-foreground max-w-md">
-          A gestão de espaços está disponível apenas para Espaços Esportivos.
-          {venueSegment === 'beauty' || venueSegment === 'health' 
-            ? ' Para seu tipo de negócio, utilize a página de Serviços.' 
-            : ' Para Assistência Técnica, utilize as Ordens de Serviço.'}
-        </p>
-      </div>
-    </AppLayout>
+    <div
+      key={hour}
+      className={cn(
+        'border-b border-border transition-colors',
+        isPast 
+          ? 'bg-muted/30 cursor-not-allowed' 
+          : 'hover:bg-muted/50 cursor-pointer'
+      )}
+      style={{ height: HOUR_HEIGHT }}
+      onClick={() => {
+        if (!isPast && primarySpaceId) {
+          onSlotClick(primarySpaceId, day, hour);
+        }
+      }}
+    />
   );
-}
+})}
 ```
 
 ---
 
-### 5. Utilitário Centralizado (Opcional mas Recomendado)
+### 3. MonthView.tsx (Visualização Mensal)
 
-Adicionar funções helper em `src/lib/segment-utils.ts`:
+**Arquivo:** `src/components/agenda/MonthView.tsx`
+
+**Adicionar import necessário:**
+```typescript
+import { isBefore, startOfDay } from 'date-fns';
+```
+
+**Alteração no clique de dia (linha ~106-116):**
 
 ```typescript
-/**
- * Returns true if the venue segment is service-based (beauty or health)
- */
-export function isServiceSegment(segment?: string | null): boolean {
-  return segment === 'beauty' || segment === 'health';
-}
+{week.map((day) => {
+  const dayBookings = getBookingsForDay(day);
+  const spaceDots = getSpaceDotsForDay(day);
+  const isCurrentMonth = isSameMonth(day, date);
+  const today = isToday(day);
+  const isPastDay = isBefore(day, startOfDay(new Date())); // NOVO
 
-/**
- * Returns true if the venue segment is space-based (sports)
- */
-export function isSportsSegment(segment?: string | null): boolean {
-  return segment === 'sports';
-}
-
-/**
- * Returns true if the venue segment is custom (assistência técnica)
- */
-export function isCustomSegment(segment?: string | null): boolean {
-  return segment === 'custom';
-}
+  return (
+    <div
+      key={day.toISOString()}
+      className={cn(
+        'min-h-[50px] md:min-h-[70px] p-1 md:p-1.5 border-r border-border last:border-r-0',
+        'transition-colors duration-200',
+        !isCurrentMonth && 'bg-muted/20 text-muted-foreground',
+        today && 'bg-primary/5',
+        isPastDay 
+          ? 'opacity-50 cursor-not-allowed' 
+          : 'hover:bg-muted/50 cursor-pointer'
+      )}
+      onClick={() => {
+        if (!isPastDay) { // NOVO: só permite clique se não for dia passado
+          onDayClick(day);
+        }
+      }}
+    >
 ```
 
 ---
 
-## Resumo de Alterações
+### 4. Agenda.tsx (Handler Principal)
+
+**Arquivo:** `src/pages/Agenda.tsx`
+
+**Alteração no `handleSlotClick` (linha ~171-176):**
+
+Adicionar validação extra como fallback de segurança:
+
+```typescript
+const handleSlotClick = useCallback((spaceId: string, date: Date, hour: number) => {
+  // Validação de segurança: não permitir horários passados
+  const slotTime = setMinutes(setHours(date, hour), 0);
+  if (isBefore(slotTime, new Date())) {
+    return;
+  }
+  
+  const targetSpaceId = primarySpaceId || spaceId;
+  setDefaultSlot({ spaceId: targetSpaceId, date, hour });
+  setWizardOpen(true);
+}, [primarySpaceId]);
+```
+
+---
+
+## Feedback Visual
+
+Para melhorar a UX, os slots/dias passados terão:
+
+| Estado | Estilo |
+|--------|--------|
+| Passado | `opacity-50`, `cursor-not-allowed`, sem hover effect |
+| Disponível | `cursor-pointer`, `hover:bg-muted/50` ou `hover:bg-primary/10` |
+
+---
+
+## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/lib/segment-utils.ts` | Adicionar 3 funções helper |
-| `src/components/layout/AppSidebar.tsx` | Refatorar lógica de menu CADASTROS |
-| `src/pages/Servicos.tsx` | Corrigir verificação isServiceVenue + mensagem |
-| `src/pages/Configuracoes.tsx` | Corrigir verificação isServiceVenue |
-| `src/pages/Espacos.tsx` | Adicionar proteção de acesso por segmento |
+| `src/components/agenda/DayView.tsx` | Bloquear slots passados + estilo visual |
+| `src/components/agenda/WeekViewNew.tsx` | Bloquear slots passados + estilo visual |
+| `src/components/agenda/MonthView.tsx` | Bloquear dias passados + estilo visual |
+| `src/pages/Agenda.tsx` | Validação de fallback no handler |
 
 ---
 
-## Validação Pós-Implementação
+## Validação
 
-| Segmento | Verificar |
-|----------|-----------|
-| **sports** | Menu mostra "Espaços", página Serviços bloqueada, sem Profissionais em Config |
-| **beauty** | Menu mostra "Serviços", página Espaços bloqueada, Profissionais visível |
-| **health** | Igual beauty + ícone Heart e "Pacientes" |
-| **custom** | Menu NÃO mostra Espaços NEM Serviços, ambas páginas bloqueadas, sem Profissionais |
+| Cenário | Comportamento Esperado |
+|---------|------------------------|
+| Clicar em horário passado no dia atual | Nada acontece, cursor indica bloqueio |
+| Clicar em dia passado na visualização mensal | Nada acontece |
+| Clicar em horário futuro | Abre wizard normalmente |
+| Arrastar reserva para horário passado | Já é bloqueado pelo handler existente |
 
+---
+
+## Impacto em Segmentos
+
+Esta correção afeta **todos os segmentos** uniformemente:
+- **Sports**: DayView, WeekViewNew, MonthView
+- **Beauty/Health**: Mesmo comportamento
+- **Custom (Técnico)**: Mesmo comportamento
+
+Não há lógica específica por segmento necessária - o bloqueio de horários retroativos é universal.
