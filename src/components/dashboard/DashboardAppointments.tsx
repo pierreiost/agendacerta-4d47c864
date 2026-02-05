@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useVenue } from "@/contexts/VenueContext";
+import { getServiceIcon, getClientsLabel } from "@/lib/segment-utils";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,13 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useBookings } from "@/hooks/useBookings";
 import { useProfessionals } from "@/hooks/useProfessionals";
-import { DollarSign, Scissors, Users, Clock, ArrowRight, Plus, Star, Calendar } from "lucide-react";
+import { DollarSign, Heart, Scissors, Users, Clock, ArrowRight, Plus, Star, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 
 export function DashboardAppointments() {
   const navigate = useNavigate();
+  const { currentVenue } = useVenue();
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const ServiceIcon = getServiceIcon(venueSegment);
   const { bookings, isLoading } = useBookings();
   const { professionals } = useProfessionals();
 
@@ -171,7 +176,7 @@ export function DashboardAppointments() {
         <MetricCard
           title="Atendimentos Hoje"
           value={metrics.todayAppointments}
-          icon={Scissors}
+          icon={ServiceIcon}
           color="purple"
           tooltip="Total de atendimentos agendados para hoje"
         />
@@ -227,7 +232,7 @@ export function DashboardAppointments() {
         <Card className={`border-border shadow-soft ${topProfessional ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
           <CardHeader className="border-b bg-muted/30">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">Próximos Clientes</CardTitle>
+              <CardTitle className="text-lg font-semibold">Próximos {getClientsLabel(venueSegment, true)}</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => navigate("/agenda")} className="gap-2">
                 Ver agenda
                 <ArrowRight className="h-4 w-4" />

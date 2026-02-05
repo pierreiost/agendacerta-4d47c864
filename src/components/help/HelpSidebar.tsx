@@ -22,6 +22,7 @@ import {
   Layers,
   CreditCard,
   MessageCircle,
+  Heart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -46,6 +47,7 @@ const iconMap: Record<string, LucideIcon> = {
   Layers,
   CreditCard,
   MessageCircle,
+  Heart,
 };
 
 interface HelpSidebarProps {

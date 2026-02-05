@@ -47,6 +47,7 @@ import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { CreateMemberDialog } from '@/components/team/CreateMemberDialog';
 import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
 import type { BookableMember } from '@/types/services';
+import { getServiceIcon, getClientsLabel } from '@/lib/segment-utils';
 import {
   Loader2,
   Building2,
@@ -57,6 +58,7 @@ import {
   XCircle,
   Settings2,
   Scissors,
+  Heart,
   Shield,
   UserPlus,
 } from 'lucide-react';
@@ -94,6 +96,7 @@ export default function Configuracoes() {
   // Check venue segment for conditional UI
   const venueSegment = (currentVenue as { segment?: string })?.segment;
   const isServiceVenue = venueSegment && venueSegment !== 'sports';
+  const ServiceIcon = getServiceIcon(venueSegment);
 
   useEffect(() => {
     const googleSuccess = searchParams.get('google_success');
@@ -359,7 +362,7 @@ export default function Configuracoes() {
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    <Scissors className="h-5 w-5 text-primary" />
+                    <ServiceIcon className="h-5 w-5 text-primary" />
                     <div>
                       <CardTitle>Profissionais que Atendem</CardTitle>
                       <CardDescription>
@@ -376,7 +379,7 @@ export default function Configuracoes() {
                   ) : professionals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                       <div className="rounded-full bg-muted p-4 mb-4">
-                        <Scissors className="h-8 w-8 text-muted-foreground" />
+                        <ServiceIcon className="h-8 w-8 text-muted-foreground" />
                       </div>
                       <h3 className="font-semibold">Nenhum profissional configurado</h3>
                       <p className="text-muted-foreground mt-1 text-sm max-w-sm">
@@ -388,7 +391,7 @@ export default function Configuracoes() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Profissional</TableHead>
-                          <TableHead>Atende Clientes</TableHead>
+                          <TableHead>Atende {getClientsLabel(venueSegment, true)}</TableHead>
                           <TableHead>Serviços</TableHead>
                           <TableHead className="w-[100px]">Ações</TableHead>
                         </TableRow>
@@ -432,7 +435,7 @@ export default function Configuracoes() {
                                 <div className="flex flex-wrap gap-1">
                                   {member.services.slice(0, 2).map((s) => (
                                     <Badge key={s.id} variant="outline" className="text-xs">
-                                      <Scissors className="h-2 w-2 mr-1" />
+                                      <ServiceIcon className="h-2 w-2 mr-1" />
                                       {s.title}
                                     </Badge>
                                   ))}

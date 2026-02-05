@@ -21,6 +21,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useBooking, useBookings, type Booking } from '@/hooks/useBookings';
+import { useVenue } from '@/contexts/VenueContext';
+import { getServiceIcon } from '@/lib/segment-utils';
 import { useBookingServices } from '@/hooks/useBookingServices';
 import { useOrderItems } from '@/hooks/useOrderItems';
 import { OrderItemsList } from './OrderItemsList';
@@ -34,6 +36,7 @@ import {
   Phone,
   Mail,
   Clock,
+  Heart,
   Scissors,
   Plus,
   ShoppingBag,
@@ -84,6 +87,10 @@ export function BeautyBookingSheet({
   const [addCustomOpen, setAddCustomOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
+  const { currentVenue } = useVenue();
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const ServiceIcon = getServiceIcon(venueSegment);
 
   const isLoading = bookingLoading || servicesLoading;
 
@@ -230,7 +237,7 @@ export function BeautyBookingSheet({
                       >
                         <div className="flex items-start gap-3">
                           <div className="mt-0.5 p-1.5 rounded-md bg-primary/10">
-                            <Scissors className="h-4 w-4 text-primary" />
+                            <ServiceIcon className="h-4 w-4 text-primary" />
                           </div>
                           <div>
                             <p className="font-medium text-sm">
