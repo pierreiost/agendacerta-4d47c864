@@ -66,7 +66,6 @@ const venueFormSchema = z.object({
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phones: z.array(z.string().max(20)).max(5, 'Máximo de 5 telefones').default([]),
   logo_url: z.string().url('URL inválida').optional().or(z.literal('')),
-  dashboard_mode: z.string().optional(),
 });
 
 type VenueFormData = z.infer<typeof venueFormSchema>;
@@ -94,7 +93,6 @@ export function VenueSettingsTab() {
       email: '',
       phones: [],
       logo_url: '',
-      dashboard_mode: 'bookings',
     },
   });
 
@@ -121,7 +119,6 @@ export function VenueSettingsTab() {
       address: currentVenue.address || '',
       email: currentVenue.email || '',
       logo_url: currentVenue.logo_url || '',
-      dashboard_mode: (currentVenue as { dashboard_mode?: string }).dashboard_mode || 'bookings',
     };
     
     // Check phones separately (array comparison)
@@ -186,7 +183,6 @@ export function VenueSettingsTab() {
       email: currentVenue.email || '',
       phones: initialPhones,
       logo_url: currentVenue.logo_url || '',
-      dashboard_mode: (currentVenue as { dashboard_mode?: string }).dashboard_mode || 'bookings',
     });
   }, [currentVenue?.id, currentVenue, venueForm]);
 
@@ -210,7 +206,6 @@ export function VenueSettingsTab() {
         logo_url: data.logo_url || null,
         cnpj_cpf: data.cnpj_cpf ? unmask(data.cnpj_cpf) : null,
         whatsapp: data.whatsapp ? unmask(data.whatsapp) : null,
-        dashboard_mode: data.dashboard_mode || 'bookings',
       })
       .eq('id', currentVenue.id);
 
@@ -606,63 +601,6 @@ export function VenueSettingsTab() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Card: Modo Dashboard (Admin only) */}
-        {isAdmin && (
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Modo de Visualização
-              </CardTitle>
-              <CardDescription>
-                Escolha quais métricas são mais relevantes para o seu negócio
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={venueForm.control}
-                name="dashboard_mode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Modo do Dashboard</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || 'bookings'}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full md:w-[300px]">
-                          <SelectValue placeholder="Selecione o modo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="bookings">
-                          <div className="flex flex-col">
-                            <span>Reservas / Espaços</span>
-                            <span className="text-xs text-muted-foreground">Quadras, salas, locais</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="appointments">
-                          <div className="flex flex-col">
-                            <span>Atendimentos / Profissionais</span>
-                            <span className="text-xs text-muted-foreground">Barbearias, salões, clínicas</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="service_orders">
-                          <div className="flex flex-col">
-                            <span>Ordens de Serviço</span>
-                            <span className="text-xs text-muted-foreground">Assistência técnica, manutenção</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-        )}
 
         {/* Security Section */}
         <Card>

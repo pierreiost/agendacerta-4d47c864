@@ -1,4 +1,4 @@
-import { Calendar, Scissors, Wrench, Building2 } from 'lucide-react';
+import { Calendar, Scissors, Wrench, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const segments = [
@@ -12,11 +12,19 @@ const segments = [
   },
   {
     icon: Scissors,
-    title: 'Salões & Clínicas',
-    description: 'Beleza e saúde. Agendamento de serviços por profissional com slots inteligentes.',
-    features: ['Multi-profissionais', 'Serviços personalizados', 'Histórico do cliente'],
+    title: 'Salões & Barbearias',
+    description: 'Beleza e estética. Agendamento de serviços por profissional com slots inteligentes.',
+    features: ['Multi-profissionais', 'Catálogo de serviços', 'Histórico do cliente'],
     color: 'bg-pink-500',
     lightColor: 'bg-pink-50',
+  },
+  {
+    icon: Heart,
+    title: 'Clínicas & Saúde',
+    description: 'Consultórios e clínicas. Agenda por profissional com controle de retornos e prontuário.',
+    features: ['Agenda por profissional', 'Histórico do paciente', 'Controle de retornos'],
+    color: 'bg-teal-500',
+    lightColor: 'bg-teal-50',
   },
   {
     icon: Wrench,
@@ -25,14 +33,6 @@ const segments = [
     features: ['Ordens de serviço', 'Controle de peças', 'PDF profissional'],
     color: 'bg-orange-500',
     lightColor: 'bg-orange-50',
-  },
-  {
-    icon: Building2,
-    title: 'Espaços em Geral',
-    description: 'Salões de festa, coworkings, estúdios. Flexível para qualquer tipo de locação.',
-    features: ['Configuração flexível', 'Multi-espaços', 'Relatórios completos'],
-    color: 'bg-purple-500',
-    lightColor: 'bg-purple-50',
   },
 ];
 

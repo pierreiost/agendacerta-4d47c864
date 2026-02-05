@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Building2, Loader2, ArrowRight, CheckCircle2, Sparkles, Calendar, Scissors, Wrench, HelpCircle } from 'lucide-react';
+import { Building2, Loader2, ArrowRight, CheckCircle2, Sparkles, Calendar, Scissors, Wrench, HelpCircle, Heart } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.svg';
 
-type VenueSegment = 'sports' | 'beauty' | 'custom';
+type VenueSegment = 'sports' | 'beauty' | 'health' | 'custom';
 
 const segments = [
   {
@@ -35,7 +35,7 @@ const segments = [
   {
     id: 'beauty' as VenueSegment,
     icon: Scissors,
-    title: 'Salões & Clínicas',
+    title: 'Salões & Barbearias',
     shortDesc: 'Serviços por profissional',
     features: [
       'Agenda por profissional',
@@ -47,6 +47,22 @@ const segments = [
     color: 'bg-pink-500',
     lightColor: 'bg-pink-50',
     borderColor: 'border-pink-500',
+  },
+  {
+    id: 'health' as VenueSegment,
+    icon: Heart,
+    title: 'Clínicas & Saúde',
+    shortDesc: 'Consultas e procedimentos',
+    features: [
+      'Agenda por profissional',
+      'Prontuário simplificado',
+      'Controle de retornos',
+      'Histórico do paciente',
+      'Dashboard focado em atendimentos',
+    ],
+    color: 'bg-teal-500',
+    lightColor: 'bg-teal-50',
+    borderColor: 'border-teal-500',
   },
   {
     id: 'custom' as VenueSegment,
@@ -273,7 +289,7 @@ export default function Onboarding() {
                   </TooltipProvider>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {segments.map((seg) => (
                     <TooltipProvider key={seg.id}>
                       <Tooltip>
