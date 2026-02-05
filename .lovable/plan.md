@@ -1,207 +1,174 @@
 
+# Plano: Separacao de Segmentos Beleza/Saude e Dashboard Automatico
 
-# Plano: Redefinição de Senha com Verificação por Codigo
+## Resumo Executivo
 
-## Visao Geral
+Este plano aborda duas necessidades identificadas:
+1. **Diferenciar visualmente os segmentos Beleza e Saude** - Atualmente ambos sao tratados como "Saloes e Clinicas" mas precisam de icones, cores e terminologia distintas
+2. **Remover a selecao manual de dashboard_mode** - O modo deve ser definido automaticamente pelo segmento escolhido no onboarding, sem necessidade de configuracao adicional pelo cliente
 
-Implementar dois fluxos de redefinicao de senha:
-1. **Botao interno nas Configuracoes** - Para usuarios logados alterarem sua propria senha
-2. **Fluxo na tela de login** - Para usuarios que esqueceram a senha, usando verificacao por codigo OTP via email
+---
+
+## Situacao Atual
+
+### Segmentos no Banco de Dados
+- O tipo `VenueSegment` ja suporta: `'sports' | 'beauty' | 'health' | 'custom'`
+- O trigger `set_default_dashboard_mode` ja mapeia corretamente:
+  - `beauty` -> `appointments`
+  - `health` -> `appointments`
+
+### Problemas Identificados
+1. **Onboarding nao oferece opcao separada para Saude/Clinica** - Apenas mostra "Saloes e Clinicas" com icone de tesoura (Scissors)
+2. **Landing page agrupa Beleza e Saude** - Mesmo card para ambos os segmentos
+3. **Configuracoes exibe seletor de dashboard_mode** - Permite alteracao manual, criando confusao
+4. **Icones inconsistentes** - SuperAdmin usa `Heart` para saude, mas onboarding usa `Scissors` para ambos
 
 ---
 
 ## Arquitetura da Solucao
 
-### Fluxo 1: Alteracao de Senha (Usuario Logado)
+### 1. Adicionar Segmento Saude no Onboarding
 
-Botao dentro da aba "Unidade" ou nova aba "Perfil" nas Configuracoes que permite ao usuario alterar sua senha atual.
-
-```text
-Usuario logado -> Configuracoes -> "Alterar Senha"
--> Insere senha atual + nova senha + confirmacao
--> Valida senha atual via Supabase
--> Atualiza senha via supabase.auth.updateUser()
-```
-
-### Fluxo 2: Recuperacao de Senha (Tela de Login)
-
-Fluxo completo com verificacao por codigo OTP enviado por email:
+Modificar `src/pages/Onboarding.tsx`:
 
 ```text
-Tela Login -> "Esqueci minha senha"
--> Insere email
--> Sistema envia codigo OTP de 6 digitos via email
--> Usuario digita codigo OTP
--> Sistema valida codigo
--> Usuario define nova senha
--> Redireciona para login
+Antes:
+- Quadras e Espacos (sports)
+- Saloes e Clinicas (beauty) <- agrupa tudo
+- Assistencia Tecnica (custom)
+
+Depois:
+- Quadras e Espacos (sports) - Icone: Calendar, Cor: Azul
+- Saloes e Barbearias (beauty) - Icone: Scissors, Cor: Rosa
+- Clinicas e Saude (health) - Icone: Heart, Cor: Teal/Verde-agua
+- Assistencia Tecnica (custom) - Icone: Wrench, Cor: Laranja
 ```
 
----
+### 2. Atualizar Landing Page
 
-## Componentes a Criar/Modificar
+Modificar `src/components/landing/LandingSegments.tsx`:
 
-### Arquivos Novos
+```text
+Antes: 4 cards (Quadras, Saloes e Clinicas, Assistencia, Espacos Gerais)
+Depois: 4 cards (Quadras, Saloes/Barbearias, Clinicas/Saude, Assistencia Tecnica)
+```
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/settings/ChangePasswordDialog.tsx` | Dialog para alterar senha (usuario logado) |
-| `src/components/auth/ForgotPasswordFlow.tsx` | Componente com fluxo completo de recuperacao |
+### 3. Remover Seletor de Dashboard Mode das Configuracoes
 
-### Arquivos a Modificar
+Modificar `src/components/settings/VenueSettingsTab.tsx`:
+- Remover o card "Modo de Visualizacao"
+- O dashboard_mode sera definido apenas pelo trigger do banco no momento da criacao da venue
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/pages/Configuracoes.tsx` | Adicionar botao/secao "Alterar Senha" |
-| `src/pages/Auth.tsx` | Substituir fluxo simples de "forgot" pelo novo com OTP |
+### 4. Atualizar Icones e Cores Consistentes
+
+Padronizar em todos os arquivos:
+| Segmento | Icone | Cor Principal | Cor Light |
+|----------|-------|---------------|-----------|
+| sports | Calendar | blue-500 | blue-50 |
+| beauty | Scissors | pink-500 | pink-50 |
+| health | Heart | teal-500 | teal-50 |
+| custom | Wrench | orange-500 | orange-50 |
 
 ---
 
 ## Detalhamento Tecnico
 
-### 1. Dialog de Alteracao de Senha (Usuario Logado)
+### Arquivo 1: `src/pages/Onboarding.tsx`
 
-**Campos:**
-- Senha atual (para verificacao)
-- Nova senha (com validacao de forca)
-- Confirmar nova senha
+Alteracoes:
+1. Atualizar tipo `VenueSegment` para incluir `'health'`
+2. Adicionar novo objeto no array `segments` para Clinicas/Saude
+3. Diferenciar descricoes e features entre beleza e saude
 
-**Fluxo:**
-1. Valida que senhas novas coincidem
-2. Valida requisitos de forca da senha
-3. Reautentica o usuario com senha atual: `supabase.auth.signInWithPassword()`
-4. Atualiza senha: `supabase.auth.updateUser({ password: novaSenha })`
+```text
+Segmento Beleza:
+- Titulo: "Saloes e Barbearias"
+- Descricao curta: "Servicos por profissional"
+- Features: Agenda por profissional, Catalogo de servicos, Multiplos servicos por agendamento, Historico do cliente, Dashboard focado em ticket medio
 
-**Codigo exemplo:**
-```typescript
-// Reautentica para confirmar senha atual
-const { error: authError } = await supabase.auth.signInWithPassword({
-  email: user.email!,
-  password: currentPassword,
-});
-
-if (authError) {
-  toast({ title: "Senha atual incorreta", variant: "destructive" });
-  return;
-}
-
-// Atualiza para nova senha
-const { error } = await supabase.auth.updateUser({ password: newPassword });
+Segmento Saude:
+- Titulo: "Clinicas e Saude"
+- Descricao curta: "Consultas e procedimentos"
+- Features: Agenda por profissional, Prontuario simplificado, Controle de retornos, Historico do paciente, Dashboard focado em atendimentos
 ```
 
-### 2. Fluxo de Recuperacao com OTP na Tela de Login
+### Arquivo 2: `src/components/landing/LandingSegments.tsx`
 
-**Etapas do Wizard:**
-1. **Etapa 1 - Email**: Usuario digita email
-2. **Etapa 2 - Codigo**: Usuario recebe e digita codigo OTP de 6 digitos
-3. **Etapa 3 - Nova Senha**: Usuario define nova senha
+Alteracoes:
+1. Substituir card "Saloes e Clinicas" por dois cards separados
+2. Remover card "Espacos em Geral" (redundante com sports)
+3. Atualizar icones e cores
 
-**Implementacao com Supabase:**
+### Arquivo 3: `src/components/settings/VenueSettingsTab.tsx`
 
+Alteracoes:
+1. Remover o card inteiro de "Modo de Visualizacao" (linhas 610-665)
+2. Remover `dashboard_mode` do schema de validacao (linha 69)
+3. Remover `dashboard_mode` dos defaultValues e reset
+4. Remover do objeto de update na funcao de submit
+
+### Arquivo 4: `src/types/services.ts`
+
+O tipo ja esta correto:
 ```typescript
-// Etapa 1: Enviar OTP para email
-await supabase.auth.signInWithOtp({
-  email,
-  options: {
-    shouldCreateUser: false, // Nao cria usuario se nao existir
-  }
-});
-
-// Etapa 2: Verificar OTP e autenticar
-const { error } = await supabase.auth.verifyOtp({
-  email,
-  token: otpCode, // Codigo de 6 digitos
-  type: 'email',
-});
-
-// Etapa 3: Atualizar senha (usuario ja autenticado apos verifyOtp)
-await supabase.auth.updateUser({ password: newPassword });
+export type VenueSegment = 'sports' | 'beauty' | 'health' | 'custom';
 ```
 
-### 3. Componente OTP Input
+### Arquivo 5: `src/components/layout/AppSidebar.tsx`
 
-Reutilizaremos o componente existente `InputOTP` de `src/components/ui/input-otp.tsx`:
-
+Atualizar condicao de menu para reconhecer `health`:
 ```typescript
-<InputOTP maxLength={6} value={otp} onChange={setOtp}>
-  <InputOTPGroup>
-    <InputOTPSlot index={0} />
-    <InputOTPSlot index={1} />
-    <InputOTPSlot index={2} />
-    <InputOTPSlot index={3} />
-    <InputOTPSlot index={4} />
-    <InputOTPSlot index={5} />
-  </InputOTPGroup>
-</InputOTP>
+const isServiceVenue = venueSegment && (venueSegment === 'beauty' || venueSegment === 'health');
 ```
 
----
+### Arquivo 6: `src/components/help/HelpArticle.tsx`
 
-## Interface do Usuario
-
-### Configuracoes - Alterar Senha
-
-Nova secao ou card na aba "Unidade" com:
-- Icone de cadeado
-- Titulo: "Seguranca da Conta"
-- Botao: "Alterar Senha"
-- Ao clicar, abre dialog com formulario
-
-### Tela de Login - Recuperacao
-
-Ao clicar em "Esqueci minha senha":
-1. **Tela Email**: Campo de email + botao "Enviar Codigo"
-2. **Tela Codigo**: Input OTP de 6 digitos + timer de reenvio + botao "Reenviar codigo"
-3. **Tela Nova Senha**: Campos de senha com validacao visual + botao "Redefinir"
-4. **Tela Sucesso**: Icone de check + mensagem + redirecionamento automatico
+Ja trata `health` separadamente - nenhuma alteracao necessaria.
 
 ---
 
-## Validacoes de Seguranca
+## Impacto no Dashboard
 
-### Senha
-- Minimo 8 caracteres
-- Ao menos 1 letra maiuscula
-- Ao menos 1 numero
-- Ao menos 1 caractere especial
-- Validacao visual em tempo real
+### Mapeamento Automatico (Trigger SQL)
+O trigger `set_default_dashboard_mode` ja esta configurado corretamente:
+- `sports` -> `bookings` -> DashboardBookings
+- `beauty` -> `appointments` -> DashboardAppointments
+- `health` -> `appointments` -> DashboardAppointments
+- `custom` -> `service_orders` -> DashboardServiceOrders
 
-### OTP
-- Codigo de 6 digitos
-- Expira em 10 minutos (padrao Supabase)
-- Reenvio disponivel apos 60 segundos
-- Limite de tentativas
-
----
-
-## Acessibilidade e UX
-
-- Botoes de mostrar/ocultar senha
-- Indicadores visuais de progresso (steps)
-- Feedback claro de erros
-- Timer de reenvio de codigo
-- Suporte a paste no campo OTP
-- Auto-focus entre campos OTP
+### DashboardAppointments
+O componente `DashboardAppointments` sera usado tanto para Beauty quanto Health.
+Futuras melhorias podem adicionar logica condicional baseada no segmento para:
+- Terminologia diferente ("Clientes" vs "Pacientes")
+- Metricas especificas (ex: taxa de retorno para clinicas)
 
 ---
 
-## Entregas
+## Arquivos a Modificar
 
-1. Criar `ChangePasswordDialog.tsx` para alteracao de senha interna
-2. Adicionar secao "Seguranca" em Configuracoes com botao
-3. Refatorar `Auth.tsx` para usar novo fluxo OTP no modo "forgot"
-4. Criar estados e steps para o wizard de recuperacao
-5. Implementar timer de reenvio de codigo
-6. Aplicar validacoes de senha em tempo real
-7. Testar fluxos completos
+| Arquivo | Acao |
+|---------|------|
+| `src/pages/Onboarding.tsx` | Adicionar segmento health, atualizar icones/cores |
+| `src/components/landing/LandingSegments.tsx` | Separar cards beleza/saude |
+| `src/components/settings/VenueSettingsTab.tsx` | Remover seletor dashboard_mode |
+| `src/components/layout/AppSidebar.tsx` | Ajustar condicao isServiceVenue |
 
 ---
 
-## Consideracoes
+## Beneficios
 
-- O Supabase envia emails automaticamente com o codigo OTP
-- Nao e necessario criar edge function para envio de email
-- O codigo OTP e valido por 60 segundos a 1 hora dependendo da config
-- A funcao `verifyOtp` com type 'email' autentica o usuario automaticamente
-- Apos `verifyOtp` bem-sucedido, podemos chamar `updateUser` imediatamente
+1. **Experiencia mais focada** - Usuarios de clinicas verao terminologia e features relevantes para seu negocio
+2. **Menos confusao** - Dashboard automatico elimina decisao desnecessaria do cliente
+3. **Consistencia visual** - Icones padronizados em todo o sistema
+4. **Preparacao para futuro** - Estrutura pronta para personalizacoes especificas por segmento
 
+---
+
+## Validacao
+
+Apos implementacao, verificar:
+1. Onboarding exibe 4 opcoes distintas de segmento
+2. Landing page mostra cards separados para Beleza e Saude
+3. Configuracoes NAO exibe opcao de alterar dashboard mode
+4. Novos cadastros de venue com segment='health' recebem dashboard_mode='appointments' automaticamente
+5. Sidebar mostra menu correto (Servicos) para venues beauty e health
