@@ -1,193 +1,218 @@
 
-
-# Plano: Adaptação Completa do Segmento Health (Clínicas e Saúde)
+# Revisao Completa do Sistema AgendaCerta
 
 ## Resumo Executivo
 
-Este plano visa adaptar completamente a experiência do usuário para o segmento **health** (Clínicas e Saúde), substituindo ícones de tesoura (Scissors) por coração (Heart) e ajustando a terminologia de "clientes" para "pacientes" quando apropriado.
+Apos analise detalhada do codigo, banco de dados e configuracoes de seguranca, identifiquei **47 itens** divididos em 6 categorias: Seguranca (criticos), Bugs, Performance, Usabilidade, Testes e Documentacao.
 
 ---
 
-## Escopo das Alterações
+## 1. SEGURANCA (CRITICO)
 
-### 1. Ícones (Scissors → Heart)
+### 1.1 RLS - Problemas Identificados pelo Scanner
 
-Todos os locais que exibem o ícone `Scissors` precisam renderizar `Heart` quando o segmento for `health`.
+| Tabela | Problema | Severidade | Acao |
+|--------|----------|------------|------|
+| `professionals` | PII exposto (email, phone) sem bloqueio anonimo | ERRO | Adicionar policy `auth.uid() IS NOT NULL` |
+| `customers` | Base completa pode ser acessada anonimamente | ERRO | Adicionar policy explicita para authenticated |
+| `service_orders` | Dados financeiros e fiscais expostos | ERRO | Restringir SELECT a authenticated + venue_member |
+| `google_calendar_tokens` | OAuth tokens em texto claro para admins | AVISO | Documentar como risco aceito ou implementar rotacao |
+| `login_attempts` | Emails podem ser colhidos | ERRO | Verificar policy superadmin-only |
+| `profiles` | Telefones e nomes expostos | ERRO | Adicionar bloqueio anonimo |
+| `venues` | CNPJ/CPF e IDs de pagamento expostos | ERRO | Restringir SELECT |
 
-### 2. Terminologia (Clientes → Pacientes)
+### 1.2 Autenticacao
 
-Para o segmento health, ajustar:
-- "Clientes" → "Pacientes"
-- "Próximos Clientes" → "Próximos Pacientes"
-- "Atende Clientes" → "Atende Pacientes"
+| Item | Status | Acao |
+|------|--------|------|
+| Leaked Password Protection | DESABILITADO | Habilitar no dashboard Supabase Auth |
+| Rate limiting de login | OK | Implementado via edge function |
+| Validacao de senha forte | OK | 8+ chars, maiuscula, numero, especial |
+| Confirmacao de senha | OK | Campo implementado com validacao |
 
----
+### 1.3 Codigo - Vulnerabilidades
 
-## Estratégia de Implementação
-
-### Criar Utilitário Centralizado
-
-Novo arquivo com funções helper para padronizar a lógica:
-
-```text
-src/lib/segment-utils.ts
-├── getServiceIcon(segment) → Heart ou Scissors
-├── getClientLabel(segment) → "Paciente" ou "Cliente"
-├── getClientsLabel(segment) → "Pacientes" ou "Clientes"
-```
-
----
-
-## Arquivos a Modificar
-
-### Grupo 1: Ícones (7 arquivos)
-
-| Arquivo | Local do Scissors | Alteração |
-|---------|-------------------|-----------|
-| `src/components/dashboard/DashboardAppointments.tsx` | MetricCard "Atendimentos Hoje" (linha 174) | Usar `getServiceIcon()` |
-| `src/pages/Servicos.tsx` | Empty states (linhas 108, 152) | Usar `getServiceIcon()` |
-| `src/components/bookings/BeautyBookingSheet.tsx` | Ícone na lista de serviços (linha 233) | Usar `getServiceIcon()` |
-| `src/components/agenda/ServiceBookingWizard.tsx` | Label "Serviços" no step 2 (linha 450) | Usar `getServiceIcon()` |
-| `src/components/team/ProfessionalFormDialog.tsx` | Empty state "Nenhum serviço" (linha 191) | Usar `getServiceIcon()` |
-| `src/pages/Configuracoes.tsx` | Seção Profissionais (linhas 362, 379, 435) | Usar `getServiceIcon()` |
-| `src/components/help/HelpSidebar.tsx` | iconMap para artigos | Adicionar Heart ao mapa |
-
-### Grupo 2: Terminologia (3 arquivos)
-
-| Arquivo | Termo Atual | Novo Termo (health) |
-|---------|-------------|---------------------|
-| `src/components/dashboard/DashboardAppointments.tsx` | "Próximos Clientes" (linha 230) | "Próximos Pacientes" |
-| `src/pages/Configuracoes.tsx` | "Atende Clientes" (linha 391) | "Atende Pacientes" |
-| `src/components/team/ProfessionalFormDialog.tsx` | "clientes possam agendar" (linha 126) | "pacientes possam agendar" |
+| Arquivo | Problema | Acao |
+|---------|----------|------|
+| `src/components/ui/chart.tsx` | `dangerouslySetInnerHTML` | SEGURO - apenas CSS de config controlada |
+| `PublicPageVenue.tsx` | URL validation | OK - `isSafeUrl()` implementado |
+| `BookingWidget.tsx` | File upload | OK - validacao MIME + tamanho implementada |
 
 ---
 
-## Detalhamento Técnico
+## 2. BUGS IDENTIFICADOS
 
-### Arquivo Novo: `src/lib/segment-utils.ts`
+### 2.1 Modulo Financeiro
 
-```typescript
-import { Heart, Scissors, type LucideIcon } from 'lucide-react';
+| Bug | Arquivo | Correcao |
+|-----|---------|----------|
+| Performance: 18 queries sequenciais para monthlyData | `useFinancialMetrics.ts` | Criar RPC `get_financial_metrics` no servidor |
+| Filtro de periodo nao afeta RevenueList | `Financeiro.tsx` / `RevenueList.tsx` | Passar `period` como prop e aplicar filtro |
+| RevenueList sempre mostra "este mes" fixo | `RevenueList.tsx` | Receber startDate/endDate via props |
 
-export function getServiceIcon(segment?: string): LucideIcon {
-  return segment === 'health' ? Heart : Scissors;
-}
+### 2.2 Pagina Publica
 
-export function getClientLabel(segment?: string, capitalize = false): string {
-  const label = segment === 'health' ? 'paciente' : 'cliente';
-  return capitalize ? label.charAt(0).toUpperCase() + label.slice(1) : label;
-}
+| Bug | Arquivo | Correcao |
+|-----|---------|----------|
+| Link "Visualizar" usa `/p/slug` mas rota e `/v/slug` | `PublicPageConfig.tsx` L254 | Trocar `/p/` por `/v/` |
+| Logo URL nao salva no banco | `PublicPageConfig.tsx` | Adicionar `logo_url` ao update |
 
-export function getClientsLabel(segment?: string, capitalize = false): string {
-  const label = segment === 'health' ? 'pacientes' : 'clientes';
-  return capitalize ? label.charAt(0).toUpperCase() + label.slice(1) : label;
-}
-```
+### 2.3 Tipagem
 
-### Arquivo: `src/components/dashboard/DashboardAppointments.tsx`
+| Bug | Arquivo | Correcao |
+|-----|---------|----------|
+| TRANSFER em PaymentMethod | `useExpenses.ts` | O enum ja inclui TRANSFER no DB - remover cast desnecessario |
 
-Alterações:
-1. Importar `useVenue` e `getServiceIcon`, `getClientsLabel`
-2. Obter `venueSegment` do contexto
-3. Substituir `Scissors` por `getServiceIcon(venueSegment)`
-4. Substituir "Próximos Clientes" por `Próximos ${getClientsLabel(venueSegment, true)}`
+### 2.4 Ajuda
 
-Locais específicos:
-- Linha 9: Adicionar import de `Heart`
-- Linha 174: `icon={getServiceIcon(venueSegment)}`
-- Linha 230: Título dinâmico
-
-### Arquivo: `src/pages/Servicos.tsx`
-
-Alterações:
-1. Importar `getServiceIcon` de `@/lib/segment-utils`
-2. Importar `Heart` de lucide-react
-3. Já tem acesso a `venueSegment` via useVenue
-4. Criar variável: `const ServiceIcon = getServiceIcon(venueSegment)`
-5. Substituir `<Scissors .../>` por `<ServiceIcon .../>`
-
-Locais:
-- Linha 108: Empty state principal
-- Linha 152: Empty state tabela
-
-### Arquivo: `src/components/bookings/BeautyBookingSheet.tsx`
-
-Alterações:
-1. Importar `useVenue` de `@/contexts/VenueContext`
-2. Importar `getServiceIcon` de `@/lib/segment-utils`
-3. Importar `Heart` de lucide-react
-4. Obter segmento e criar ícone dinâmico
-5. Substituir na linha 233
-
-### Arquivo: `src/components/agenda/ServiceBookingWizard.tsx`
-
-Alterações:
-1. Importar `getServiceIcon` de `@/lib/segment-utils`
-2. Importar `Heart` de lucide-react
-3. Já tem acesso a `currentVenue`
-4. Obter segmento e criar ícone dinâmico
-5. Substituir na linha 450
-
-### Arquivo: `src/components/team/ProfessionalFormDialog.tsx`
-
-Alterações:
-1. Importar `useVenue` de `@/contexts/VenueContext`
-2. Importar `getServiceIcon`, `getClientsLabel` de `@/lib/segment-utils`
-3. Importar `Heart` de lucide-react
-4. Obter segmento
-5. Substituir ícone na linha 191
-6. Ajustar texto na linha 126: `${getClientsLabel(venueSegment)} possam agendar`
-
-### Arquivo: `src/pages/Configuracoes.tsx`
-
-Alterações:
-1. Importar `getServiceIcon`, `getClientsLabel` de `@/lib/segment-utils`
-2. Importar `Heart` de lucide-react
-3. Já tem acesso a `venueSegment`
-4. Criar ícone dinâmico
-5. Substituir nas linhas 362, 379, 435
-6. Ajustar texto na linha 391: `Atende ${getClientsLabel(venueSegment, true)}`
-
-### Arquivo: `src/components/help/HelpSidebar.tsx`
-
-Alterações:
-1. Adicionar `Heart` ao import de lucide-react
-2. Adicionar `Heart` ao objeto `iconMap`
+| Bug | Arquivo | Correcao |
+|-----|---------|----------|
+| Falta icone Heart no iconMap | `HelpArticle.tsx` | Adicionar Heart ao mapeamento |
 
 ---
 
-## Resumo de Alterações
+## 3. PERFORMANCE
 
-| Ação | Qtd Arquivos |
-|------|--------------|
-| Criar novo arquivo | 1 |
-| Modificar arquivos | 7 |
-| **Total** | **8** |
+### 3.1 Queries N+1
 
----
+| Local | Problema | Solucao |
+|-------|----------|---------|
+| `useFinancialMetrics.ts` | Loop de 6 meses com 3 queries cada = 18 queries | Criar RPC unica com CTE para agregar dados |
+| `RevenueList.tsx` | 2 queries separadas para bookings e service_orders | Unificar com UNION no servidor |
 
-## Impacto Visual
+### 3.2 Recomendacoes
 
-### Antes (Segmento Health)
-- Ícones de tesoura em todo o sistema
-- Textos referenciando "clientes"
-
-### Depois (Segmento Health)
-- Ícones de coração em contextos de serviço
-- Textos referenciando "pacientes"
-- Experiência mais alinhada ao contexto médico/clínico
+| Item | Acao |
+|------|------|
+| Supabase Query Limit | Queries retornam max 1000 rows - adicionar paginacao onde necessario |
+| React Query staleTime | Aumentar para dados que mudam pouco (ex: venues, services) |
 
 ---
 
-## Validação
+## 4. USABILIDADE (UX)
 
-Após implementação, verificar com conta `testemedico@gmail.com`:
-1. Dashboard mostra ícone de coração em "Atendimentos Hoje"
-2. Dashboard mostra "Próximos Pacientes" em vez de "Próximos Clientes"
-3. Página de Serviços mostra ícone de coração nos empty states
-4. BeautyBookingSheet mostra coração na lista de serviços
-5. ServiceBookingWizard mostra coração no label de serviços
-6. ProfessionalFormDialog mostra coração e texto "pacientes"
-7. Configurações > Profissionais mostra coração e "Atende Pacientes"
-8. Venues do segmento `beauty` continuam com tesoura e "clientes"
+### 4.1 Segmento Health - Terminologia
+
+| Componente | Status |
+|------------|--------|
+| Dashboard "Proximos Pacientes" | IMPLEMENTADO |
+| Sidebar icone Heart | IMPLEMENTADO |
+| ProfessionalFormDialog | IMPLEMENTADO |
+| Configuracoes "Atende Pacientes" | IMPLEMENTADO |
+
+### 4.2 Melhorias Sugeridas
+
+| Item | Descricao |
+|------|-----------|
+| Financeiro - Exportacao | Adicionar botao "Exportar Excel" na tab de despesas |
+| RevenueList - Filtro por tipo | Permitir filtrar "Apenas Reservas" ou "Apenas OS" |
+| Ajuda - Busca mobile | Melhorar visibilidade da busca em telas pequenas |
+| Pagina Publica - Preview | Adicionar preview em tempo real no editor |
+
+---
+
+## 5. TESTES
+
+### 5.1 Status Atual
+
+- **Nenhum teste automatizado encontrado**
+- Diretorio `src/test` existe mas esta vazio
+- Dependencias de teste NAO instaladas (`vitest`, `@testing-library/react`)
+
+### 5.2 Plano de Implementacao
+
+1. Instalar dependencias de teste
+2. Configurar `vitest.config.ts`
+3. Criar `src/test/setup.ts`
+4. Adicionar testes prioritarios:
+
+| Prioridade | Componente | Tipo de Teste |
+|------------|------------|---------------|
+| ALTA | `usePayments` | Unit test - finalizeBooking |
+| ALTA | `CheckoutDialog` | Integration - split payment |
+| ALTA | `useFinancialMetrics` | Unit test - calculos |
+| MEDIA | `BookingWidget` | E2E - fluxo completo |
+| MEDIA | Auth login/signup | E2E - rate limiting |
+
+---
+
+## 6. DOCUMENTACAO E AJUDA
+
+### 6.1 Conteudo Existente
+
+| Secao | Status |
+|-------|--------|
+| Primeiros Passos | OK - 3 artigos |
+| Modulos do Sistema | OK - 10 artigos |
+| Integracoes | OK - 2 artigos |
+| FAQ | OK - 1 artigo generico |
+
+### 6.2 Melhorias
+
+| Item | Acao |
+|------|------|
+| Artigo Financeiro | Expandir com exemplos de relatorios |
+| Artigo Pagina Publica | Adicionar prints/GIFs do editor |
+| FAQ Segmento Health | Criar FAQ especifico para clinicas |
+| Artigo Equipe | Documentar fluxo de permissoes |
+
+---
+
+## PRIORIDADE DE IMPLEMENTACAO
+
+### Fase 1 - Seguranca (URGENTE)
+
+1. Habilitar Leaked Password Protection
+2. Adicionar policies RLS para bloqueio anonimo em tabelas criticas
+3. Revisar policy de `login_attempts`
+
+### Fase 2 - Bugs Criticos
+
+1. Corrigir link `/p/` para `/v/` na pagina publica
+2. Salvar `logo_url` no update da pagina publica
+3. Adicionar Heart ao iconMap do HelpArticle
+
+### Fase 3 - Performance
+
+1. Criar RPC `get_financial_metrics` para consolidar queries
+2. Otimizar RevenueList com query unificada
+
+### Fase 4 - Testes
+
+1. Setup do ambiente de testes
+2. Testes unitarios para hooks financeiros
+3. Testes E2E para fluxos criticos
+
+### Fase 5 - UX e Documentacao
+
+1. Exportacao Excel no financeiro
+2. Filtros adicionais no RevenueList
+3. Expandir artigos de ajuda
+
+---
+
+## ARQUIVOS A MODIFICAR
+
+| Arquivo | Alteracoes |
+|---------|------------|
+| Migrations SQL | Adicionar policies RLS (6+ tabelas) |
+| `src/pages/PublicPageConfig.tsx` | Corrigir link + salvar logo_url |
+| `src/components/financeiro/RevenueList.tsx` | Receber period via props |
+| `src/hooks/useFinancialMetrics.ts` | Refatorar para usar RPC |
+| `src/components/help/HelpArticle.tsx` | Adicionar Heart ao iconMap |
+| `vitest.config.ts` | Criar configuracao de testes |
+| `package.json` | Adicionar devDependencies de teste |
+
+---
+
+## RESUMO QUANTITATIVO
+
+| Categoria | Qtd Itens | Criticidade |
+|-----------|-----------|-------------|
+| Seguranca RLS | 7 tabelas | CRITICO |
+| Seguranca Auth | 1 config | ALTO |
+| Bugs | 5 | MEDIO |
+| Performance | 2 | MEDIO |
+| Testes | 0 existentes | ALTO |
+| Documentacao | 4 melhorias | BAIXO |
 
