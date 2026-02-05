@@ -4,7 +4,7 @@ import { Heart, Scissors, type LucideIcon } from 'lucide-react';
  * Returns true if the venue segment is service-based (beauty or health)
  */
 export function isServiceSegment(segment?: string | null): boolean {
-  return segment === 'beauty' || segment === 'health';
+  return segment === 'beauty' || segment === 'health' || segment === 'custom';
 }
 
 /**
