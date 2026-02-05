@@ -19,6 +19,7 @@ import {
   MessageCircle,
   HelpCircle,
   Plug,
+  Heart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,6 +42,7 @@ const iconMap: Record<string, LucideIcon> = {
   MessageCircle,
   Plug,
   HelpCircle,
+  Heart,
 };
 
 interface HelpArticleProps {

@@ -117,6 +117,7 @@ export default function PublicPageConfig() {
       .update({ 
         public_page_sections: JSON.parse(JSON.stringify(sections)),
         primary_color: primaryColor || null,
+        logo_url: publicLogoUrl || null,
       })
       .eq('id', currentVenue.id);
 
@@ -251,7 +252,7 @@ export default function PublicPageConfig() {
           <div className="flex gap-2">
             {currentVenue?.slug && (
               <Button variant="outline" size="sm" asChild>
-                <a href={`/p/${currentVenue.slug}`} target="_blank" rel="noopener noreferrer">
+                <a href={`/v/${currentVenue.slug}`} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-1" />
                   Visualizar
                 </a>

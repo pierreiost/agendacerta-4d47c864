@@ -102,7 +102,7 @@ export default function Financeiro() {
 
           {/* Revenue Tab */}
           <TabsContent value="revenue">
-            <RevenueList />
+            <RevenueList period={period} />
           </TabsContent>
 
           {/* Expenses Tab */}
