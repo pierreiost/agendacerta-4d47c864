@@ -33,6 +33,7 @@ interface DayViewProps {
   onBookingClick: (booking: Booking) => void;
   onBookingMove?: (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => void;
   onBookingResize?: (bookingId: string, newStart: Date, newEnd: Date) => void;
+  isServiceBased?: boolean;
 }
 
 // Horários visíveis na agenda (8:00 a 22:00)
@@ -166,6 +167,7 @@ export function DayView({
   onBookingClick,
   onBookingMove,
   onBookingResize,
+  isServiceBased,
 }: DayViewProps) {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragPreview, setDragPreview] = useState<{
@@ -364,7 +366,8 @@ export function DayView({
     }).format(value);
   };
 
-  if (spaces.length === 0) {
+  // Só mostrar erro de espaços vazios para segmentos que precisam de espaços (sports)
+  if (spaces.length === 0 && !isServiceBased) {
     return (
       <Card className="flex-1 flex items-center justify-center p-8">
         <div className="text-center text-muted-foreground">

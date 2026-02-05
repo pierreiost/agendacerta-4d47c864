@@ -31,6 +31,7 @@ interface WeekViewNewProps {
   allSpaces: Space[];
   onSlotClick: (spaceId: string, date: Date, hour: number) => void;
   onBookingClick: (booking: Booking) => void;
+  isServiceBased?: boolean;
 }
 
 // Horários visíveis na agenda (8:00 a 22:00)
@@ -146,6 +147,7 @@ export function WeekViewNew({
   allSpaces,
   onSlotClick,
   onBookingClick,
+  isServiceBased,
 }: WeekViewNewProps) {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const weekDays = useMemo(() => {
@@ -194,7 +196,8 @@ export function WeekViewNew({
   // Pegar o espaço primário para clique nos slots
   const primarySpaceId = spaces.length > 0 ? spaces[0].id : null;
 
-  if (spaces.length === 0) {
+  // Só mostrar erro de espaços vazios para segmentos que precisam de espaços (sports)
+  if (spaces.length === 0 && !isServiceBased) {
     return (
       <Card className="flex-1 flex items-center justify-center p-8">
         <div className="text-center text-muted-foreground">

@@ -356,6 +356,7 @@ export default function Agenda() {
                   onBookingClick={handleBookingClick}
                   onBookingMove={handleBookingMove}
                   onBookingResize={handleBookingResize}
+                  isServiceBased={isServiceBasedSegment}
                 />
               )}
               {viewMode === 'week' && (
@@ -366,6 +367,7 @@ export default function Agenda() {
                   allSpaces={activeSpaces}
                   onSlotClick={handleSlotClick}
                   onBookingClick={handleBookingClick}
+                  isServiceBased={isServiceBasedSegment}
                 />
               )}
               {viewMode === 'month' && (
