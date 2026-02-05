@@ -25,6 +25,9 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Scissors } from 'lucide-react';
+import { Heart } from 'lucide-react';
+import { useVenue } from '@/contexts/VenueContext';
+import { getServiceIcon, getClientsLabel } from '@/lib/segment-utils';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useServices } from '@/hooks/useServices';
 import type { BookableMember } from '@/types/services';
@@ -51,6 +54,9 @@ export function ProfessionalFormDialog({
 }: ProfessionalFormDialogProps) {
   const { updateProfessionalBookable } = useProfessionals();
   const { services } = useServices();
+  const { currentVenue } = useVenue();
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const ServiceIcon = getServiceIcon(venueSegment);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -123,7 +129,7 @@ export function ProfessionalFormDialog({
                       Realiza Atendimentos
                     </FormLabel>
                     <FormDescription>
-                      Habilite para que clientes possam agendar com este profissional
+                      Habilite para que {getClientsLabel(venueSegment)} possam agendar com este profissional
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -188,7 +194,7 @@ export function ProfessionalFormDialog({
                       
                       {services.length === 0 ? (
                         <div className="flex flex-col items-center py-6 text-center border rounded-lg">
-                          <Scissors className="h-8 w-8 text-muted-foreground mb-2" />
+                          <ServiceIcon className="h-8 w-8 text-muted-foreground mb-2" />
                           <p className="text-sm text-muted-foreground">
                             Nenhum serviço cadastrado
                           </p>

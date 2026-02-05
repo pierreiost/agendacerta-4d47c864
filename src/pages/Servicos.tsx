@@ -28,10 +28,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, MoreHorizontal, Pencil, Trash2, Clock, Loader2, Scissors } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Trash2, Clock, Loader2, Heart, Scissors } from 'lucide-react';
 import { useServices } from '@/hooks/useServices';
 import { useVenue } from '@/contexts/VenueContext';
 import { useModalPersist } from '@/hooks/useModalPersist';
+import { getServiceIcon } from '@/lib/segment-utils';
 import { ServiceFormDialog } from '@/components/services/ServiceFormDialog';
 import type { Service } from '@/types/services';
 
@@ -99,13 +100,14 @@ export default function Servicos() {
   // Check if venue segment supports services
   const venueSegment = (currentVenue as { segment?: string })?.segment;
   const isServiceVenue = venueSegment && venueSegment !== 'sports';
+  const ServiceIcon = getServiceIcon(venueSegment);
 
   if (!isServiceVenue) {
     return (
       <AppLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
           <div className="rounded-full bg-muted p-6 mb-4">
-            <Scissors className="h-12 w-12 text-muted-foreground" />
+              <ServiceIcon className="h-12 w-12 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-semibold mb-2">Funcionalidade não disponível</h2>
           <p className="text-muted-foreground max-w-md">
@@ -149,7 +151,7 @@ export default function Servicos() {
             ) : services.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="rounded-full bg-muted p-4 mb-4">
-                  <Scissors className="h-8 w-8 text-muted-foreground" />
+                  <ServiceIcon className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="font-semibold mb-1">Nenhum serviço cadastrado</h3>
                 <p className="text-muted-foreground text-sm mb-4">

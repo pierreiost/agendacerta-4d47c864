@@ -55,10 +55,12 @@ import {
   Search,
   Mail,
   Phone,
+  Heart,
   Scissors,
   Loader2,
 } from 'lucide-react';
 import type { Service, ProfessionalAvailability } from '@/types/services';
+import { getServiceIcon } from '@/lib/segment-utils';
 
 interface ServiceBookingWizardProps {
   open: boolean;
@@ -98,6 +100,9 @@ export function ServiceBookingWizard({
   const { bookableProfessionals, isLoading: professionalsLoading } = useProfessionals();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const venueSegment = (currentVenue as { segment?: string })?.segment;
+  const ServiceIcon = getServiceIcon(venueSegment);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -447,7 +452,7 @@ export function ServiceBookingWizard({
                 <div className="space-y-4 animate-fade-in">
                   <div>
                     <Label className="mb-2 flex items-center gap-2">
-                      <Scissors className="h-4 w-4" />
+                      <ServiceIcon className="h-4 w-4" />
                       Serviços
                     </Label>
                     {servicesLoading ? (
