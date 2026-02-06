@@ -31,12 +31,14 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { CustomerHistorySheet } from '@/components/customers/CustomerHistorySheet';
 import { useModalPersist } from '@/hooks/useModalPersist';
+import { useVenue } from '@/contexts/VenueContext';
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Clientes() {
   const { customers, isLoading, deleteCustomer } = useCustomers();
+  const { currentVenue } = useVenue();
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('clientes');
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -273,6 +275,7 @@ export default function Clientes() {
         open={historyOpen}
         onOpenChange={setHistoryOpen}
         customer={historyCustomer}
+        venueSegment={currentVenue?.segment}
       />
     </AppLayout>
   );
