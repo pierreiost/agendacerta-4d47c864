@@ -368,6 +368,75 @@ export type Database = {
           },
         ]
       }
+      health_records: {
+        Row: {
+          allergies: string | null
+          blood_pressure: string | null
+          blood_type: string | null
+          bmi: number | null
+          chief_complaint: string | null
+          clinical_notes: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          height_cm: number | null
+          id: string
+          medications: string | null
+          recorded_at: string
+          venue_id: string
+          weight_kg: number | null
+        }
+        Insert: {
+          allergies?: string | null
+          blood_pressure?: string | null
+          blood_type?: string | null
+          bmi?: number | null
+          chief_complaint?: string | null
+          clinical_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          height_cm?: number | null
+          id?: string
+          medications?: string | null
+          recorded_at?: string
+          venue_id: string
+          weight_kg?: number | null
+        }
+        Update: {
+          allergies?: string | null
+          blood_pressure?: string | null
+          blood_type?: string | null
+          bmi?: number | null
+          chief_complaint?: string | null
+          clinical_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          height_cm?: number | null
+          id?: string
+          medications?: string | null
+          recorded_at?: string
+          venue_id?: string
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_records_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           attempted_at: string
