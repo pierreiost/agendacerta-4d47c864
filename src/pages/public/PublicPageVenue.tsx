@@ -16,6 +16,9 @@ import {
   MobileBookingButton,
   SocialFloatingButtons,
 } from '@/components/public-page';
+import { LocationSection } from '@/components/public-page/LocationSection';
+import { HoursSection } from '@/components/public-page/HoursSection';
+import { StatsSection } from '@/components/public-page/StatsSection';
 
 interface PublicVenue {
   id: string;
@@ -171,7 +174,10 @@ export default function PublicPageVenue() {
   const hasLeftContent =
     (sections.gallery.enabled && sections.gallery.images.length > 0) ||
     (sections.testimonials.enabled && sections.testimonials.items.length > 0) ||
-    (sections.faq.enabled && sections.faq.items.length > 0);
+    (sections.faq.enabled && sections.faq.items.length > 0) ||
+    (sections.location.enabled) ||
+    (sections.hours.enabled) ||
+    (sections.stats.enabled);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -193,6 +199,11 @@ export default function PublicPageVenue() {
                 <GallerySection section={sections.gallery} />
               )}
 
+              {/* Stats */}
+              {sections.stats.enabled && (
+                <StatsSection section={sections.stats} />
+              )}
+
               {/* Testimonials */}
               {sections.testimonials.enabled && sections.testimonials.items.length > 0 && (
                 <TestimonialsSection section={sections.testimonials} />
@@ -201,6 +212,16 @@ export default function PublicPageVenue() {
               {/* FAQ */}
               {sections.faq.enabled && sections.faq.items.length > 0 && (
                 <FaqSection section={sections.faq} />
+              )}
+
+              {/* Location */}
+              {sections.location.enabled && (
+                <LocationSection section={sections.location} />
+              )}
+
+              {/* Hours */}
+              {sections.hours.enabled && (
+                <HoursSection section={sections.hours} />
               )}
             </div>
           )}
