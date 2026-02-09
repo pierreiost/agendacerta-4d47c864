@@ -328,7 +328,7 @@ export function VenueSettingsTab() {
                           title="Abrir portal"
                         >
                           <a
-                            href={`/${currentVenue.slug}`}
+                            href={`/v/${currentVenue.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
