@@ -78,10 +78,10 @@ const venueFormSchema = z.object({
       message: 'Use apenas letras minúsculas, números e hífens',
     })
     .refine((val) => !val || val.length >= 3, {
-      message: 'Slug muito curto (mínimo 3 caracteres)',
+      message: 'Endereço muito curto (mínimo 3 caracteres)',
     })
     .refine((val) => !val || val.length <= 50, {
-      message: 'Slug muito longo (máximo 50 caracteres)',
+      message: 'Endereço muito longo (máximo 50 caracteres)',
     }),
   cnpj_cpf: z.string()
     .optional()
@@ -254,7 +254,7 @@ export function VenueSettingsTab() {
     if (isSettingSlug && !pendingFormData) {
       // Check availability before confirming
       if (slugAvailable === false) {
-        toast({ title: 'Este slug já está em uso', variant: 'destructive' });
+        toast({ title: 'Este endereço já está em uso', variant: 'destructive' });
         return;
       }
       setPendingFormData(data);
@@ -306,7 +306,7 @@ export function VenueSettingsTab() {
         variant: 'destructive',
       });
     } else {
-      toast({ title: isSettingSlug ? 'Slug definido com sucesso!' : 'Configurações salvas!' });
+      toast({ title: isSettingSlug ? 'Endereço definido com sucesso!' : 'Configurações salvas!' });
       clearVenueDraft();
       refetchVenues();
     }
@@ -391,7 +391,7 @@ export function VenueSettingsTab() {
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
                     <div className="flex items-center gap-2">
-                      <FormLabel>Slug do Portal</FormLabel>
+                      <FormLabel>Endereço da Página</FormLabel>
                       {!isPlanMax && (
                         <TooltipProvider>
                           <Tooltip>
@@ -415,7 +415,8 @@ export function VenueSettingsTab() {
                       <FormControl>
                         <Input
                           {...field}
-                          disabled={!canEditSlug}
+                          disabled={!isPlanMax}
+                          readOnly={hasExistingSlug}
                           className={`rounded-l-none ${!canEditSlug ? 'bg-muted' : ''} ${
                             canEditSlug && field.value && field.value.length >= 3
                               ? slugAvailable === true ? 'border-emerald-500 focus-visible:ring-emerald-500' 
@@ -490,16 +491,16 @@ export function VenueSettingsTab() {
                     {canEditSlug && (
                       <FormDescription className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
                         <AlertTriangle className="h-3.5 w-3.5" />
-                        Atenção: O slug pode ser definido apenas uma vez e não poderá ser alterado
+                        Atenção: O endereço pode ser definido apenas uma vez e não poderá ser alterado
                       </FormDescription>
                     )}
                     {hasExistingSlug && (
                       <FormDescription className="text-muted-foreground">
-                        O slug foi definido e não pode ser alterado
+                        O endereço foi definido e não pode ser alterado
                       </FormDescription>
                     )}
                     {canEditSlug && !slugChecking && slugAvailable === false && (
-                      <p className="text-sm text-destructive">Este slug já está em uso</p>
+                      <p className="text-sm text-destructive">Este endereço já está em uso</p>
                     )}
                     <FormMessage />
                   </FormItem>
@@ -806,11 +807,11 @@ export function VenueSettingsTab() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Confirmar Slug Permanente
+              Confirmar Endereço Permanente
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>Você está definindo o slug como:</p>
+                <p>Você está definindo o endereço da página como:</p>
                 <p className="font-mono text-sm bg-muted px-3 py-2 rounded-md">
                   agendacerta.online/v/{pendingFormData?.slug}
                 </p>
@@ -818,7 +819,7 @@ export function VenueSettingsTab() {
                   <AlertTriangle className="h-4 w-4" />
                   Esta ação é permanente e não pode ser desfeita.
                 </p>
-                <p>O slug não poderá ser alterado no futuro. Tem certeza que deseja continuar?</p>
+                <p>O endereço não poderá ser alterado no futuro. Tem certeza que deseja continuar?</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
