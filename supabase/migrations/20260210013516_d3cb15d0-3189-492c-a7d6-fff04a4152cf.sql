@@ -1,0 +1,1 @@
+ALTER TABLE public.venues ADD COLUMN IF NOT EXISTS slug_set_at timestamp with time zone DEFAULT NULL;

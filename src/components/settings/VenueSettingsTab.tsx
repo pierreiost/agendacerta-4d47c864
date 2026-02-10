@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,6 +24,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -46,12 +62,27 @@ import {
   FileText,
   ExternalLink,
   Shield,
+  Lock,
+  AlertTriangle,
+  Maximize2,
 } from 'lucide-react';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 
+const slugRegex = /^[a-z0-9-]*$/;
+
 const venueFormSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  slug: z.string().optional(),
+  slug: z.string()
+    .optional()
+    .refine((val) => !val || slugRegex.test(val), {
+      message: 'Use apenas letras minúsculas, números e hífens',
+    })
+    .refine((val) => !val || val.length >= 3, {
+      message: 'Slug muito curto (mínimo 3 caracteres)',
+    })
+    .refine((val) => !val || val.length <= 50, {
+      message: 'Slug muito longo (máximo 50 caracteres)',
+    }),
   cnpj_cpf: z.string()
     .optional()
     .refine((val) => !val || isValidCPFCNPJ(val), {
@@ -76,11 +107,18 @@ export function VenueSettingsTab() {
   const [isLoading, setIsLoading] = useState(false);
   const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
   const [linkCopied, setLinkCopied] = useState(false);
+  const [slugConfirmOpen, setSlugConfirmOpen] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<VenueFormData | null>(null);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [slugChecking, setSlugChecking] = useState(false);
+  const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const { upload, isUploading } = useFileUpload();
   const { status, daysRemaining, isPlanMax } = useSubscriptionStatus(currentVenue);
   
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
+  const hasExistingSlug = !!currentVenue?.slug;
+  const canEditSlug = isPlanMax && !hasExistingSlug;
 
   const venueForm = useForm<VenueFormData>({
     resolver: zodResolver(venueFormSchema),
@@ -186,30 +224,80 @@ export function VenueSettingsTab() {
     });
   }, [currentVenue?.id, currentVenue, venueForm]);
 
+  // Slug availability check with debounce
+  const checkSlugAvailability = useCallback(async (slug: string) => {
+    if (!slug || slug.length < 3 || !currentVenue?.id) {
+      setSlugAvailable(null);
+      return;
+    }
+    setSlugChecking(true);
+    const { data } = await supabase
+      .from('venues')
+      .select('id')
+      .eq('slug', slug)
+      .neq('id', currentVenue.id)
+      .maybeSingle();
+    setSlugAvailable(!data);
+    setSlugChecking(false);
+  }, [currentVenue?.id]);
+
+  const debouncedSlugCheck = useCallback((slug: string) => {
+    if (slugCheckTimeout.current) clearTimeout(slugCheckTimeout.current);
+    slugCheckTimeout.current = setTimeout(() => checkSlugAvailability(slug), 500);
+  }, [checkSlugAvailability]);
+
   const onSubmit = async (data: VenueFormData) => {
+    if (!currentVenue?.id) return;
+    
+    // If setting slug for first time, show confirmation dialog
+    const isSettingSlug = canEditSlug && data.slug && data.slug.length >= 3;
+    if (isSettingSlug && !pendingFormData) {
+      // Check availability before confirming
+      if (slugAvailable === false) {
+        toast({ title: 'Este slug já está em uso', variant: 'destructive' });
+        return;
+      }
+      setPendingFormData(data);
+      setSlugConfirmOpen(true);
+      return;
+    }
+    
+    await saveVenueData(data);
+  };
+
+  const saveVenueData = async (data: VenueFormData) => {
     if (!currentVenue?.id) return;
     setIsLoading(true);
 
-    // Clean and filter phones
     const cleanedPhones = (data.phones || [])
       .map(p => unmask(p))
       .filter(p => p.length > 0);
 
+    const isSettingSlug = canEditSlug && data.slug && data.slug.length >= 3;
+
+    const updatePayload: Record<string, unknown> = {
+      name: data.name,
+      address: data.address || null,
+      phones: cleanedPhones,
+      phone: cleanedPhones[0] || null,
+      email: data.email || null,
+      logo_url: data.logo_url || null,
+      cnpj_cpf: data.cnpj_cpf ? unmask(data.cnpj_cpf) : null,
+      whatsapp: data.whatsapp ? unmask(data.whatsapp) : null,
+    };
+
+    if (isSettingSlug) {
+      updatePayload.slug = data.slug;
+      updatePayload.slug_set_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from('venues')
-      .update({
-        name: data.name,
-        address: data.address || null,
-        phones: cleanedPhones,
-        phone: cleanedPhones[0] || null, // Keep first phone in legacy field for compatibility
-        email: data.email || null,
-        logo_url: data.logo_url || null,
-        cnpj_cpf: data.cnpj_cpf ? unmask(data.cnpj_cpf) : null,
-        whatsapp: data.whatsapp ? unmask(data.whatsapp) : null,
-      })
+      .update(updatePayload)
       .eq('id', currentVenue.id);
 
     setIsLoading(false);
+    setPendingFormData(null);
 
     if (error) {
       toast({
@@ -218,18 +306,25 @@ export function VenueSettingsTab() {
         variant: 'destructive',
       });
     } else {
-      toast({ title: 'Configurações salvas!' });
+      toast({ title: isSettingSlug ? 'Slug definido com sucesso!' : 'Configurações salvas!' });
       clearVenueDraft();
       refetchVenues();
     }
   };
 
+  const handleSlugConfirm = () => {
+    setSlugConfirmOpen(false);
+    if (pendingFormData) {
+      saveVenueData(pendingFormData);
+    }
+  };
+
   const copyPortalLink = () => {
     if (!currentVenue?.slug) return;
-    const link = `${window.location.origin}/${currentVenue.slug}`;
+    const link = `agendacerta.online/v/${currentVenue.slug}`;
     navigator.clipboard.writeText(link);
     setLinkCopied(true);
-    toast({ title: 'Link copiado!' });
+    toast({ title: 'URL copiada!' });
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
@@ -294,52 +389,119 @@ export function VenueSettingsTab() {
                 control={venueForm.control}
                 name="slug"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Slug do Portal</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          readOnly 
-                          className="bg-muted"
-                          placeholder="minha-unidade"
-                        />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={copyPortalLink}
-                        disabled={!currentVenue?.slug}
-                        title="Copiar link do portal"
-                      >
-                        {linkCopied ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      {currentVenue?.slug && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          asChild
-                          title="Abrir portal"
-                        >
-                          <a
-                            href={`/v/${currentVenue.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
+                  <FormItem className="md:col-span-2">
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Slug do Portal</FormLabel>
+                      {!isPlanMax && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="secondary" className="text-xs cursor-help">Max</Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Faça upgrade para o plano Max para personalizar sua URL pública</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {hasExistingSlug && (
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                       )}
                     </div>
-                    <FormDescription>
-                      URL da sua página pública de agendamento
-                    </FormDescription>
+                    <div className="flex items-center gap-0">
+                      <span className="inline-flex items-center h-10 px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm whitespace-nowrap">
+                        agendacerta.online/v/
+                      </span>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={!canEditSlug}
+                          className={`rounded-l-none ${!canEditSlug ? 'bg-muted' : ''} ${
+                            canEditSlug && field.value && field.value.length >= 3
+                              ? slugAvailable === true ? 'border-emerald-500 focus-visible:ring-emerald-500' 
+                              : slugAvailable === false ? 'border-destructive focus-visible:ring-destructive' 
+                              : ''
+                              : ''
+                          }`}
+                          placeholder="minha-unidade"
+                          onChange={(e) => {
+                            const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                            field.onChange(val);
+                            if (canEditSlug) debouncedSlugCheck(val);
+                          }}
+                          maxLength={50}
+                        />
+                      </FormControl>
+                      {slugChecking && (
+                        <div className="ml-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                      {canEditSlug && !slugChecking && field.value && field.value.length >= 3 && slugAvailable === true && (
+                        <div className="ml-2">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        </div>
+                      )}
+                      {canEditSlug && !slugChecking && slugAvailable === false && (
+                        <div className="ml-2">
+                          <X className="h-4 w-4 text-destructive" />
+                        </div>
+                      )}
+                      {hasExistingSlug && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="ml-2 shrink-0"
+                            onClick={copyPortalLink}
+                            title="Copiar URL completa"
+                          >
+                            {linkCopied ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0"
+                            asChild
+                            title="Abrir página pública"
+                          >
+                            <a
+                              href={`/v/${currentVenue?.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {!isPlanMax && (
+                      <FormDescription className="text-muted-foreground">
+                        Disponível apenas no plano Max
+                      </FormDescription>
+                    )}
+                    {canEditSlug && (
+                      <FormDescription className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Atenção: O slug pode ser definido apenas uma vez e não poderá ser alterado
+                      </FormDescription>
+                    )}
+                    {hasExistingSlug && (
+                      <FormDescription className="text-muted-foreground">
+                        O slug foi definido e não pode ser alterado
+                      </FormDescription>
+                    )}
+                    {canEditSlug && !slugChecking && slugAvailable === false && (
+                      <p className="text-sm text-destructive">Este slug já está em uso</p>
+                    )}
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -634,6 +796,40 @@ export function VenueSettingsTab() {
           </Button>
         </div>
       </form>
+
+      {/* Slug Confirmation Dialog */}
+      <AlertDialog open={slugConfirmOpen} onOpenChange={(open) => {
+        setSlugConfirmOpen(open);
+        if (!open) setPendingFormData(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirmar Slug Permanente
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Você está definindo o slug como:</p>
+                <p className="font-mono text-sm bg-muted px-3 py-2 rounded-md">
+                  agendacerta.online/v/{pendingFormData?.slug}
+                </p>
+                <p className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+                  <AlertTriangle className="h-4 w-4" />
+                  Esta ação é permanente e não pode ser desfeita.
+                </p>
+                <p>O slug não poderá ser alterado no futuro. Tem certeza que deseja continuar?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSlugConfirm}>
+              Confirmar e Salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }

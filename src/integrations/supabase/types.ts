@@ -1299,6 +1299,7 @@ export type Database = {
           segment: Database["public"]["Enums"]["venue_segment"] | null
           slot_interval_minutes: number | null
           slug: string | null
+          slug_set_at: string | null
           status: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at: string | null
           subscription_status: string | null
@@ -1333,6 +1334,7 @@ export type Database = {
           segment?: Database["public"]["Enums"]["venue_segment"] | null
           slot_interval_minutes?: number | null
           slug?: string | null
+          slug_set_at?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
@@ -1367,6 +1369,7 @@ export type Database = {
           segment?: Database["public"]["Enums"]["venue_segment"] | null
           slot_interval_minutes?: number | null
           slug?: string | null
+          slug_set_at?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
@@ -1602,6 +1605,7 @@ export type Database = {
               segment: Database["public"]["Enums"]["venue_segment"] | null
               slot_interval_minutes: number | null
               slug: string | null
+              slug_set_at: string | null
               status: Database["public"]["Enums"]["subscription_status"] | null
               subscription_ends_at: string | null
               subscription_status: string | null
@@ -1651,6 +1655,7 @@ export type Database = {
               segment: Database["public"]["Enums"]["venue_segment"] | null
               slot_interval_minutes: number | null
               slug: string | null
+              slug_set_at: string | null
               status: Database["public"]["Enums"]["subscription_status"] | null
               subscription_ends_at: string | null
               subscription_status: string | null
