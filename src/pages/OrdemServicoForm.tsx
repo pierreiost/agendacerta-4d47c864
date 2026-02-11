@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,6 +38,7 @@ import { useServiceOrderPdf } from "@/hooks/useServiceOrderPdf";
 import { useFormPersist } from "@/hooks/useFormPersist";
 import { ServiceOrderItemForm } from "@/components/service-orders/ServiceOrderItemForm";
 import { cn } from "@/lib/utils";
+import { OSItemRow } from "@/components/service-orders/OSItemRow";
 
 const itemSchema = z.object({
   id: z.string().optional(),
@@ -81,6 +83,7 @@ export default function OrdemServicoForm() {
   const { generatePdf } = useServiceOrderPdf();
 
   const isEditing = !!id;
+  const isMobile = useIsMobile();
   const existingOrder = useMemo(() => orders.find((o) => o.id === id), [orders, id]);
 
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -247,6 +250,26 @@ export default function OrdemServicoForm() {
       currentItems.filter((_, i) => i !== index),
       { shouldDirty: true },
     );
+  };
+
+  const handleQuantityChange = (index: number, qty: number) => {
+    const currentItems = [...getValues("items")];
+    currentItems[index] = {
+      ...currentItems[index],
+      quantity: qty,
+      subtotal: qty * currentItems[index].unit_price,
+    };
+    setValue("items", currentItems, { shouldDirty: true });
+  };
+
+  const handlePriceChange = (index: number, price: number) => {
+    const currentItems = [...getValues("items")];
+    currentItems[index] = {
+      ...currentItems[index],
+      unit_price: price,
+      subtotal: currentItems[index].quantity * price,
+    };
+    setValue("items", currentItems, { shouldDirty: true });
   };
 
   const buildAddress = (data: FormData) => {
@@ -711,46 +734,54 @@ export default function OrdemServicoForm() {
                 )}
 
                 {watchedItems.length > 0 ? (
-                  <div className="overflow-x-auto -mx-4 md:mx-0">
-                    <div className="min-w-[400px] px-4 md:px-0">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Descrição</TableHead>
-                            {watchedOrderType === "complete" && <TableHead>Código</TableHead>}
-                            <TableHead className="text-center w-[60px]">Qtd</TableHead>
-                            <TableHead className="text-right">V. Unit.</TableHead>
-                            <TableHead className="text-right">Subtotal</TableHead>
-                            <TableHead className="w-[40px]"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {watchedItems.map((item, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="max-w-[150px] truncate">{item.description}</TableCell>
-                              {watchedOrderType === "complete" && <TableCell>{item.service_code || "-"}</TableCell>}
-                              <TableCell className="text-center">{item.quantity}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
-                              <TableCell className="text-right font-medium">{formatCurrency(item.subtotal)}</TableCell>
-                              <TableCell>
-                                {!isFinalized() && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleRemoveItem(index)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                  isMobile ? (
+                    <div className="space-y-2">
+                      {watchedItems.map((item, index) => (
+                        <OSItemRow
+                          key={index}
+                          item={item}
+                          index={index}
+                          showCode={watchedOrderType === "complete"}
+                          readOnly={isFinalized()}
+                          onQuantityChange={handleQuantityChange}
+                          onPriceChange={handlePriceChange}
+                          onRemove={handleRemoveItem}
+                          isMobile
+                        />
+                      ))}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="overflow-x-auto -mx-4 md:mx-0">
+                      <div className="min-w-[400px] px-4 md:px-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Descrição</TableHead>
+                              {watchedOrderType === "complete" && <TableHead>Código</TableHead>}
+                              <TableHead className="text-center">Qtd</TableHead>
+                              <TableHead className="text-right">V. Unit.</TableHead>
+                              <TableHead className="text-right">Subtotal</TableHead>
+                              <TableHead className="w-[40px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <tbody className="[&_tr:last-child]:border-0">
+                            {watchedItems.map((item, index) => (
+                              <OSItemRow
+                                key={index}
+                                item={item}
+                                index={index}
+                                showCode={watchedOrderType === "complete"}
+                                readOnly={isFinalized()}
+                                onQuantityChange={handleQuantityChange}
+                                onPriceChange={handlePriceChange}
+                                onRemove={handleRemoveItem}
+                              />
+                            ))}
+                          </tbody>
+                        </Table>
+                      </div>
+                    </div>
+                  )
                 ) : (
                   !showAddItemForm && (
                     <p className="text-sm text-muted-foreground text-center py-4">Nenhum item adicionado.</p>
