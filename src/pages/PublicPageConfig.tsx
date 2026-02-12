@@ -55,6 +55,7 @@ export default function PublicPageConfig() {
   const [publicLogoUrl, setPublicLogoUrl] = useState<string>('');
   const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [publicPageEnabled, setPublicPageEnabled] = useState(false);
   const hasLoadedFromDbRef = useRef(false);
   
   const { activeTab, onTabChange } = useTabPersist({ key: 'public_page_config', defaultValue: 'branding' });
@@ -88,7 +89,7 @@ export default function PublicPageConfig() {
         // No draft, load from database
         const { data } = await supabase
           .from('venues')
-          .select('public_page_sections, primary_color, logo_url')
+          .select('public_page_sections, primary_color, logo_url, public_page_enabled')
           .eq('id', currentVenue.id)
           .single();
         
@@ -101,6 +102,7 @@ export default function PublicPageConfig() {
         if (data?.logo_url) {
           setPublicLogoUrl(data.logo_url);
         }
+        setPublicPageEnabled(!!data?.public_page_enabled);
         
         setIsDataLoaded(true);
       };
@@ -118,6 +120,7 @@ export default function PublicPageConfig() {
         public_page_sections: JSON.parse(JSON.stringify(sections)),
         primary_color: primaryColor || null,
         logo_url: publicLogoUrl || null,
+        public_page_enabled: publicPageEnabled,
       })
       .eq('id', currentVenue.id);
 
@@ -250,6 +253,16 @@ export default function PublicPageConfig() {
             </p>
           </div>
           <div className="flex gap-2">
+            <div className="flex items-center gap-2 mr-2">
+              <Switch
+                id="public-page-toggle"
+                checked={publicPageEnabled}
+                onCheckedChange={setPublicPageEnabled}
+              />
+              <Label htmlFor="public-page-toggle" className="text-sm font-medium">
+                {publicPageEnabled ? 'Ativa' : 'Inativa'}
+              </Label>
+            </div>
             {currentVenue?.slug && (
               <Button variant="outline" size="sm" asChild>
                 <a href={`/v/${currentVenue.slug}`} target="_blank" rel="noopener noreferrer">
