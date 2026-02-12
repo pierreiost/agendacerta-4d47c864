@@ -3,10 +3,12 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useVenue } from '@/contexts/VenueContext';
 import { ServiceOrder, ServiceOrderItem } from '@/hooks/useServiceOrders';
+import { useOSCustomFields } from '@/hooks/useOSCustomFields';
 import { maskPhone } from '@/lib/masks';
 
 export function useServiceOrderPdf() {
   const { currentVenue } = useVenue();
+  const { activeFields } = useOSCustomFields();
 
   const generatePdf = useCallback(
     async (order: ServiceOrder, items: ServiceOrderItem[]) => {
@@ -257,22 +259,59 @@ export function useServiceOrderPdf() {
       doc.text('TOTAL:', totalsX, yPos);
       doc.text(formatCurrency(Number(order.total)), 196, yPos, { align: 'right' });
 
+      // ========== CUSTOM FIELDS (TERMOS E CONDIÇÕES) ==========
+      if (activeFields.length > 0) {
+        yPos += 15;
+        const pageHeight = doc.internal.pageSize.height;
+
+        // Section header
+        if (yPos + 20 > pageHeight - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0);
+        doc.text('TERMOS E CONDIÇÕES', 14, yPos);
+        yPos += 7;
+
+        doc.setFontSize(9);
+        for (const field of activeFields) {
+          doc.setFont('helvetica', field.is_bold ? 'bold' : 'normal');
+          doc.setTextColor(60);
+          const lines = doc.splitTextToSize(field.content, 180);
+          const blockHeight = lines.length * 4.5;
+
+          if (yPos + blockHeight > pageHeight - 20) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          doc.text(lines, 14, yPos);
+          yPos += blockHeight + 4;
+        }
+      }
+
       // ========== FOOTER ==========
-      const pageHeight = doc.internal.pageSize.height;
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(150);
-      doc.text(
-        `Documento gerado em ${new Date().toLocaleString('pt-BR')}`,
-        105,
-        pageHeight - 10,
-        { align: 'center' }
-      );
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(150);
+        doc.text(
+          `Documento gerado em ${new Date().toLocaleString('pt-BR')}`,
+          105,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+      }
 
       // Save the PDF
       doc.save(`OS-${order.order_number}.pdf`);
     },
-    [currentVenue]
+    [currentVenue, activeFields]
   );
 
   return { generatePdf };

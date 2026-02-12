@@ -290,7 +290,7 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
               />
 
               <div className="flex gap-2 pt-2">
-                <Button type="submit" className="flex-1">
+                <Button type="button" className="flex-1" onClick={laborForm.handleSubmit(handleAddLabor)}>
                   <Wrench className="h-4 w-4 mr-2" />
                   Adicionar Mão de Obra
                 </Button>
@@ -317,13 +317,13 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
                   ))}
                 </div>
               </div>
-            </form>
+            </div>
           </Form>
         </TabsContent>
 
         <TabsContent value="manual" className="mt-4">
           <Form {...manualForm}>
-            <form onSubmit={manualForm.handleSubmit(handleAddManualItem)} className="space-y-4">
+            <div className="space-y-4">
               <FormField
                 control={manualForm.control}
                 name="description"
@@ -384,11 +384,11 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
                 />
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="button" className="w-full" onClick={manualForm.handleSubmit(handleAddManualItem)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar Item Manual
               </Button>
-            </form>
+            </div>
           </Form>
         </TabsContent>
       </Tabs>
