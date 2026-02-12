@@ -1,69 +1,94 @@
 
 
-## Controle de Quantidade e Preco nos Itens da OS
+## Plano: Campos Personalizados OS + Correção do Bug de Item Manual
 
-### O que muda
+### Parte 1 - Correção do Bug (Prioridade)
 
-A tabela de itens no formulario de OS (tela de criar/editar) ganha controles interativos:
+**Problema identificado:** O componente `ServiceOrderItemForm` renderiza tags `<form>` internas (para item manual e mão de obra) dentro do `<form>` principal do `OrdemServicoForm.tsx`. Quando o usuario clica "Adicionar Item Manual", o submit do formulario interno borbulha para o formulario pai, causando o reload da pagina.
 
-- **Quantidade**: botoes +/- ao lado do numero, com edicao inline
-- **Preco unitario**: clicar no valor abre input editavel
-- **Remover item**: confirmacao via AlertDialog antes de excluir
-- **Recalculo automatico**: subtotal e totais recalculam em tempo real
+**Solucao:** No `ServiceOrderItemForm.tsx`, trocar as tags `<form>` internas por `<div>` e chamar `handleSubmit` manualmente via `onClick` nos botoes, ou adicionar `e.stopPropagation()` no submit. A abordagem mais limpa e trocar `<form onSubmit={...}>` por `<div>` e usar `onClick` nos botoes com validacao manual via `handleSubmit`.
 
-### Detalhes Tecnicos
+**Arquivo:** `src/components/service-orders/ServiceOrderItemForm.tsx`
+- Linha 263: `<form onSubmit={laborForm.handleSubmit(handleAddLabor)}>` -- trocar por `<div>` e mover o submit para o `onClick` do botao
+- Linha 326: `<form onSubmit={manualForm.handleSubmit(handleAddManualItem)}>` -- mesma abordagem
+- Garantir que os botoes tenham `type="button"` explicito
 
-**Novo componente: `src/components/service-orders/OSItemRow.tsx`**
+---
 
-Componente que renderiza uma linha da tabela de itens com:
+### Parte 2 - Campos Personalizados OS
 
-- Controle de quantidade com botoes `-` e `+` (min 1)
-  - Botao `-` quando qtd=1: abre AlertDialog de confirmacao de remocao
-  - Input numerico editavel no centro (clique transforma em input, Enter/blur salva, ESC cancela)
-  - Mobile: botoes com 44px de altura para facilitar toque
-- Preco unitario editavel inline
-  - Clique no valor abre input editavel com formato monetario
-  - Validacao: valor > 0, max 2 decimais
-  - Enter/blur salva, ESC cancela
-  - Badge discreto quando preco foi alterado do valor original do catalogo
-- Botao lixeira com AlertDialog de confirmacao
-  - Titulo: "Remover Item"
-  - Texto: "Tem certeza que deseja remover [Nome] da ordem de serviço?"
-  - Botoes: Cancelar / Sim, Remover
-- Recalculo de subtotal (quantidade x preco_unitario) automatico
+#### Banco de Dados
 
-**Arquivo editado: `src/pages/OrdemServicoForm.tsx`**
+Criar tabela `os_custom_fields` com a seguinte estrutura:
 
-- Substituir as linhas da tabela de itens (linhas 728-748) pelo novo componente `OSItemRow`
-- Adicionar funcoes `handleQuantityChange(index, qty)` e `handlePriceChange(index, price)` que atualizam o array de items no form via `setValue`
-- Manter `handleRemoveItem(index)` existente mas agora chamado pelo componente filho apos confirmacao
-- Layout mobile: em telas pequenas, renderizar como cards verticais em vez de tabela
-
-**Estrutura do layout**
-
-Desktop (tabela):
 ```text
-| Descricao    | Codigo | - [2] + | R$ 150,00 | R$ 300,00 | [lixeira] |
+os_custom_fields
+  id           uuid PK default gen_random_uuid()
+  venue_id     uuid FK -> venues(id) ON DELETE CASCADE
+  display_order integer (1 a 5)
+  content      text NOT NULL
+  is_active    boolean default true
+  is_bold      boolean default false
+  created_at   timestamptz default now()
+  updated_at   timestamptz default now()
+
+  UNIQUE(venue_id, display_order)
 ```
 
-Mobile (card):
-```text
-+------------------------------------------+
-| Instalacao Split               [lixeira] |
-| - [2] +    R$ 150,00    Sub: R$ 300,00   |
-+------------------------------------------+
-```
+- RLS: Apenas membros autenticados da venue podem ler/editar
+- Maximo 5 registros por venue (constraint via trigger ou validacao no app)
+- Limite de 2000 caracteres por campo
 
-### Componentes reutilizados
+#### Interface de Configuracao
 
-- `AlertDialog` do shadcn/ui para confirmacao de remocao
-- `Button` com variant outline e size icon para +/-
-- `Input` para edicao inline de quantidade e preco
-- Icons: `Plus`, `Minus`, `Trash2` do lucide-react
+**Arquivo novo:** `src/components/settings/OSCustomFieldsTab.tsx`
 
-### Observacoes
+Nova aba nas Configuracoes chamada "Campos OS" com icone `FileText`:
+- Lista de ate 5 campos com:
+  - Toggle ativo/inativo (Switch)
+  - Textarea para conteudo (max 2000 chars, contador de caracteres)
+  - Checkbox "Negrito" para formatacao
+  - Ordem fixa de 1 a 5 (sem drag-and-drop, simplicidade)
+- Botao "Adicionar Campo" (visivel ate ter 5 campos)
+- Botao "Salvar" com dirty state (desabilitado se nao houver mudancas)
+- Preview em tempo real de como ficara no PDF
 
-- O componente respeita o estado `isFinalized()` - quando a OS esta finalizada, nenhum controle de edicao aparece
-- Nao sera instalada nenhuma dependencia nova (sem react-number-format, formatacao manual com Intl)
-- Preparacao para estoque futuro: prop `maxQuantity` opcional no componente (nao utilizada agora)
+**Arquivo editado:** `src/pages/Configuracoes.tsx`
+- Adicionar nova aba "Campos OS" no TabsList
+- Adicionar TabsContent correspondente
+
+#### Hook de Dados
+
+**Arquivo novo:** `src/hooks/useOSCustomFields.ts`
+- Query para buscar campos da venue atual
+- Mutations para criar, atualizar e deletar campos
+- Funcao para buscar apenas campos ativos (para uso no PDF)
+
+#### Integracao com PDF
+
+**Arquivo editado:** `src/hooks/useServiceOrderPdf.ts`
+
+Adicionar secao "TERMOS E CONDICOES" apos o bloco de TOTAL:
+- Buscar campos ativos ordenados por `display_order`
+- Para cada campo ativo:
+  - Renderizar com `doc.setFont('helvetica', campo.is_bold ? 'bold' : 'normal')`
+  - Usar `doc.splitTextToSize()` para quebra de linha automatica
+- Gerenciamento de pagina:
+  - Antes de renderizar cada campo, verificar se `yPos + alturaNecessaria > pageHeight - 20`
+  - Se necessario, chamar `doc.addPage()` e resetar `yPos`
+- Mover o footer (data de geracao) para apos os campos personalizados
+
+**Arquivo editado:** `src/pages/OrdemServicoForm.tsx`
+- Passar os campos personalizados para o `generatePdf` (ou buscar dentro do hook)
+
+#### Resumo dos Arquivos
+
+| Arquivo | Acao |
+|---|---|
+| `src/components/service-orders/ServiceOrderItemForm.tsx` | Corrigir bug de forms aninhados |
+| `src/components/settings/OSCustomFieldsTab.tsx` | Criar (nova aba de config) |
+| `src/hooks/useOSCustomFields.ts` | Criar (hook de dados) |
+| `src/pages/Configuracoes.tsx` | Editar (adicionar aba) |
+| `src/hooks/useServiceOrderPdf.ts` | Editar (renderizar campos no PDF) |
+| Migration SQL | Criar tabela `os_custom_fields` + RLS |
 
