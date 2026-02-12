@@ -1,94 +1,50 @@
 
+## Correcao: Dashboard por Segmento + Ativacao da Pagina Publica
 
-## Plano: Campos Personalizados OS + Correção do Bug de Item Manual
+### Problema 1 - Dashboard nao respeita o segmento
 
-### Parte 1 - Correção do Bug (Prioridade)
+**Causa raiz:** O onboarding cria a venue via RPC `create_venue_with_admin` SEM o campo `segment`. A venue e criada com o valor padrao `segment = 'sports'` e o trigger `set_dashboard_mode_trigger` (que so dispara no INSERT) define `dashboard_mode = 'bookings'`. Em seguida, o `Onboarding.tsx` faz um UPDATE separado para setar o `segment`, mas o trigger NAO dispara no UPDATE -- apenas no INSERT.
 
-**Problema identificado:** O componente `ServiceOrderItemForm` renderiza tags `<form>` internas (para item manual e mão de obra) dentro do `<form>` principal do `OrdemServicoForm.tsx`. Quando o usuario clica "Adicionar Item Manual", o submit do formulario interno borbulha para o formulario pai, causando o reload da pagina.
+**Solucao:** Duas acoes complementares:
 
-**Solucao:** No `ServiceOrderItemForm.tsx`, trocar as tags `<form>` internas por `<div>` e chamar `handleSubmit` manualmente via `onClick` nos botoes, ou adicionar `e.stopPropagation()` no submit. A abordagem mais limpa e trocar `<form onSubmit={...}>` por `<div>` e usar `onClick` nos botoes com validacao manual via `handleSubmit`.
+1. **Alterar o trigger** para disparar tambem em UPDATE (quando o segment muda):
+```text
+DROP TRIGGER set_dashboard_mode_trigger ON venues;
+CREATE TRIGGER set_dashboard_mode_trigger
+  BEFORE INSERT OR UPDATE OF segment ON venues
+  FOR EACH ROW
+  EXECUTE FUNCTION set_default_dashboard_mode();
+```
 
-**Arquivo:** `src/components/service-orders/ServiceOrderItemForm.tsx`
-- Linha 263: `<form onSubmit={laborForm.handleSubmit(handleAddLabor)}>` -- trocar por `<div>` e mover o submit para o `onClick` do botao
-- Linha 326: `<form onSubmit={manualForm.handleSubmit(handleAddManualItem)}>` -- mesma abordagem
-- Garantir que os botoes tenham `type="button"` explicito
+2. **Incluir o segment no RPC** `create_venue_with_admin` para que o INSERT ja tenha o segmento correto e o trigger funcione desde o primeiro momento. Alternativamente, passar o segment junto no UPDATE do onboarding e confiar no trigger corrigido.
+
+A abordagem mais segura e a combinacao: corrigir o trigger para INSERT OR UPDATE e tambem passar o segment junto no UPDATE (que ja faz). Assim, ao atualizar o segment, o trigger automaticamente ajusta o dashboard_mode.
+
+3. **Corrigir os venues existentes** que ja foram criados com dashboard errado via query de atualizacao.
 
 ---
 
-### Parte 2 - Campos Personalizados OS
+### Problema 2 - Pagina publica nao ativa
 
-#### Banco de Dados
+**Causa raiz:** A coluna `public_page_enabled` na tabela `venues` tem default `false`. A RPC `get_public_venue_by_slug` verifica `WHERE v.public_page_enabled = TRUE` antes de retornar dados. Nenhum codigo no frontend (nem na configuracao da pagina publica, nem nas configuracoes da venue) seta esse campo para `true`.
 
-Criar tabela `os_custom_fields` com a seguinte estrutura:
+**Solucao:**
 
-```text
-os_custom_fields
-  id           uuid PK default gen_random_uuid()
-  venue_id     uuid FK -> venues(id) ON DELETE CASCADE
-  display_order integer (1 a 5)
-  content      text NOT NULL
-  is_active    boolean default true
-  is_bold      boolean default false
-  created_at   timestamptz default now()
-  updated_at   timestamptz default now()
+1. **Ativacao automatica no `PublicPageConfig.tsx`:** Quando o usuario salva as configuracoes da pagina publica, incluir `public_page_enabled: true` no UPDATE, desde que a venue tenha `plan_type = 'max'` e um `slug` definido.
 
-  UNIQUE(venue_id, display_order)
-```
+2. **Toggle visivel na UI:** Adicionar um Switch "Pagina ativa" no topo da pagina de configuracoes publicas, para que o usuario possa desativar/reativar manualmente.
 
-- RLS: Apenas membros autenticados da venue podem ler/editar
-- Maximo 5 registros por venue (constraint via trigger ou validacao no app)
-- Limite de 2000 caracteres por campo
+---
 
-#### Interface de Configuracao
-
-**Arquivo novo:** `src/components/settings/OSCustomFieldsTab.tsx`
-
-Nova aba nas Configuracoes chamada "Campos OS" com icone `FileText`:
-- Lista de ate 5 campos com:
-  - Toggle ativo/inativo (Switch)
-  - Textarea para conteudo (max 2000 chars, contador de caracteres)
-  - Checkbox "Negrito" para formatacao
-  - Ordem fixa de 1 a 5 (sem drag-and-drop, simplicidade)
-- Botao "Adicionar Campo" (visivel ate ter 5 campos)
-- Botao "Salvar" com dirty state (desabilitado se nao houver mudancas)
-- Preview em tempo real de como ficara no PDF
-
-**Arquivo editado:** `src/pages/Configuracoes.tsx`
-- Adicionar nova aba "Campos OS" no TabsList
-- Adicionar TabsContent correspondente
-
-#### Hook de Dados
-
-**Arquivo novo:** `src/hooks/useOSCustomFields.ts`
-- Query para buscar campos da venue atual
-- Mutations para criar, atualizar e deletar campos
-- Funcao para buscar apenas campos ativos (para uso no PDF)
-
-#### Integracao com PDF
-
-**Arquivo editado:** `src/hooks/useServiceOrderPdf.ts`
-
-Adicionar secao "TERMOS E CONDICOES" apos o bloco de TOTAL:
-- Buscar campos ativos ordenados por `display_order`
-- Para cada campo ativo:
-  - Renderizar com `doc.setFont('helvetica', campo.is_bold ? 'bold' : 'normal')`
-  - Usar `doc.splitTextToSize()` para quebra de linha automatica
-- Gerenciamento de pagina:
-  - Antes de renderizar cada campo, verificar se `yPos + alturaNecessaria > pageHeight - 20`
-  - Se necessario, chamar `doc.addPage()` e resetar `yPos`
-- Mover o footer (data de geracao) para apos os campos personalizados
-
-**Arquivo editado:** `src/pages/OrdemServicoForm.tsx`
-- Passar os campos personalizados para o `generatePdf` (ou buscar dentro do hook)
-
-#### Resumo dos Arquivos
+### Resumo dos Arquivos
 
 | Arquivo | Acao |
 |---|---|
-| `src/components/service-orders/ServiceOrderItemForm.tsx` | Corrigir bug de forms aninhados |
-| `src/components/settings/OSCustomFieldsTab.tsx` | Criar (nova aba de config) |
-| `src/hooks/useOSCustomFields.ts` | Criar (hook de dados) |
-| `src/pages/Configuracoes.tsx` | Editar (adicionar aba) |
-| `src/hooks/useServiceOrderPdf.ts` | Editar (renderizar campos no PDF) |
-| Migration SQL | Criar tabela `os_custom_fields` + RLS |
+| Migration SQL | Alterar trigger para INSERT OR UPDATE OF segment + corrigir venues existentes |
+| `src/pages/PublicPageConfig.tsx` | Incluir `public_page_enabled: true` no handleSave + adicionar toggle de ativacao |
 
+### Observacoes
+
+- A correcao do trigger e retrocompativel: venues que ja tem `dashboard_mode` definido manualmente nao serao afetados (a funcao so altera quando o segment muda E o dashboard_mode nao foi alterado manualmente)
+- A ativacao da pagina publica respeita o plano: so permite ativar se `plan_type = 'max'`
+- Venues existentes com segmento errado serao corrigidos pela migration
