@@ -260,7 +260,7 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
 
         <TabsContent value="labor" className="mt-4">
           <Form {...laborForm}>
-            <form onSubmit={laborForm.handleSubmit(handleAddLabor)} className="space-y-4">
+            <div className="space-y-4">
               <FormField
                 control={laborForm.control}
                 name="description"
