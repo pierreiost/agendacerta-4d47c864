@@ -551,6 +551,47 @@ export type Database = {
           },
         ]
       }
+      os_custom_fields: {
+        Row: {
+          content: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          is_bold: boolean
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          display_order: number
+          id?: string
+          is_active?: boolean
+          is_bold?: boolean
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_bold?: boolean
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_custom_fields_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
