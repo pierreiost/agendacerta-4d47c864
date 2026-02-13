@@ -1,60 +1,105 @@
 
 
-# Correcoes: Status de Agendamento, Erro no Filtro e Horarios Passados
+# Comanda Beauty/Health + Bloqueio de Horarios Retroativos
 
-## 1. Agendamentos pela agenda devem vir CONFIRMED
+## Visao Geral
 
-**Problema**: O `ServiceBookingWizard` (usado na agenda interna) chama a mesma funcao SQL `create_service_booking` que o site publico. Essa funcao sempre insere com `status = 'PENDING'` (linha 305 da migracao).
-
-**Solucao**: Adicionar um parametro opcional `p_status` na funcao `create_service_booking` com default `'PENDING'`. O `ServiceBookingWizard.tsx` passara `p_status: 'CONFIRMED'` na chamada RPC, enquanto o `ServiceBookingWidget.tsx` (site publico) continuara sem passar o parametro, mantendo `'PENDING'`.
-
-### Mudancas:
-- **Migracao SQL**: `ALTER` a funcao `create_service_booking` adicionando `p_status text DEFAULT 'PENDING'` e usando esse parametro no INSERT em vez do valor fixo.
-- **`src/components/agenda/ServiceBookingWizard.tsx`**: Adicionar `p_status: 'CONFIRMED'` na chamada `supabase.rpc('create_service_booking', {...})`.
+Duas frentes de trabalho: (1) bloquear agendamentos em horarios passados na agenda interna, e (2) construir a comanda completa para os segmentos Health e Beauty, substituindo o stub atual do `BeautyBookingSheet`.
 
 ---
 
-## 2. Erro "Cannot read properties of undefined (reading 'dot')" ao filtrar pendentes
+## 1. Bloqueio de Datas/Horarios Retroativos (Agenda Interna)
 
-**Problema**: Quando reservas de servico aparecem na agenda, o `booking.space_id` pode ser um placeholder ou nao existir no array `allSpaces`. O `findIndex` retorna `-1`, e `-1 % 5 = -1` em JavaScript, resultando em `SPACE_COLORS[-1]` que e `undefined`.
+### Problema
+O `ServiceBookingWizard` ja bloqueia datas passadas no calendario (linha 546), mas os horarios exibidos no Step 3 vem da funcao `useProfessionalAvailability` e nao filtram slots que ja passaram no dia de hoje.
 
-**Solucao**: Corrigir a funcao `getSpaceColor` para tratar indices negativos.
+### Solucao
+Filtrar os slots no frontend antes de exibi-los. No `useMemo` de `availableSlots` (linhas 202-206 do `ServiceBookingWizard.tsx`), adicionar logica para remover slots cujo horario ja passou quando a data selecionada for hoje.
 
-### Mudanca:
-- **`src/components/agenda/AgendaSidebar.tsx`** (linha 45-46): Alterar de:
-  ```
-  return SPACE_COLORS[index % SPACE_COLORS.length];
-  ```
-  para:
-  ```
-  const safeIndex = index < 0 ? 0 : index % SPACE_COLORS.length;
-  return SPACE_COLORS[safeIndex];
-  ```
-
-Isso corrige o crash em `DayView.tsx`, `WeekViewNew.tsx` e `MonthView.tsx` que todos usam essa funcao.
+### Arquivo: `src/components/agenda/ServiceBookingWizard.tsx`
+- No `availableSlots` useMemo, apos obter `prof?.available_slots`, filtrar com:
+  - Se `selectedDate` for hoje, remover slots onde `new Date(slot) <= new Date()`
+  - Caso contrario, manter todos os slots
 
 ---
 
-## 3. Site publico mostrando horarios passados no dia de hoje
+## 2. Comanda Unificada Beauty/Health
 
-**Problema**: A funcao SQL `get_professional_availability_public` gera slots a partir das 8h do dia selecionado, sem verificar se o horario ja passou quando o dia e hoje.
+### Problema
+O `BeautyBookingSheet` e atualmente um stub de debug (apenas mostra ID, Status e Data). Precisa se tornar uma comanda funcional semelhante ao `BookingOrderSheet` (esportes), mas adaptada para servicos.
 
-**Solucao**: Adicionar uma condicao na query SQL para filtrar slots que ja passaram. Quando `p_date = CURRENT_DATE`, apenas slots futuros (com margem de seguranca) serao retornados.
+### Estrutura da Comanda
 
-### Mudanca:
-- **Migracao SQL**: Atualizar a funcao `get_professional_availability_public` adicionando um filtro:
-  ```sql
-  AND ts.slot_time > (NOW() AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'America/Sao_Paulo')
-  ```
-  Isso garante que, para o dia de hoje, apenas horarios que ainda nao passaram sejam exibidos.
+A comanda tera as seguintes secoes:
+
+```text
++----------------------------------+
+| Detalhes do Agendamento   [Status]|
++----------------------------------+
+| CLIENTE                          |
+| Nome / Telefone / Email          |
++----------------------------------+
+| AGENDAMENTO                     |
+| Data / Horario / Duracao         |
+| Profissional                     |
++----------------------------------+
+| SERVICOS                        |
+| Servico 1 ........... R$ XX,XX   |
+| Servico 2 ........... R$ XX,XX   |
+| Subtotal Servicos     R$ XX,XX   |
++----------------------------------+
+| PRODUTOS (consumo adicional)     |
+| [+ Produto] [+ Avulso]          |
+| Produto 1 ........... R$ XX,XX   |
+| Subtotal Produtos     R$ XX,XX   |
++----------------------------------+
+| TOTAL              R$ XXX,XX     |
++----------------------------------+
+| [Fechar Comanda]                 |
+| [Confirmar] [Cancelar]           |
++----------------------------------+
+```
+
+### Dados utilizados
+- **Servicos agendados**: hook `useBookingServices(bookingId)` - ja existe e retorna servicos com profissional, preco e duracao
+- **Produtos consumidos**: hook `useOrderItems(bookingId)` - ja existe
+- **Status e acoes**: hook `useBookings()` - `updateBooking` para confirmar/cancelar
+- **Checkout/Pagamento**: componente `CheckoutDialog` - ja existe, sera reutilizado
+
+### Arquivo: `src/components/bookings/BeautyBookingSheet.tsx`
+Reescrever completamente, seguindo a estrutura do `BookingOrderSheet` como referencia, com as seguintes diferencas:
+
+1. **Secao "Servicos"** em vez de "Espaco": Listar servicos do `useBookingServices`, mostrando titulo, profissional e preco individual
+2. **Secao "Produtos"** (identica ao BookingOrderSheet): Permitir adicionar produtos e itens avulsos
+3. **Total**: `servicesTotal + itemsTotal` (em vez de `spaceTotal + itemsTotal`)
+4. **Acoes**:
+   - "Fechar Comanda" abre o `CheckoutDialog` (reutilizado, adaptando para passar `servicesTotal` no lugar de `spaceTotal`)
+   - "Confirmar" (visivel quando status = PENDING)
+   - "Cancelar" com dialogo de confirmacao
+5. **Estado visual**: Badges de status identicos ao BookingOrderSheet
+
+### Componentes reutilizados (sem alteracao)
+- `CheckoutDialog` - Precisa de pequeno ajuste: aceitar `servicesTotal` como alternativa a `spaceTotal`, ou simplesmente receber ambos somados no `grandTotal`
+- `AddProductDialog`
+- `AddCustomItemDialog`
+- `OrderItemsList`
+
+### Ajuste no CheckoutDialog
+O `CheckoutDialog` atualmente exibe "Espaco (nome)" no resumo. Para Beauty/Health, precisa exibir "Servicos (X itens)" no lugar. Solucao: adicionar prop opcional `summaryLabel` para customizar o rotulo da primeira linha do resumo.
 
 ---
 
 ## Resumo Tecnico
 
-| Item | Arquivo | Tipo de Mudanca |
-|------|---------|-----------------|
-| Status CONFIRMED | Migracao SQL + ServiceBookingWizard.tsx | SQL + Frontend |
-| Erro getSpaceColor | AgendaSidebar.tsx | Frontend |
-| Horarios passados | Migracao SQL | SQL |
+| Item | Arquivo | Tipo |
+|------|---------|------|
+| Filtro horarios passados (agenda interna) | ServiceBookingWizard.tsx | Frontend |
+| Comanda Beauty/Health | BeautyBookingSheet.tsx | Frontend (reescrita) |
+| Ajuste rotulo resumo | CheckoutDialog.tsx | Frontend (prop opcional) |
 
+## Beneficios
+
+- Unifica o fluxo de finalizacao para Beauty e Health
+- Reutiliza toda a infraestrutura de pagamento ja existente (CheckoutDialog, usePayments)
+- Profissional pode revisar servicos prestados antes de fechar a comanda
+- Horarios retroativos sao bloqueados tanto no site publico (ja feito via SQL) quanto na agenda interna (novo filtro frontend)
