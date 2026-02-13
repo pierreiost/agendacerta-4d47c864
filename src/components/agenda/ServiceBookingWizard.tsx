@@ -37,7 +37,7 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { useServices } from '@/hooks/useServices';
 import { useProfessionals, useProfessionalAvailability } from '@/hooks/useProfessionals';
 import { useVenue } from '@/contexts/VenueContext';
-import { useFormPersist } from '@/hooks/useFormPersist';
+// useFormPersist removed — it caused infinite re-render loops with array fields
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -119,14 +119,7 @@ export function ServiceBookingWizard({
 
   const { watch, setValue, reset, handleSubmit, formState: { errors } } = form;
 
-  // Form persistence
-  const { clearDraft } = useFormPersist({
-    form,
-    key: `service_booking_wizard_${currentVenue?.id || 'default'}`,
-    exclude: ['customerId'],
-    debounceMs: 300,
-    showRecoveryToast: open,
-  });
+  // useFormPersist removed to prevent infinite re-render loops with array fields
 
   const customerName = watch('customerName');
   const serviceIds = watch('serviceIds');
@@ -157,13 +150,12 @@ export function ServiceBookingWizard({
           startTime: '',
           notes: '',
         });
-        clearDraft();
       }
       initialLoadRef.current = false;
     } else {
       initialLoadRef.current = true;
     }
-  }, [open, defaultDate, reset, clearDraft]);
+  }, [open, defaultDate, reset]);
 
   // No effects for cascading resets - handled imperatively in handlers below
 
@@ -226,21 +218,19 @@ export function ServiceBookingWizard({
   };
 
   const handleServiceToggle = (serviceId: string) => {
-    const current = serviceIds;
-    if (current.includes(serviceId)) {
-      setValue('serviceIds', current.filter(id => id !== serviceId));
-    } else {
-      setValue('serviceIds', [...current, serviceId]);
-    }
-    // Reset dependent fields when services change
-    setValue('professionalId', '');
-    setValue('startTime', '');
+    const current = form.getValues('serviceIds');
+    const updated = current.includes(serviceId)
+      ? current.filter((id: string) => id !== serviceId)
+      : [...current, serviceId];
+    // Batch all updates with flags to prevent validation cascades
+    form.setValue('serviceIds', updated, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+    form.setValue('professionalId', '', { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+    form.setValue('startTime', '', { shouldValidate: false, shouldDirty: false, shouldTouch: false });
   };
 
   const handleProfessionalSelect = (profId: string) => {
-    setValue('professionalId', profId);
-    // Reset time when professional changes
-    setValue('startTime', '');
+    form.setValue('professionalId', profId, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+    form.setValue('startTime', '', { shouldValidate: false, shouldDirty: false, shouldTouch: false });
   };
 
   const canProceedToStep2 = customerName && customerName.trim().length > 0;
@@ -266,7 +256,7 @@ export function ServiceBookingWizard({
       if (error) throw error;
 
       toast({ title: 'Agendamento criado com sucesso!' });
-      clearDraft();
+      // Draft clearing removed (useFormPersist disabled)
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       onOpenChange(false);
     } catch (error: any) {
@@ -477,12 +467,18 @@ export function ServiceBookingWizard({
                                     ? 'border-primary shadow-sm bg-primary/5'
                                     : 'border-transparent hover:border-muted'
                                 )}
-                                onClick={() => handleServiceToggle(service.id)}
+                                onClick={(e) => {
+                                  // Prevent double-fire when clicking checkbox directly
+                                  if ((e.target as HTMLElement).closest('button[role="checkbox"]')) return;
+                                  handleServiceToggle(service.id);
+                                }}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <Checkbox
                                       checked={isSelected}
+                                      tabIndex={-1}
+                                      onClick={(e) => e.stopPropagation()}
                                       onCheckedChange={() => handleServiceToggle(service.id)}
                                     />
                                     <div>
