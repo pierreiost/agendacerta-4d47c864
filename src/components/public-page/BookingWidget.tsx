@@ -269,7 +269,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
       const { data, error } = await supabase.rpc('create_service_inquiry', {
         p_venue_id: venue.id,
         p_customer_name: formData.customer_name,
-        p_customer_email: formData.customer_email,
+        p_customer_email: formData.customer_email || 'sem-email@agendamento.local',
         p_customer_phone: formData.customer_phone || null,
         p_problem_description: formData.problem_description || null,
         p_photo_urls: photoUrls,
@@ -299,7 +299,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
         p_venue_id: venue.id,
         p_space_id: selectedSpace.id,
         p_customer_name: formData.customer_name,
-        p_customer_email: formData.customer_email,
+        p_customer_email: formData.customer_email || 'sem-email@agendamento.local',
         p_customer_phone: formData.customer_phone || null,
         p_start_time: startDateTime.toISOString(),
         p_end_time: endDateTime.toISOString(),
