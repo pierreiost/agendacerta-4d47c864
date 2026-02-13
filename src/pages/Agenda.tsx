@@ -1,8 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useBookings, type Booking } from '@/hooks/useBookings';
+import { supabase } from '@/integrations/supabase/client';
 import { useSpaces } from '@/hooks/useSpaces';
 import { useVenue } from '@/contexts/VenueContext';
 import { AgendaHeader, ViewMode } from '@/components/agenda/AgendaHeader';
@@ -47,6 +49,7 @@ export default function Agenda() {
   const { spaces, isLoading: spacesLoading } = useSpaces();
   const { toast } = useToast();
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('agenda');
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Service-based segments (beauty, health, custom) don't require spaces
   const isServiceBasedSegment = currentVenue?.segment === 'beauty' || 
@@ -184,6 +187,47 @@ export default function Agenda() {
     setSelectedBooking(booking);
     setBookingSheetOpen(true);
   }, []);
+
+  // Deep link: open booking from query param or custom event
+  const openBookingById = useCallback((bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      setSelectedBooking(booking);
+      setBookingSheetOpen(true);
+    } else {
+      // Fetch single booking if not in current range
+      supabase
+        .from('bookings')
+        .select('*, space:spaces(*)')
+        .eq('id', bookingId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setSelectedBooking(data as Booking);
+            setBookingSheetOpen(true);
+          }
+        });
+    }
+  }, [bookings]);
+
+  // Handle ?openBooking= query param
+  useEffect(() => {
+    const openBookingId = searchParams.get('openBooking');
+    if (openBookingId) {
+      openBookingById(openBookingId);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, openBookingById, setSearchParams]);
+
+  // Handle custom event from NotificationBell (same-page navigation)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const bookingId = (e as CustomEvent).detail?.bookingId;
+      if (bookingId) openBookingById(bookingId);
+    };
+    window.addEventListener('open-booking', handler);
+    return () => window.removeEventListener('open-booking', handler);
+  }, [openBookingById]);
 
   const handleNewBooking = useCallback(() => {
     setDefaultSlot(null);
