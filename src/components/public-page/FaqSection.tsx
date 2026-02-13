@@ -18,7 +18,7 @@ export function FaqSection({ section }: FaqSectionProps) {
       {/* Section Title */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-1">
-          Perguntas Frequentes
+          {section.title || 'Perguntas Frequentes'}
         </h2>
         <div className="w-12 h-0.5 bg-primary rounded-full" />
       </div>

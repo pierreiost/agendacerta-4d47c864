@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2,
@@ -16,9 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  Calendar,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
-import { format, addDays, startOfDay, isToday } from 'date-fns';
+import { format, startOfDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -88,9 +89,8 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
   // Calendar mode state
   const [calendarStep, setCalendarStep] = useState<'space' | 'datetime' | 'info'>('space');
   const [selectedSpace, setSelectedSpace] = useState<PublicSpace | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(startOfDay(new Date()));
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [weekStart, setWeekStart] = useState<Date>(startOfDay(new Date()));
 
   const [formData, setFormData] = useState({
     customer_name: '',
@@ -112,9 +112,9 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
   });
 
   const { data: bookedSlots } = useQuery({
-    queryKey: ['booked-slots', venue?.id, selectedSpace?.id, format(selectedDate, 'yyyy-MM-dd')],
+    queryKey: ['booked-slots', venue?.id, selectedSpace?.id, selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''],
     queryFn: async () => {
-      if (!venue?.id || !selectedSpace?.id) return [];
+      if (!venue?.id || !selectedSpace?.id || !selectedDate) return [];
       const { data, error } = await supabase.rpc('get_space_bookings_for_date', {
         p_venue_id: venue.id,
         p_space_id: selectedSpace.id,
@@ -123,7 +123,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
       if (error) throw error;
       return (data || []) as BookedSlot[];
     },
-    enabled: !!venue?.id && !!selectedSpace?.id && venue.booking_mode === 'calendar',
+    enabled: !!venue?.id && !!selectedSpace?.id && !!selectedDate && venue.booking_mode === 'calendar',
   });
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
   }, []);
 
   const isSlotBooked = (slotStart: string) => {
-    if (!bookedSlots) return false;
+    if (!bookedSlots || !selectedDate) return false;
     const slotStartTime = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${slotStart}:00`);
     const slotEndTime = new Date(slotStartTime.getTime() + 60 * 60 * 1000);
     return bookedSlots.some(booking => {
@@ -144,7 +144,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
   };
 
   const isSlotPast = (slotStart: string) => {
-    if (!isToday(selectedDate)) return false;
+    if (!selectedDate || !isToday(selectedDate)) return false;
     const now = new Date();
     const [hours] = slotStart.split(':').map(Number);
     return hours <= now.getHours();
@@ -288,7 +288,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
 
   const createBooking = useMutation({
     mutationFn: async () => {
-      if (!venue?.id || !selectedSpace?.id) throw new Error('Dados incompletos');
+      if (!venue?.id || !selectedSpace?.id || !selectedDate) throw new Error('Dados incompletos');
       const timeRange = getBookingTimeRange();
       if (!timeRange) throw new Error('Selecione um horário');
 
@@ -335,7 +335,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
     setFormData({ customer_name: '', customer_email: '', customer_phone: '', problem_description: '', notes: '' });
   };
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekDays: Date[] = []; // no longer used
 
   // Success state
   if (submitted) {
@@ -372,7 +372,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
       <div className="p-6 pb-5 border-b bg-gradient-to-r from-primary/5 to-primary/10">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-primary/15">
-            <Calendar className="h-6 w-6 text-primary" />
+            <CalendarIcon className="h-6 w-6 text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-foreground">
@@ -472,46 +472,16 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                   <span className="text-sm font-medium">{selectedSpace.name}</span>
                 </div>
 
-                {/* Week navigation */}
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setWeekStart(addDays(weekStart, -7))}
-                    disabled={startOfDay(weekStart) <= startOfDay(new Date())}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm font-medium">
-                    {format(weekStart, "d MMM", { locale: ptBR })} - {format(addDays(weekStart, 6), "d MMM", { locale: ptBR })}
-                  </span>
-                  <Button variant="ghost" size="icon" onClick={() => setWeekStart(addDays(weekStart, 7))}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Day selector */}
-                <div className="grid grid-cols-7 gap-1">
-                  {weekDays.map((day) => {
-                    const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-                    const isPast = day < startOfDay(new Date());
-                    return (
-                      <button
-                        key={day.toISOString()}
-                        type="button"
-                        disabled={isPast}
-                        onClick={() => { setSelectedDate(day); setSelectedSlots([]); }}
-                        className={cn(
-                          "flex flex-col items-center p-2 rounded-lg text-xs",
-                          isSelected ? "bg-primary text-white" : "hover:bg-muted",
-                          isPast && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        <span className="uppercase text-[10px]">{format(day, 'EEE', { locale: ptBR })}</span>
-                        <span className="text-base font-semibold">{format(day, 'd')}</span>
-                      </button>
-                    );
-                  })}
+                {/* Monthly calendar */}
+                <div className="flex justify-center">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => { setSelectedDate(date); setSelectedSlots([]); }}
+                    disabled={{ before: new Date() }}
+                    locale={ptBR}
+                    className="rounded-md border pointer-events-auto"
+                  />
                 </div>
 
                 {/* Time slots */}
@@ -568,7 +538,7 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                 <div className="p-3 rounded-lg bg-muted/50 text-sm">
                   <p className="font-medium">{selectedSpace?.name}</p>
                   <p className="text-muted-foreground">
-                    {format(selectedDate, "d 'de' MMMM", { locale: ptBR })} • {getBookingTimeRange()?.start} às {getBookingTimeRange()?.end}
+                    {selectedDate ? format(selectedDate, "d 'de' MMMM", { locale: ptBR }) : ''} • {getBookingTimeRange()?.start} às {getBookingTimeRange()?.end}
                   </p>
                 </div>
 

@@ -31,7 +31,7 @@ export function HoursSection({ section }: HoursSectionProps) {
             <Clock className="h-6 w-6 text-primary" />
           </div>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Horários de Funcionamento
+            {section.title || 'Horários de Funcionamento'}
           </h2>
         </div>
 

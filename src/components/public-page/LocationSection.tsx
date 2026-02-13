@@ -112,7 +112,7 @@ export function LocationSection({ section }: LocationSectionProps) {
             <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 mb-4">
               <MapPin className="h-6 w-6 text-primary" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">Nossa Localização</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">{section.title || 'Nossa Localização'}</h2>
             {hasAddress && (
               <div className="text-muted-foreground">
                 {section.address_line1 && <p className="text-lg">{section.address_line1}</p>}

@@ -49,6 +49,11 @@ export function StatsSection({ section }: StatsSectionProps) {
   return (
     <section className="py-16 md:py-24 px-4 bg-gradient-to-br from-primary/5 via-background to-primary/5">
       <div className="mx-auto max-w-6xl">
+        {section.title && (
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
+            {section.title}
+          </h2>
+        )}
         <div
           className={cn(
             "grid gap-8 text-center",

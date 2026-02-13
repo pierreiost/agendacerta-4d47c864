@@ -19,6 +19,7 @@ export interface GalleryImage {
 
 export interface GallerySection {
   enabled: boolean;
+  title?: string;
   images: GalleryImage[];
 }
 
@@ -33,6 +34,7 @@ export interface Testimonial {
 
 export interface TestimonialsSection {
   enabled: boolean;
+  title?: string;
   items: Testimonial[];
 }
 
@@ -43,6 +45,7 @@ export interface CustomStat {
 
 export interface StatsSection {
   enabled: boolean;
+  title?: string;
   years_in_business: number | null;
   customers_served: number | null;
   bookings_completed: number | null;
@@ -57,11 +60,13 @@ export interface FaqItem {
 
 export interface FaqSection {
   enabled: boolean;
+  title?: string;
   items: FaqItem[];
 }
 
 export interface LocationSection {
   enabled: boolean;
+  title?: string;
   show_map: boolean;
   address_line1: string | null;
   address_line2: string | null;
@@ -86,6 +91,7 @@ export interface HoursSchedule {
 
 export interface HoursSection {
   enabled: boolean;
+  title?: string;
   schedule: HoursSchedule;
 }
 
