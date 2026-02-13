@@ -165,25 +165,7 @@ export function ServiceBookingWizard({
     }
   }, [open, defaultDate, reset, clearDraft]);
 
-  // Clear professional and time when services change
-  const prevServiceCountRef = useRef(serviceIds.length);
-  useEffect(() => {
-    // Only reset when user actually changes services (not on initial load/restore)
-    if (prevServiceCountRef.current !== serviceIds.length && prevServiceCountRef.current !== 0) {
-      setValue('professionalId', '', { shouldDirty: false });
-      setValue('startTime', '', { shouldDirty: false });
-    }
-    prevServiceCountRef.current = serviceIds.length;
-  }, [serviceIds.length, setValue]);
-
-  // Clear time when professional changes
-  const prevProfessionalRef = useRef(professionalId);
-  useEffect(() => {
-    if (prevProfessionalRef.current !== professionalId && prevProfessionalRef.current !== '') {
-      setValue('startTime', '', { shouldDirty: false });
-    }
-    prevProfessionalRef.current = professionalId;
-  }, [professionalId, setValue]);
+  // No effects for cascading resets - handled imperatively in handlers below
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers.slice(0, 10);
@@ -250,6 +232,15 @@ export function ServiceBookingWizard({
     } else {
       setValue('serviceIds', [...current, serviceId]);
     }
+    // Reset dependent fields when services change
+    setValue('professionalId', '');
+    setValue('startTime', '');
+  };
+
+  const handleProfessionalSelect = (profId: string) => {
+    setValue('professionalId', profId);
+    // Reset time when professional changes
+    setValue('startTime', '');
   };
 
   const canProceedToStep2 = customerName && customerName.trim().length > 0;
@@ -573,7 +564,7 @@ export function ServiceBookingWizard({
                                     ? 'border-primary shadow-sm bg-primary/5'
                                     : 'border-transparent hover:border-muted'
                                 )}
-                                onClick={() => setValue('professionalId', prof.id)}
+                                onClick={() => handleProfessionalSelect(prof.id)}
                               >
                                 <div className="flex items-center gap-2">
                                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
