@@ -37,7 +37,6 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { useServices } from '@/hooks/useServices';
 import { useProfessionals, useProfessionalAvailability } from '@/hooks/useProfessionals';
 import { useVenue } from '@/contexts/VenueContext';
-// useFormPersist removed — it caused infinite re-render loops with array fields
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -94,6 +93,11 @@ export function ServiceBookingWizard({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- Local state for fields that previously caused re-render loops via watch() ---
+  const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
+  const [localProfessionalId, setLocalProfessionalId] = useState('');
+  const [localStartTime, setLocalStartTime] = useState('');
+
   const { currentVenue } = useVenue();
   const { customers } = useCustomers();
   const { activeServices, isLoading: servicesLoading } = useServices();
@@ -119,19 +123,15 @@ export function ServiceBookingWizard({
 
   const { watch, setValue, reset, handleSubmit, formState: { errors } } = form;
 
-  // useFormPersist removed to prevent infinite re-render loops with array fields
-
+  // Only watch scalar fields that don't cause reference-instability loops
   const customerName = watch('customerName');
-  const serviceIds = watch('serviceIds');
   const selectedDate = watch('date');
-  const professionalId = watch('professionalId');
-  const startTime = watch('startTime');
 
-  // Fetch availability when services, date, and professional are selected
+  // Fetch availability using stable local state (no watch() involved)
   const { data: availability, isLoading: availabilityLoading } = useProfessionalAvailability(
     selectedDate || null,
-    serviceIds,
-    professionalId || undefined
+    localServiceIds,
+    localProfessionalId || undefined
   );
 
   // Reset when dialog opens
@@ -151,13 +151,15 @@ export function ServiceBookingWizard({
           notes: '',
         });
       }
+      // Always reset local state when dialog opens
+      setLocalServiceIds([]);
+      setLocalProfessionalId('');
+      setLocalStartTime('');
       initialLoadRef.current = false;
     } else {
       initialLoadRef.current = true;
     }
   }, [open, defaultDate, reset]);
-
-  // No effects for cascading resets - handled imperatively in handlers below
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers.slice(0, 10);
@@ -170,10 +172,10 @@ export function ServiceBookingWizard({
     ).slice(0, 10);
   }, [customers, customerSearch]);
 
-  // Get selected services data
+  // Get selected services data using local state
   const selectedServices = useMemo(() => {
-    return activeServices.filter(s => serviceIds.includes(s.id));
-  }, [activeServices, serviceIds]);
+    return activeServices.filter(s => localServiceIds.includes(s.id));
+  }, [activeServices, localServiceIds]);
 
   // Calculate totals
   const { totalDuration, totalPrice } = useMemo(() => {
@@ -188,20 +190,20 @@ export function ServiceBookingWizard({
 
   // Filter professionals that offer all selected services
   const availableProfessionals = useMemo(() => {
-    if (serviceIds.length === 0) return [];
+    if (localServiceIds.length === 0) return [];
     
     return bookableProfessionals.filter(prof => {
       const profServiceIds = prof.services?.map(s => s.id) || [];
-      return serviceIds.every(id => profServiceIds.includes(id));
+      return localServiceIds.every(id => profServiceIds.includes(id));
     });
-  }, [bookableProfessionals, serviceIds]);
+  }, [bookableProfessionals, localServiceIds]);
 
   // Get available slots for selected professional
   const availableSlots = useMemo(() => {
     if (!availability || availability.length === 0) return [];
-    const prof = availability.find(a => a.professional_id === professionalId);
+    const prof = availability.find(a => a.professional_id === localProfessionalId);
     return prof?.available_slots || [];
-  }, [availability, professionalId]);
+  }, [availability, localProfessionalId]);
 
   const handleSelectCustomer = (customer: Customer) => {
     setValue('customerId', customer.id);
@@ -217,36 +219,43 @@ export function ServiceBookingWizard({
     setNewCustomerDialogOpen(false);
   };
 
+  // Handlers update only local state — no form.setValue for these fields during interaction
   const handleServiceToggle = (serviceId: string) => {
-    const current = form.getValues('serviceIds');
-    const updated = current.includes(serviceId)
-      ? current.filter((id: string) => id !== serviceId)
-      : [...current, serviceId];
-    // Batch all updates with flags to prevent validation cascades
-    form.setValue('serviceIds', updated, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
-    form.setValue('professionalId', '', { shouldValidate: false, shouldDirty: false, shouldTouch: false });
-    form.setValue('startTime', '', { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+    setLocalServiceIds(prev => {
+      const updated = prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId];
+      return updated;
+    });
+    // Reset dependent selections
+    setLocalProfessionalId('');
+    setLocalStartTime('');
   };
 
   const handleProfessionalSelect = (profId: string) => {
-    form.setValue('professionalId', profId, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
-    form.setValue('startTime', '', { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+    setLocalProfessionalId(profId);
+    setLocalStartTime('');
+  };
+
+  const handleTimeSelect = (slot: string) => {
+    setLocalStartTime(slot);
   };
 
   const canProceedToStep2 = customerName && customerName.trim().length > 0;
-  const canProceedToStep3 = serviceIds.length > 0 && selectedDate && professionalId;
-  const canProceedToStep4 = startTime;
+  const canProceedToStep3 = localServiceIds.length > 0 && selectedDate && localProfessionalId;
+  const canProceedToStep4 = localStartTime;
 
   const onSubmit = async (data: FormData) => {
     if (!currentVenue?.id) return;
     
     setIsSubmitting(true);
     try {
+      // Use local state values (already synced to form before handleSubmit validation)
       const { data: bookingId, error } = await supabase.rpc('create_service_booking', {
         p_venue_id: currentVenue.id,
-        p_professional_id: data.professionalId,
-        p_service_ids: data.serviceIds,
-        p_start_time: data.startTime,
+        p_professional_id: localProfessionalId,
+        p_service_ids: localServiceIds,
+        p_start_time: localStartTime,
         p_customer_name: data.customerName,
         p_customer_email: data.customerEmail || '',
         p_customer_phone: data.customerPhone || null,
@@ -256,7 +265,6 @@ export function ServiceBookingWizard({
       if (error) throw error;
 
       toast({ title: 'Agendamento criado com sucesso!' });
-      // Draft clearing removed (useFormPersist disabled)
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       onOpenChange(false);
     } catch (error: any) {
@@ -268,6 +276,15 @@ export function ServiceBookingWizard({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Synchronize local state into form right before submit so zod validation passes
+  const handleFormSubmit = () => {
+    setValue('serviceIds', localServiceIds);
+    setValue('professionalId', localProfessionalId);
+    setValue('startTime', localStartTime);
+    // Trigger react-hook-form validation + onSubmit
+    handleSubmit(onSubmit)();
   };
 
   const formatCurrency = (value: number) => {
@@ -320,7 +337,8 @@ export function ServiceBookingWizard({
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Use div instead of form to prevent accidental submit; we call handleFormSubmit manually */}
+          <div>
             <div className="px-6 py-4 min-h-[350px]">
               {/* Step 1: Customer */}
               {step === 1 && (
@@ -457,7 +475,7 @@ export function ServiceBookingWizard({
                       <ScrollArea className="h-[250px] pr-4">
                         <div className="space-y-2">
                           {activeServices.map((service) => {
-                            const isSelected = serviceIds.includes(service.id);
+                            const isSelected = localServiceIds.includes(service.id);
                             return (
                               <Card
                                 key={service.id}
@@ -468,7 +486,6 @@ export function ServiceBookingWizard({
                                     : 'border-transparent hover:border-muted'
                                 )}
                                 onClick={(e) => {
-                                  // Prevent double-fire when clicking checkbox directly
                                   if ((e.target as HTMLElement).closest('button[role="checkbox"]')) return;
                                   handleServiceToggle(service.id);
                                 }}
@@ -532,7 +549,7 @@ export function ServiceBookingWizard({
                   </div>
 
                   {/* Professional Selection */}
-                  {serviceIds.length > 0 && selectedDate && (
+                  {localServiceIds.length > 0 && selectedDate && (
                     <div>
                       <Label className="mb-2 flex items-center gap-2">
                         <User className="h-4 w-4" />
@@ -549,7 +566,7 @@ export function ServiceBookingWizard({
                       ) : (
                         <div className="grid grid-cols-2 gap-2">
                           {availableProfessionals.map((prof) => {
-                            const isSelected = professionalId === prof.id;
+                            const isSelected = localProfessionalId === prof.id;
                             const name = prof.display_name || prof.profile?.full_name || 'Sem nome';
                             return (
                               <Card
@@ -614,7 +631,7 @@ export function ServiceBookingWizard({
                     ) : (
                       <div className="grid grid-cols-4 gap-2">
                         {availableSlots.map((slot) => {
-                          const isSelected = startTime === slot;
+                          const isSelected = localStartTime === slot;
                           return (
                             <Button
                               key={slot}
@@ -624,7 +641,7 @@ export function ServiceBookingWizard({
                                 'h-10',
                                 isSelected && 'bg-primary text-primary-foreground'
                               )}
-                              onClick={() => setValue('startTime', slot)}
+                              onClick={() => handleTimeSelect(slot)}
                             >
                               {formatSlotTime(slot)}
                             </Button>
@@ -688,8 +705,8 @@ export function ServiceBookingWizard({
                       <div>
                         <span className="text-muted-foreground">Profissional</span>
                         <p className="font-medium">
-                          {availableProfessionals.find(p => p.id === professionalId)?.display_name ||
-                           availableProfessionals.find(p => p.id === professionalId)?.profile?.full_name || '-'}
+                          {availableProfessionals.find(p => p.id === localProfessionalId)?.display_name ||
+                           availableProfessionals.find(p => p.id === localProfessionalId)?.profile?.full_name || '-'}
                         </p>
                       </div>
                       <div>
@@ -700,7 +717,7 @@ export function ServiceBookingWizard({
                       </div>
                       <div>
                         <span className="text-muted-foreground">Horário</span>
-                        <p className="font-medium">{startTime && formatSlotTime(startTime)}</p>
+                        <p className="font-medium">{localStartTime && formatSlotTime(localStartTime)}</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Duração</span>
@@ -754,7 +771,8 @@ export function ServiceBookingWizard({
                 </Button>
               ) : (
                 <Button
-                  type="submit"
+                  type="button"
+                  onClick={handleFormSubmit}
                   disabled={isSubmitting}
                   className="bg-green-600 hover:bg-green-700"
                 >
@@ -766,7 +784,7 @@ export function ServiceBookingWizard({
                 </Button>
               )}
             </div>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -774,9 +792,7 @@ export function ServiceBookingWizard({
         open={newCustomerDialogOpen}
         onOpenChange={(open) => {
           setNewCustomerDialogOpen(open);
-          // When dialog closes, check if a new customer was created
           if (!open && customers.length > 0) {
-            // Select the most recently created customer
             const latestCustomer = customers[customers.length - 1];
             if (latestCustomer && !watch('customerId')) {
               handleSelectCustomer(latestCustomer);
