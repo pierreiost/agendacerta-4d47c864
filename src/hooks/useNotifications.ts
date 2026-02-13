@@ -92,11 +92,26 @@ export function useNotifications() {
     },
   });
 
+  const clearAll = useMutation({
+    mutationFn: async () => {
+      if (!venueId) return;
+      const { error } = await supabase
+        .from('venue_notifications')
+        .delete()
+        .eq('venue_id', venueId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['venue-notifications', venueId] });
+    },
+  });
+
   return {
     notifications,
     unreadCount,
     isLoading,
     markAsRead,
     markAllAsRead,
+    clearAll,
   };
 }
