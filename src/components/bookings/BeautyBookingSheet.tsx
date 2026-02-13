@@ -26,9 +26,8 @@ import { AddCustomItemDialog } from "./AddCustomItemDialog";
 import { CheckoutDialog } from "./CheckoutDialog";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { User, Phone, Mail, Clock, Heart, Scissors, Plus, ShoppingBag, CreditCard, Loader2, X } from "lucide-react";
+import { User, Phone, Mail, Clock, ShoppingBag, CreditCard, Loader2, Plus, X } from "lucide-react";
 
-// ... (Mantenha o STATUS_CONFIG igual) ...
 const STATUS_CONFIG: Record<
   string,
   {
@@ -61,6 +60,7 @@ interface BeautyBookingSheetProps {
 }
 
 export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking }: BeautyBookingSheetProps) {
+  // Hooks são chamados sempre na mesma ordem
   const { data: booking, isLoading: bookingLoading } = useBooking(initialBooking?.id ?? null);
   const {
     services,
@@ -82,12 +82,12 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
 
   const isLoading = bookingLoading || servicesLoading;
 
-  // Cálculos movidos para variáveis seguras (com verificação se booking existe)
-  // Isso evita erro de acesso a propriedade de null
+  // Cálculos seguros usando verificação se 'booking' existe
   const startTime = booking ? parseISO(booking.start_time) : new Date();
   const grandTotal = servicesTotal + itemsTotal;
   const isFinalized = booking?.status === "FINALIZED";
   const isCancelled = booking?.status === "CANCELLED";
+
   const statusConfig = booking ? STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING : STATUS_CONFIG.PENDING;
 
   const formatCurrency = (value: number) => {
@@ -126,12 +126,13 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="w-[400px] sm:w-[540px] flex flex-col p-0 bg-background/80 backdrop-blur-xl border-l border-border/50 shadow-2xl">
-          {/* LÓGICA DE LOADING MOVIDA PARA DENTRO DO CONTEÚDO */}
           {!booking || isLoading ? (
+            // Loader renderizado DENTRO do mesmo SheetContent
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
+            // Conteúdo principal
             <>
               <SheetHeader className="px-6 py-5 border-b border-border/50 bg-gradient-to-r from-card/90 to-card/70 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
@@ -144,7 +145,7 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
 
               <ScrollArea className="flex-1">
                 <div className="p-6 space-y-6">
-                  {/* Customer Info */}
+                  {/* Informações do Cliente */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Cliente</h3>
                     <div className="space-y-2">
@@ -152,7 +153,6 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
                         <User className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{booking.customer_name}</span>
                       </div>
-                      {/* ... restante dos dados do cliente ... */}
                       {booking.customer_phone && (
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-muted-foreground" />
@@ -170,7 +170,7 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
 
                   <Separator />
 
-                  {/* Scheduling Info */}
+                  {/* Informações do Agendamento */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Agendamento</h3>
                     <div className="space-y-2">
@@ -198,7 +198,7 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
 
                   <Separator />
 
-                  {/* Services Section */}
+                  {/* Seção de Serviços */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Serviços</h3>
 
@@ -233,7 +233,7 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
 
                   <Separator />
 
-                  {/* Products Section */}
+                  {/* Seção de Produtos */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Produtos</h3>
@@ -277,7 +277,7 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
                 </div>
               </ScrollArea>
 
-              {/* Actions */}
+              {/* Ações */}
               {!isFinalized && !isCancelled && (
                 <div className="p-4 border-t space-y-2">
                   <Button className="w-full" size="lg" onClick={() => setCheckoutOpen(true)}>
@@ -307,7 +307,7 @@ export function BeautyBookingSheet({ open, onOpenChange, booking: initialBooking
         </SheetContent>
       </Sheet>
 
-      {/* RENDERIZAR OS DIALOGS APENAS SE BOOKING EXISTIR PARA EVITAR ERRO DE ID NULO */}
+      {/* Renderização Condicional dos Dialogs Auxiliares */}
       {booking && (
         <>
           <AddProductDialog open={addProductOpen} onOpenChange={setAddProductOpen} bookingId={booking.id} />
