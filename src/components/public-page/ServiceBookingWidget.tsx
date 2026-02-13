@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, ChevronLeft, ChevronRight, Clock, Check, Scissors, User } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Clock, Check, Scissors, User, Clock3 } from 'lucide-react';
 import { format, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -162,14 +162,7 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
       return data;
     },
     onSuccess: () => {
-      toast({ title: 'Agendamento confirmado! ✅', description: 'Você receberá uma confirmação em breve.' });
-      setStep(1);
-      setSelectedServiceIds([]);
-      setSelectedSlot(null);
-      setSelectedProfessionalId(null);
-      setCustomerName('');
-      setCustomerEmail('');
-      setCustomerPhone('');
+      setStep(5);
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao agendar', description: error.message, variant: 'destructive' });
@@ -424,6 +417,43 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
             Continuar
           </Button>
         )}
+      </div>
+    );
+  }
+
+  // ─── STEP 5: Success Screen ─────────────────────────────────
+  if (step === 5) {
+    const bookedDateStr = selectedDate ? format(selectedDate, "d 'de' MMMM", { locale: ptBR }) : '';
+    const bookedTimeStr = selectedSlot ? format(new Date(selectedSlot), 'HH:mm') : '';
+
+    return (
+      <div className="p-4 sm:p-6 flex flex-col items-center text-center space-y-4 py-10">
+        <div className="h-16 w-16 rounded-full bg-warning/20 flex items-center justify-center">
+          <Clock3 className="h-8 w-8 text-warning" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Pedido Realizado!</h2>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Recebemos sua solicitação para <strong>{bookedDateStr}</strong> às <strong>{bookedTimeStr}</strong>.
+          O estabelecimento irá confirmar sua disponibilidade em breve.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Fique atento ao seu WhatsApp/E-mail para a confirmação.
+        </p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => {
+            setStep(1);
+            setSelectedServiceIds([]);
+            setSelectedSlot(null);
+            setSelectedProfessionalId(null);
+            setCustomerName('');
+            setCustomerEmail('');
+            setCustomerPhone('');
+          }}
+        >
+          Fazer novo agendamento
+        </Button>
       </div>
     );
   }

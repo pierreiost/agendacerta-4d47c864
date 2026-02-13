@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 import { useVenue } from '@/contexts/VenueContext';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
@@ -36,6 +37,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             {title && (
               <h1 className="text-sm md:text-base font-semibold truncate">{title}</h1>
             )}
+            <div className="ml-auto">
+              <NotificationBell />
+            </div>
           </header>
           <main className="flex-1 p-2 md:p-4 overflow-y-auto overflow-x-hidden scrollbar-hide">
             {children}
