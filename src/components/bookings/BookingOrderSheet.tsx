@@ -23,6 +23,7 @@ import {
 import { useBooking, useBookings, type Booking } from '@/hooks/useBookings';
 import { useOrderItems } from '@/hooks/useOrderItems';
 import { useRegisterCustomer } from '@/hooks/useRegisterCustomer';
+import { DuplicateCustomerDialog } from './DuplicateCustomerDialog';
 import { OrderItemsList } from './OrderItemsList';
 import { AddProductDialog } from './AddProductDialog';
 import { AddCustomItemDialog } from './AddCustomItemDialog';
@@ -84,7 +85,7 @@ export function BookingOrderSheet({
   const { data: booking, isLoading } = useBooking(initialBooking?.id ?? null);
   const { orderItems, itemsTotal, removeOrderItem } = useOrderItems(booking?.id ?? null);
   const { updateBooking, deleteBooking } = useBookings();
-  const { registerCustomerFromBooking, isRegistering } = useRegisterCustomer();
+  const { registerCustomerFromBooking, isRegistering, duplicates, linkExistingCustomer, forceCreate, dismissDuplicates } = useRegisterCustomer();
 
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addCustomOpen, setAddCustomOpen] = useState(false);
@@ -374,6 +375,14 @@ export function BookingOrderSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DuplicateCustomerDialog
+        open={duplicates.length > 0}
+        duplicates={duplicates}
+        onLinkExisting={linkExistingCustomer}
+        onForceCreate={forceCreate}
+        onCancel={dismissDuplicates}
+      />
     </>
   );
 }

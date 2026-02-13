@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -8,7 +9,7 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { User, Phone, Mail, FileText, UserPlus, Link } from 'lucide-react';
+import { User, Phone, Mail, FileText, UserPlus, ExternalLink } from 'lucide-react';
 import type { DuplicateCustomer } from '@/hooks/useRegisterCustomer';
 
 interface DuplicateCustomerDialogProps {
@@ -26,29 +27,54 @@ export function DuplicateCustomerDialog({
   onForceCreate,
   onCancel,
 }: DuplicateCustomerDialogProps) {
+  const navigate = useNavigate();
+
   return (
     <AlertDialog open={open} onOpenChange={(v) => !v && onCancel()}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>Cliente já cadastrado?</AlertDialogTitle>
           <AlertDialogDescription>
-            Encontramos clientes semelhantes. Deseja vincular um existente ou criar um novo?
+            Encontramos clientes semelhantes. Clique para vincular ao agendamento, ou use o ícone para ver o cadastro.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="space-y-2 max-h-60 overflow-y-auto">
           {duplicates.map((c) => (
-            <button
+            <div
               key={c.id}
-              className="w-full text-left rounded-lg border p-3 hover:bg-muted/50 transition-colors space-y-1"
-              onClick={() => onLinkExisting(c.id)}
+              className="rounded-lg border p-3 hover:bg-muted/50 transition-colors space-y-1"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">{c.name}</span>
+                <button
+                  className="flex items-center gap-2 text-left flex-1 min-w-0"
+                  onClick={() => onLinkExisting(c.id)}
+                >
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium text-sm truncate">{c.name}</span>
+                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Ver cadastro do cliente"
+                    onClick={() => {
+                      onCancel();
+                      navigate(`/clientes?highlight=${c.id}`);
+                    }}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => onLinkExisting(c.id)}
+                  >
+                    Vincular
+                  </Button>
                 </div>
-                <Link className="h-3.5 w-3.5 text-primary" />
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 pl-6">
                 {c.phone && (
@@ -67,7 +93,7 @@ export function DuplicateCustomerDialog({
                   </span>
                 )}
               </div>
-            </button>
+            </div>
           ))}
         </div>
 

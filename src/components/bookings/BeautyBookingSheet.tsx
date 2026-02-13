@@ -24,6 +24,7 @@ import { useBooking, useBookings, type Booking } from '@/hooks/useBookings';
 import { useBookingServices } from '@/hooks/useBookingServices';
 import { useOrderItems } from '@/hooks/useOrderItems';
 import { useRegisterCustomer } from '@/hooks/useRegisterCustomer';
+import { DuplicateCustomerDialog } from './DuplicateCustomerDialog';
 import { OrderItemsList } from './OrderItemsList';
 import { AddProductDialog } from './AddProductDialog';
 import { AddCustomItemDialog } from './AddCustomItemDialog';
@@ -86,7 +87,7 @@ export function BeautyBookingSheet({
   const { services, servicesTotal, totalDuration } = useBookingServices(booking?.id ?? null);
   const { orderItems, itemsTotal, removeOrderItem } = useOrderItems(booking?.id ?? null);
   const { updateBooking } = useBookings();
-  const { registerCustomerFromBooking, isRegistering } = useRegisterCustomer();
+  const { registerCustomerFromBooking, isRegistering, duplicates, linkExistingCustomer, forceCreate, dismissDuplicates } = useRegisterCustomer();
 
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addCustomOpen, setAddCustomOpen] = useState(false);
@@ -398,6 +399,14 @@ export function BeautyBookingSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DuplicateCustomerDialog
+        open={duplicates.length > 0}
+        duplicates={duplicates}
+        onLinkExisting={linkExistingCustomer}
+        onForceCreate={forceCreate}
+        onCancel={dismissDuplicates}
+      />
     </>
   );
 }

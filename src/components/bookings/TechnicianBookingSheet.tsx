@@ -25,6 +25,7 @@ import {
 import { useBooking, useBookings, type Booking } from '@/hooks/useBookings';
 import { useLinkedServiceOrder } from '@/hooks/useLinkedServiceOrder';
 import { useRegisterCustomer } from '@/hooks/useRegisterCustomer';
+import { DuplicateCustomerDialog } from './DuplicateCustomerDialog';
 import { format, parseISO, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -89,7 +90,7 @@ export function TechnicianBookingSheet({
   const { data: booking, isLoading: bookingLoading } = useBooking(initialBooking?.id ?? null);
   const { serviceOrder, hasLinkedOrder, isLoading: osLoading } = useLinkedServiceOrder(booking ?? null);
   const { updateBooking } = useBookings();
-  const { registerCustomerFromBooking, isRegistering } = useRegisterCustomer();
+  const { registerCustomerFromBooking, isRegistering, duplicates, linkExistingCustomer, forceCreate, dismissDuplicates } = useRegisterCustomer();
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
@@ -422,6 +423,14 @@ export function TechnicianBookingSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DuplicateCustomerDialog
+        open={duplicates.length > 0}
+        duplicates={duplicates}
+        onLinkExisting={linkExistingCustomer}
+        onForceCreate={forceCreate}
+        onCancel={dismissDuplicates}
+      />
     </>
   );
 }
