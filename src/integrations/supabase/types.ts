@@ -1330,6 +1330,41 @@ export type Database = {
           },
         ]
       }
+      venue_operating_hours: {
+        Row: {
+          close_time: string
+          day_of_week: number
+          id: string
+          is_open: boolean
+          open_time: string
+          venue_id: string
+        }
+        Insert: {
+          close_time?: string
+          day_of_week: number
+          id?: string
+          is_open?: boolean
+          open_time?: string
+          venue_id: string
+        }
+        Update: {
+          close_time?: string
+          day_of_week?: number
+          id?: string
+          is_open?: boolean
+          open_time?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_operating_hours_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venue_sequences: {
         Row: {
           current_order_number: number
@@ -1811,7 +1846,7 @@ export type Database = {
         Args: {
           p_date: string
           p_professional_id?: string
-          p_total_duration_minutes: number
+          p_total_duration_minutes?: number
           p_venue_id: string
         }
         Returns: {

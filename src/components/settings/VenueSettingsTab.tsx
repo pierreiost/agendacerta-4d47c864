@@ -67,6 +67,7 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { OperatingHoursSection } from './OperatingHoursSection';
 
 const slugRegex = /^[a-z0-9-]*$/;
 
@@ -764,6 +765,9 @@ export function VenueSettingsTab() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Operating Hours Section */}
+        <OperatingHoursSection venueId={currentVenue?.id} />
 
         {/* Security Section */}
         <Card>

@@ -32,10 +32,10 @@ interface WeekViewNewProps {
   onSlotClick: (spaceId: string, date: Date, hour: number) => void;
   onBookingClick: (booking: Booking) => void;
   isServiceBased?: boolean;
+  startHour?: number;
+  endHour?: number;
 }
 
-// Horários visíveis na agenda (8:00 a 22:00)
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
 const HOUR_HEIGHT = 48;
 
 // Cores de fundo do card baseadas no status
@@ -148,7 +148,10 @@ export function WeekViewNew({
   onSlotClick,
   onBookingClick,
   isServiceBased,
+  startHour = 8,
+  endHour = 22,
 }: WeekViewNewProps) {
+  const HOURS = useMemo(() => Array.from({ length: endHour - startHour }, (_, i) => i + startHour), [startHour, endHour]);
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -187,7 +190,7 @@ export function WeekViewNew({
     const endMinutes = end.getHours() * 60 + end.getMinutes();
     const durationMinutes = endMinutes - startMinutes;
 
-    const top = ((startMinutes - 8 * 60) / 60) * HOUR_HEIGHT;
+    const top = ((startMinutes - startHour * 60) / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
 
     return { top, height: Math.max(height, 24) };

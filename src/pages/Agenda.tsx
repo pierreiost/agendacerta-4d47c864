@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useBookings, type Booking } from '@/hooks/useBookings';
 import { supabase } from '@/integrations/supabase/client';
 import { useSpaces } from '@/hooks/useSpaces';
+import { useOperatingHours } from '@/hooks/useOperatingHours';
 import { useVenue } from '@/contexts/VenueContext';
 import { AgendaHeader, ViewMode } from '@/components/agenda/AgendaHeader';
 import { AgendaSidebar } from '@/components/agenda/AgendaSidebar';
@@ -47,6 +48,7 @@ const getBookingMode = (segment?: string | null): 'space' | 'service' | 'technic
 export default function Agenda() {
   const { currentVenue } = useVenue();
   const { spaces, isLoading: spacesLoading } = useSpaces();
+  const { minHour, maxHour } = useOperatingHours(currentVenue?.id);
   const { toast } = useToast();
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('agenda');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -395,6 +397,8 @@ export default function Agenda() {
                   onBookingMove={handleBookingMove}
                   onBookingResize={handleBookingResize}
                   isServiceBased={isServiceBasedSegment}
+                  startHour={minHour}
+                  endHour={maxHour}
                 />
               )}
               {viewMode === 'week' && (
@@ -406,6 +410,8 @@ export default function Agenda() {
                   onSlotClick={handleSlotClick}
                   onBookingClick={handleBookingClick}
                   isServiceBased={isServiceBasedSegment}
+                  startHour={minHour}
+                  endHour={maxHour}
                 />
               )}
               {viewMode === 'month' && (
