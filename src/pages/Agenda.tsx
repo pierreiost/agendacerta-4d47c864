@@ -411,7 +411,7 @@ export default function Agenda() {
       })()}
 
       {/* Booking Details Sheet - Conditional by segment */}
-      {(() => {
+      {bookingSheetOpen && (() => {
         const segment = currentVenue?.segment;
         if (segment === 'custom') {
           return (
