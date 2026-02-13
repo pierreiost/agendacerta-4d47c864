@@ -1,105 +1,112 @@
-
-
-# Comanda Beauty/Health + Bloqueio de Horarios Retroativos
+# Central de Notificacoes Inteligente ("O Sino") + Ajustes na Pagina Publica
 
 ## Visao Geral
 
-Duas frentes de trabalho: (1) bloquear agendamentos em horarios passados na agenda interna, e (2) construir a comanda completa para os segmentos Health e Beauty, substituindo o stub atual do `BeautyBookingSheet`.
+Tres frentes: (1) infraestrutura de notificacoes no banco, (2) componente visual do sino no header, (3) ajuste da tela de sucesso e bloqueio de horario na pagina publica.
 
 ---
 
-## 1. Bloqueio de Datas/Horarios Retroativos (Agenda Interna)
+## 1. Infraestrutura de Notificacoes (Backend)
 
-### Problema
-O `ServiceBookingWizard` ja bloqueia datas passadas no calendario (linha 546), mas os horarios exibidos no Step 3 vem da funcao `useProfessionalAvailability` e nao filtram slots que ja passaram no dia de hoje.
-
-### Solucao
-Filtrar os slots no frontend antes de exibi-los. No `useMemo` de `availableSlots` (linhas 202-206 do `ServiceBookingWizard.tsx`), adicionar logica para remover slots cujo horario ja passou quando a data selecionada for hoje.
-
-### Arquivo: `src/components/agenda/ServiceBookingWizard.tsx`
-- No `availableSlots` useMemo, apos obter `prof?.available_slots`, filtrar com:
-  - Se `selectedDate` for hoje, remover slots onde `new Date(slot) <= new Date()`
-  - Caso contrario, manter todos os slots
-
----
-
-## 2. Comanda Unificada Beauty/Health
-
-### Problema
-O `BeautyBookingSheet` e atualmente um stub de debug (apenas mostra ID, Status e Data). Precisa se tornar uma comanda funcional semelhante ao `BookingOrderSheet` (esportes), mas adaptada para servicos.
-
-### Estrutura da Comanda
-
-A comanda tera as seguintes secoes:
+### Tabela `venue_notifications`
 
 ```text
-+----------------------------------+
-| Detalhes do Agendamento   [Status]|
-+----------------------------------+
-| CLIENTE                          |
-| Nome / Telefone / Email          |
-+----------------------------------+
-| AGENDAMENTO                     |
-| Data / Horario / Duracao         |
-| Profissional                     |
-+----------------------------------+
-| SERVICOS                        |
-| Servico 1 ........... R$ XX,XX   |
-| Servico 2 ........... R$ XX,XX   |
-| Subtotal Servicos     R$ XX,XX   |
-+----------------------------------+
-| PRODUTOS (consumo adicional)     |
-| [+ Produto] [+ Avulso]          |
-| Produto 1 ........... R$ XX,XX   |
-| Subtotal Produtos     R$ XX,XX   |
-+----------------------------------+
-| TOTAL              R$ XXX,XX     |
-+----------------------------------+
-| [Fechar Comanda]                 |
-| [Confirmar] [Cancelar]           |
-+----------------------------------+
+id           uuid PK
+venue_id     uuid FK -> venues
+type         text (ex: 'NEW_BOOKING', 'BOOKING_CANCELLED')
+title        text
+message      text
+reference_id uuid (ID do booking relacionado)
+is_read      boolean default false
+created_at   timestamptz default now()
 ```
 
-### Dados utilizados
-- **Servicos agendados**: hook `useBookingServices(bookingId)` - ja existe e retorna servicos com profissional, preco e duracao
-- **Produtos consumidos**: hook `useOrderItems(bookingId)` - ja existe
-- **Status e acoes**: hook `useBookings()` - `updateBooking` para confirmar/cancelar
-- **Checkout/Pagamento**: componente `CheckoutDialog` - ja existe, sera reutilizado
+- RLS: leitura/escrita permitida para membros da venue (via `venue_members`).
+- Realtime habilitado para atualizacoes instantaneas.
 
-### Arquivo: `src/components/bookings/BeautyBookingSheet.tsx`
-Reescrever completamente, seguindo a estrutura do `BookingOrderSheet` como referencia, com as seguintes diferencas:
+### Trigger Automatico
 
-1. **Secao "Servicos"** em vez de "Espaco": Listar servicos do `useBookingServices`, mostrando titulo, profissional e preco individual
-2. **Secao "Produtos"** (identica ao BookingOrderSheet): Permitir adicionar produtos e itens avulsos
-3. **Total**: `servicesTotal + itemsTotal` (em vez de `spaceTotal + itemsTotal`)
-4. **Acoes**:
-   - "Fechar Comanda" abre o `CheckoutDialog` (reutilizado, adaptando para passar `servicesTotal` no lugar de `spaceTotal`)
-   - "Confirmar" (visivel quando status = PENDING)
-   - "Cancelar" com dialogo de confirmacao
-5. **Estado visual**: Badges de status identicos ao BookingOrderSheet
+Criar um trigger `AFTER INSERT` na tabela `bookings` que, quando `NEW.status = 'PENDING'`, insere automaticamente uma notificacao na `venue_notifications` com:
 
-### Componentes reutilizados (sem alteracao)
-- `CheckoutDialog` - Precisa de pequeno ajuste: aceitar `servicesTotal` como alternativa a `spaceTotal`, ou simplesmente receber ambos somados no `grandTotal`
-- `AddProductDialog`
-- `AddCustomItemDialog`
-- `OrderItemsList`
+- `title`: 'Novo Agendamento'
+- `message`: 'Cliente [customer_name] solicitou horario em [start_time formatado]'
+- `reference_id`: o ID do booking
 
-### Ajuste no CheckoutDialog
-O `CheckoutDialog` atualmente exibe "Espaco (nome)" no resumo. Para Beauty/Health, precisa exibir "Servicos (X itens)" no lugar. Solucao: adicionar prop opcional `summaryLabel` para customizar o rotulo da primeira linha do resumo.
+Isso garante que qualquer booking PENDING (vindo da pagina publica) gera alerta automaticamente, sem depender do frontend.
+
+---
+
+## 2. Componente Visual - O Sino
+
+### Novo componente: `src/components/notifications/NotificationBell.tsx`
+
+- Icone de sino (Bell do lucide-react) posicionado no header do `AppLayout.tsx`.
+- Badge vermelho com contador de notificacoes nao lidas.
+- Ao clicar, abre um Popover com a lista de notificacoes ordenadas por data (mais recente primeiro).
+- Cada item mostra titulo, mensagem resumida e tempo relativo ("ha 5 min").
+- Ao clicar em uma notificacao:
+  1. Marca como lida (UPDATE `is_read = true`).
+  2. Navega para `/agenda` e abre o Sheet do booking correspondente.
+
+### Novo hook: `src/hooks/useNotifications.ts`
+
+- Query para buscar notificacoes da venue atual.
+- Contador de nao lidas (derivado da query).
+- Subscription realtime para receber novas notificacoes instantaneamente.
+- Mutacao para marcar como lida.
+- Mutacao para marcar todas como lidas.
+
+### Integracao no AppLayout
+
+Adicionar o `NotificationBell` no header ao lado do `SidebarTrigger`, garantindo que seja visivel em todas as paginas.
+
+---
+
+## 3. Fluxo de Resolucao (Click -> Sheet)
+
+Quando o usuario clica em uma notificacao de "Novo Agendamento":
+
+1. Se ja esta na pagina `/agenda`, abre diretamente o Sheet (BeautyBookingSheet/BookingOrderSheet/TechnicianBookingSheet conforme o segmento).
+2. Se esta em outra pagina, navega para `/agenda` com query param `?openBooking=[bookingId]`.
+3. A pagina `Agenda.tsx` detecta o query param e abre o Sheet automaticamente.
+
+O Sheet ja possui o botao "Confirmar" para bookings PENDING, entao nao precisa de mudanca.
+
+---
+
+## 4. Tela de Sucesso na Pagina Publica
+
+### Arquivo: `src/components/public-page/ServiceBookingWidget.tsx`
+
+Atualmente o `onSuccess` do mutation exibe um toast "Agendamento confirmado!" e reseta o formulario. Mudar para:
+
+- Em vez de voltar ao Step 1, ir para um **Step 5 (Tela de Sucesso)** que exibe:
+  - Icone de relogio/pendente (nao check verde)
+  - Titulo: "Pedido Realizado!"
+  - Mensagem: "Recebemos sua solicitacao para [data] as [hora]. O estabelecimento ira confirmar sua disponibilidade em breve."
+  - Subtexto: "Fique atento ao seu WhatsApp/E-mail para a confirmacao."
+  - Botao "Fazer novo agendamento" para voltar ao Step 1.
+
+### Bloqueio de Horario para Outros Clientes
+
+Isso ja funciona corretamente: a funcao `get_professional_availability_public` consulta bookings existentes para calcular slots livres. Como o booking PENDING ja e inserido no banco, o horario automaticamente desaparece para outros clientes. Nenhuma mudanca necessaria nesta parte.  
+  
+  
+Ao implementar a lógica de leitura do query param `?openBooking=[id]` na página `Agenda.tsx`: 1. Use um `useEffect` para detectar o parametro na montagem. 2. Se existir, busque os dados desse booking e abra o Sheet correspondente. 3. **Importante:** Após abrir o Sheet, limpe o parametro da URL silenciosamente (usando `window.history.replaceState` ou o hook de navegação do router) para evitar que o modal reabra sozinho caso o usuário atualize a página (F5).
 
 ---
 
 ## Resumo Tecnico
 
-| Item | Arquivo | Tipo |
-|------|---------|------|
-| Filtro horarios passados (agenda interna) | ServiceBookingWizard.tsx | Frontend |
-| Comanda Beauty/Health | BeautyBookingSheet.tsx | Frontend (reescrita) |
-| Ajuste rotulo resumo | CheckoutDialog.tsx | Frontend (prop opcional) |
 
-## Beneficios
-
-- Unifica o fluxo de finalizacao para Beauty e Health
-- Reutiliza toda a infraestrutura de pagamento ja existente (CheckoutDialog, usePayments)
-- Profissional pode revisar servicos prestados antes de fechar a comanda
-- Horarios retroativos sao bloqueados tanto no site publico (ja feito via SQL) quanto na agenda interna (novo filtro frontend)
+| Item                        | Arquivo/Local                                       | Tipo            |
+| --------------------------- | --------------------------------------------------- | --------------- |
+| Tabela venue_notifications  | Migracao SQL                                        | Backend         |
+| Trigger de notificacao      | Migracao SQL                                        | Backend         |
+| RLS policies                | Migracao SQL                                        | Backend         |
+| Realtime habilitado         | Migracao SQL                                        | Backend         |
+| Hook useNotifications       | src/hooks/useNotifications.ts                       | Frontend (novo) |
+| Componente NotificationBell | src/components/notifications/NotificationBell.tsx   | Frontend (novo) |
+| Integracao no header        | src/components/layout/AppLayout.tsx                 | Frontend (edit) |
+| Deep link para booking      | src/pages/Agenda.tsx                                | Frontend (edit) |
+| Tela de sucesso publica     | src/components/public-page/ServiceBookingWidget.tsx | Frontend (edit) |
