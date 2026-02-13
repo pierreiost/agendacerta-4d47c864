@@ -275,9 +275,7 @@ export function WeekViewNew({
                       className="border-b border-border transition-colors hover:bg-muted/50 cursor-pointer"
                       style={{ height: HOUR_HEIGHT }}
                       onClick={() => {
-                        if (primarySpaceId) {
-                          onSlotClick(primarySpaceId, day, hour);
-                        }
+                        onSlotClick(primarySpaceId || '', day, hour);
                       }}
                     />
                   ))}

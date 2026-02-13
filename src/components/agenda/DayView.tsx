@@ -342,11 +342,9 @@ export function DayView({
     const finalMinutes = minutes % 60;
     const slotDate = setMinutes(setHours(date, finalHour), finalMinutes);
     
-    // Usar o primeiro espaço visível como padrão
+    // Usar o primeiro espaço visível como padrão (ou string vazia para segmentos baseados em serviço)
     const primarySpaceId = spaces.length > 0 ? spaces[0].id : '';
-    if (primarySpaceId) {
-      onSlotClick(primarySpaceId, slotDate, finalHour);
-    }
+    onSlotClick(primarySpaceId, slotDate, finalHour);
   };
 
   const isCurrentTimeSlot = (hour: number) => {
