@@ -1,104 +1,60 @@
 
 
-# Solucao Definitiva: Eliminar Loops de Re-renderizacao no ServiceBookingWizard
+# Correcoes: Status de Agendamento, Erro no Filtro e Horarios Passados
 
-## Problema Raiz
+## 1. Agendamentos pela agenda devem vir CONFIRMED
 
-O `watch()` do `react-hook-form` cria uma subscricao que causa re-render a CADA mudanca de valor no formulario. Quando `serviceIds` (array) e observado via `watch()`, cada `setValue` gera uma nova referencia de array, que por sua vez re-dispara todos os `useMemo` e o `useProfessionalAvailability` -- criando uma cascata de re-renders que em certos cenarios (cache quente, muitos profissionais, rede lenta) ultrapassa o limite do React.
+**Problema**: O `ServiceBookingWizard` (usado na agenda interna) chama a mesma funcao SQL `create_service_booking` que o site publico. Essa funcao sempre insere com `status = 'PENDING'` (linha 305 da migracao).
 
-## Estrategia: Substituir `watch()` por estado local controlado
+**Solucao**: Adicionar um parametro opcional `p_status` na funcao `create_service_booking` com default `'PENDING'`. O `ServiceBookingWizard.tsx` passara `p_status: 'CONFIRMED'` na chamada RPC, enquanto o `ServiceBookingWidget.tsx` (site publico) continuara sem passar o parametro, mantendo `'PENDING'`.
 
-Em vez de depender do `watch()` do react-hook-form para os campos criticos (`serviceIds`, `professionalId`, `startTime`), vamos gerenciar esses valores como `useState` local e sincronizar com o form apenas no momento do submit. Isso elimina completamente a cadeia reativa `watch -> setValue -> re-render -> watch`.
+### Mudancas:
+- **Migracao SQL**: `ALTER` a funcao `create_service_booking` adicionando `p_status text DEFAULT 'PENDING'` e usando esse parametro no INSERT em vez do valor fixo.
+- **`src/components/agenda/ServiceBookingWizard.tsx`**: Adicionar `p_status: 'CONFIRMED'` na chamada `supabase.rpc('create_service_booking', {...})`.
 
-## Mudancas Tecnicas
+---
 
-### Arquivo: `src/components/agenda/ServiceBookingWizard.tsx`
+## 2. Erro "Cannot read properties of undefined (reading 'dot')" ao filtrar pendentes
 
-1. **Remover `watch()` para campos problematicos**: Substituir `watch('serviceIds')`, `watch('professionalId')` e `watch('startTime')` por `useState` local.
+**Problema**: Quando reservas de servico aparecem na agenda, o `booking.space_id` pode ser um placeholder ou nao existir no array `allSpaces`. O `findIndex` retorna `-1`, e `-1 % 5 = -1` em JavaScript, resultando em `SPACE_COLORS[-1]` que e `undefined`.
 
-2. **Manter `watch('customerName')` e `watch('date')`**: Esses campos escalares nao causam problemas de referencia.
+**Solucao**: Corrigir a funcao `getSpaceColor` para tratar indices negativos.
 
-3. **Sincronizar estado local com o form apenas no submit**: No `onSubmit`, copiar os valores locais para o form antes de validar.
+### Mudanca:
+- **`src/components/agenda/AgendaSidebar.tsx`** (linha 45-46): Alterar de:
+  ```
+  return SPACE_COLORS[index % SPACE_COLORS.length];
+  ```
+  para:
+  ```
+  const safeIndex = index < 0 ? 0 : index % SPACE_COLORS.length;
+  return SPACE_COLORS[safeIndex];
+  ```
 
-4. **Simplificar handlers**: `handleServiceToggle` e `handleProfessionalSelect` agora alteram apenas o estado local (sem `form.setValue` durante interacao).
+Isso corrige o crash em `DayView.tsx`, `WeekViewNew.tsx` e `MonthView.tsx` que todos usam essa funcao.
 
-5. **Resetar estado local quando o dialog abre**: No `useEffect` de reset, tambem resetar os `useState`.
+---
 
-### Mudancas especificas:
+## 3. Site publico mostrando horarios passados no dia de hoje
 
-```text
-ANTES (linhas 124-128):
-  const customerName = watch('customerName');
-  const serviceIds = watch('serviceIds');
-  const selectedDate = watch('date');
-  const professionalId = watch('professionalId');
-  const startTime = watch('startTime');
+**Problema**: A funcao SQL `get_professional_availability_public` gera slots a partir das 8h do dia selecionado, sem verificar se o horario ja passou quando o dia e hoje.
 
-DEPOIS:
-  const customerName = watch('customerName');
-  const selectedDate = watch('date');
-  // Campos gerenciados localmente para evitar loops de re-render
-  const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
-  const [localProfessionalId, setLocalProfessionalId] = useState('');
-  const [localStartTime, setLocalStartTime] = useState('');
-```
+**Solucao**: Adicionar uma condicao na query SQL para filtrar slots que ja passaram. Quando `p_date = CURRENT_DATE`, apenas slots futuros (com margem de seguranca) serao retornados.
 
-```text
-ANTES (handleServiceToggle):
-  form.setValue('serviceIds', updated, ...);
-  form.setValue('professionalId', '', ...);
-  form.setValue('startTime', '', ...);
+### Mudanca:
+- **Migracao SQL**: Atualizar a funcao `get_professional_availability_public` adicionando um filtro:
+  ```sql
+  AND ts.slot_time > (NOW() AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'America/Sao_Paulo')
+  ```
+  Isso garante que, para o dia de hoje, apenas horarios que ainda nao passaram sejam exibidos.
 
-DEPOIS:
-  setLocalServiceIds(updated);
-  setLocalProfessionalId('');
-  setLocalStartTime('');
-```
+---
 
-```text
-ANTES (handleProfessionalSelect):
-  form.setValue('professionalId', profId, ...);
-  form.setValue('startTime', '', ...);
+## Resumo Tecnico
 
-DEPOIS:
-  setLocalProfessionalId(profId);
-  setLocalStartTime('');
-```
-
-```text
-ANTES (onSubmit):
-  Usa data direto do form
-
-DEPOIS:
-  Antes de submeter, sincroniza:
-  form.setValue('serviceIds', localServiceIds);
-  form.setValue('professionalId', localProfessionalId);
-  form.setValue('startTime', localStartTime);
-  Entao submete via handleSubmit
-```
-
-```text
-ANTES (reset useEffect):
-  reset({ ..., serviceIds: [], professionalId: '', startTime: '' });
-
-DEPOIS:
-  reset({ ..., serviceIds: [], professionalId: '', startTime: '' });
-  setLocalServiceIds([]);
-  setLocalProfessionalId('');
-  setLocalStartTime('');
-```
-
-6. **Todos os `useMemo` e o hook de disponibilidade passam a usar os estados locais** em vez dos valores do `watch()`.
-
-7. **Na UI (Checkbox/Card)**: `isSelected` usa `localServiceIds.includes(service.id)` em vez de `serviceIds.includes(service.id)`.
-
-8. **No submit**: A funcao `onSubmit` usara os valores locais diretamente (sem depender do form para esses campos).
-
-## Por que isso e definitivo
-
-- Elimina 100% das subscricoes reativas do `watch()` para arrays
-- Estado local com `useState` e a forma mais previsivel e segura de gerenciar valores no React
-- Nao ha mais cadeia `watch -> setValue -> re-render -> watch`
-- O `useProfessionalAvailability` recebe referencia estavel do `useState` (nao recria array a cada render)
-- Compatible com todos os segmentos (beauty, health, custom) pois todos usam o mesmo `ServiceBookingWizard`
+| Item | Arquivo | Tipo de Mudanca |
+|------|---------|-----------------|
+| Status CONFIRMED | Migracao SQL + ServiceBookingWizard.tsx | SQL + Frontend |
+| Erro getSpaceColor | AgendaSidebar.tsx | Frontend |
+| Horarios passados | Migracao SQL | SQL |
 
