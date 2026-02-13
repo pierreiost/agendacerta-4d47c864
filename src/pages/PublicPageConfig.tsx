@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export default function PublicPageConfig() {
   const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [publicPageEnabled, setPublicPageEnabled] = useState(false);
-  const hasLoadedFromDbRef = useRef(false);
+  
   
   const { activeTab, onTabChange } = useTabPersist({ key: 'public_page_config', defaultValue: 'branding' });
 
@@ -70,44 +70,49 @@ export default function PublicPageConfig() {
     isReady: isDataLoaded && !!currentVenue?.id,
   });
 
-  // Load sections and branding from venue (only on first mount)
+  // Load sections and branding from venue
   useEffect(() => {
-    if (currentVenue?.id && !hasLoadedFromDbRef.current) {
-      hasLoadedFromDbRef.current = true;
+    if (!currentVenue?.id) return;
+    
+    const loadData = async () => {
+      // Check if there's a draft first
+      const storageKey = `state_draft_public_page_${currentVenue.id}`;
+      const hasDraft = localStorage.getItem(storageKey);
       
-      const loadData = async () => {
-        // Check if there's a draft first
-        const storageKey = `state_draft_public_page_${currentVenue.id}`;
-        const hasDraft = localStorage.getItem(storageKey);
-        
-        if (hasDraft) {
-          // If there's a draft, the useStatePersist hook will handle restoration
-          setIsDataLoaded(true);
-          return;
-        }
-
-        // No draft, load from database
+      if (hasDraft) {
+        // If there's a draft, the useStatePersist hook will handle restoration
+        // But we still need to load publicPageEnabled from DB since it's not in sections
         const { data } = await supabase
           .from('venues')
-          .select('public_page_sections, primary_color, logo_url, public_page_enabled')
+          .select('public_page_enabled')
           .eq('id', currentVenue.id)
           .single();
-        
-        if (data?.public_page_sections) {
-          setSections({ ...DEFAULT_SECTIONS, ...(data.public_page_sections as unknown as Partial<PublicPageSections>) });
-        }
-        if (data?.primary_color) {
-          setPrimaryColor(data.primary_color);
-        }
-        if (data?.logo_url) {
-          setPublicLogoUrl(data.logo_url);
-        }
         setPublicPageEnabled(!!data?.public_page_enabled);
-        
         setIsDataLoaded(true);
-      };
-      loadData();
-    }
+        return;
+      }
+
+      // No draft, load from database
+      const { data } = await supabase
+        .from('venues')
+        .select('public_page_sections, primary_color, logo_url, public_page_enabled')
+        .eq('id', currentVenue.id)
+        .single();
+      
+      if (data?.public_page_sections) {
+        setSections({ ...DEFAULT_SECTIONS, ...(data.public_page_sections as unknown as Partial<PublicPageSections>) });
+      }
+      if (data?.primary_color) {
+        setPrimaryColor(data.primary_color);
+      }
+      if (data?.logo_url) {
+        setPublicLogoUrl(data.logo_url);
+      }
+      setPublicPageEnabled(!!data?.public_page_enabled);
+      
+      setIsDataLoaded(true);
+    };
+    loadData();
   }, [currentVenue?.id]);
 
   const handleSave = async () => {
@@ -482,6 +487,14 @@ export default function PublicPageConfig() {
               </CardHeader>
               {sections.gallery.enabled && (
                 <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Título da Seção</Label>
+                    <Input
+                      value={sections.gallery.title || ''}
+                      onChange={(e) => updateSection('gallery', { title: e.target.value || undefined })}
+                      placeholder="Conheça nosso espaço"
+                    />
+                  </div>
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                     {sections.gallery.images.map((img, i) => (
                       <div key={i} className="relative group">
@@ -540,6 +553,14 @@ export default function PublicPageConfig() {
               </CardHeader>
               {sections.testimonials.enabled && (
                 <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Título da Seção</Label>
+                    <Input
+                      value={sections.testimonials.title || ''}
+                      onChange={(e) => updateSection('testimonials', { title: e.target.value || undefined })}
+                      placeholder="O que dizem sobre nós"
+                    />
+                  </div>
                   <Accordion type="multiple" className="space-y-2">
                     {sections.testimonials.items.map((t, i) => (
                       <AccordionItem key={t.id} value={t.id} className="border rounded-lg px-3">
@@ -638,6 +659,14 @@ export default function PublicPageConfig() {
               </CardHeader>
               {sections.stats.enabled && (
                 <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Título da Seção</Label>
+                    <Input
+                      value={sections.stats.title || ''}
+                      onChange={(e) => updateSection('stats', { title: e.target.value || undefined })}
+                      placeholder="Nossos Números"
+                    />
+                  </div>
                   <div className="grid gap-3 md:grid-cols-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Anos no mercado</Label>
@@ -718,6 +747,14 @@ export default function PublicPageConfig() {
               </CardHeader>
               {sections.faq.enabled && (
                 <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Título da Seção</Label>
+                    <Input
+                      value={sections.faq.title || ''}
+                      onChange={(e) => updateSection('faq', { title: e.target.value || undefined })}
+                      placeholder="Perguntas Frequentes"
+                    />
+                  </div>
                   <Accordion type="multiple" className="space-y-2">
                     {sections.faq.items.map((f, i) => (
                       <AccordionItem key={f.id} value={f.id} className="border rounded-lg px-3">
@@ -784,6 +821,14 @@ export default function PublicPageConfig() {
               </CardHeader>
               {sections.location.enabled && (
                 <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Título da Seção</Label>
+                    <Input
+                      value={sections.location.title || ''}
+                      onChange={(e) => updateSection('location', { title: e.target.value || undefined })}
+                      placeholder="Nossa Localização"
+                    />
+                  </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Endereço linha 1</Label>
@@ -843,7 +888,15 @@ export default function PublicPageConfig() {
                 </div>
               </CardHeader>
               {sections.hours.enabled && (
-                <CardContent>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Título da Seção</Label>
+                    <Input
+                      value={sections.hours.title || ''}
+                      onChange={(e) => updateSection('hours', { title: e.target.value || undefined })}
+                      placeholder="Horários de Funcionamento"
+                    />
+                  </div>
                   <div className="space-y-2">
                     {Object.entries(sections.hours.schedule).map(([day, schedule]) => (
                       <div key={day} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">

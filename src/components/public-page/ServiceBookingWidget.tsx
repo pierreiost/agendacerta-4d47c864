@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
 import { Loader2, ChevronLeft, ChevronRight, Clock, Check, Scissors, User } from 'lucide-react';
-import { format, addDays, startOfDay, isBefore, isToday } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -64,8 +65,7 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
-  const [weekStart, setWeekStart] = useState<Date>(startOfDay(new Date()));
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(startOfDay(new Date()));
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
@@ -112,8 +112,9 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
 
   // Fetch availability
   const { data: slots = [], isLoading: slotsLoading } = useQuery({
-    queryKey: ['public-availability', venue.id, selectedDate.toISOString(), totalDuration, activeProfessionalId],
+    queryKey: ['public-availability', venue.id, selectedDate?.toISOString(), totalDuration, activeProfessionalId],
     queryFn: async () => {
+      if (!selectedDate) return [];
       const { data, error } = await supabase.rpc('get_professional_availability_public', {
         p_venue_id: venue.id,
         p_date: format(selectedDate, 'yyyy-MM-dd'),
@@ -185,8 +186,6 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
       return [...prev, id];
     });
   };
-
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
   const skipProfessionalSelection = professionals.length <= 1;
 
@@ -301,50 +300,18 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
           <h2 className="text-lg font-bold text-foreground">Escolha a data</h2>
         </div>
 
-        {/* Week navigator */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setWeekStart(addDays(weekStart, -7))}
-            disabled={isBefore(addDays(weekStart, -1), startOfDay(new Date()))}
-            className="h-8 w-8"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium text-muted-foreground">
-            {format(weekStart, "MMM yyyy", { locale: ptBR })}
-          </span>
-          <Button variant="ghost" size="icon" onClick={() => setWeekStart(addDays(weekStart, 7))} className="h-8 w-8">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="flex justify-center">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            disabled={{ before: new Date() }}
+            locale={ptBR}
+            className="rounded-md border pointer-events-auto"
+          />
         </div>
 
-        <div className="grid grid-cols-7 gap-1.5">
-          {weekDays.map(day => {
-            const isPast = isBefore(day, startOfDay(new Date())) && !isToday(day);
-            const isSelected = day.toDateString() === selectedDate.toDateString();
-            return (
-              <button
-                key={day.toISOString()}
-                disabled={isPast}
-                onClick={() => setSelectedDate(day)}
-                className={cn(
-                  'flex flex-col items-center py-2.5 rounded-xl transition-all text-xs',
-                  isPast && 'opacity-30 cursor-not-allowed',
-                  isSelected ? 'bg-primary text-primary-foreground shadow-md' : 'hover:bg-muted',
-                )}
-              >
-                <span className="font-medium uppercase">
-                  {format(day, 'EEE', { locale: ptBR }).substring(0, 3)}
-                </span>
-                <span className="text-lg font-bold mt-0.5">{format(day, 'd')}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <Button className="w-full" size="lg" onClick={() => setStep(3)}>
+        <Button className="w-full" size="lg" onClick={() => setStep(3)} disabled={!selectedDate}>
           Continuar
         </Button>
       </div>
@@ -365,7 +332,7 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          {format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })} · {formatDuration(totalDuration)}
+          {selectedDate ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR }) : ''} · {formatDuration(totalDuration)}
         </p>
 
         {professionalsLoading ? (

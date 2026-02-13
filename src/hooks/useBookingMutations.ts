@@ -86,6 +86,9 @@ export function useBookingMutations() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', currentVenue?.id] });
+      if (data?.id) {
+        queryClient.invalidateQueries({ queryKey: ['booking', data.id] });
+      }
       toast({ title: 'Reserva atualizada!' });
       
       if (data?.id) {

@@ -27,7 +27,7 @@ export function TestimonialsSection({ section }: TestimonialsSectionProps) {
       {/* Section Title */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-1">
-          O que dizem sobre nós
+          {section.title || 'O que dizem sobre nós'}
         </h2>
         <div className="w-12 h-0.5 bg-primary rounded-full" />
       </div>

@@ -94,6 +94,10 @@ export function BeautyBookingSheet({
 
   const isLoading = bookingLoading || servicesLoading;
 
+  if (!open) {
+    return null;
+  }
+
   if (!booking) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
