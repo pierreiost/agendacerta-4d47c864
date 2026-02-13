@@ -27,7 +27,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select'; // Used for recurrence selects
 import {
   Command,
   CommandEmpty,
@@ -43,6 +43,9 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { useBookingRPC } from '@/hooks/useBookingRPC';
 import { useVenue } from '@/contexts/VenueContext';
 import { useFormPersist } from '@/hooks/useFormPersist';
+import { useOperatingHours } from '@/hooks/useOperatingHours';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import type { Tables } from '@/integrations/supabase/types';
 import { getSpaceColor } from './AgendaSidebar';
@@ -52,6 +55,7 @@ import {
   setMinutes,
   isBefore,
   startOfDay,
+  endOfDay,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -82,13 +86,7 @@ interface BookingWizardProps {
   defaultSlot?: { spaceId: string; date: Date; hour: number } | null;
 }
 
-const HOUR_OPTIONS = Array.from({ length: 18 }, (_, i) => {
-  const hour = i + 6;
-  return {
-    value: hour.toString(),
-    label: `${hour.toString().padStart(2, '0')}:00`,
-  };
-});
+// Duration options removed – now dynamically computed from operating hours
 
 const RECURRENCE_OPTIONS = [
   { value: 'weekly', label: 'Semanal' },
@@ -170,6 +168,103 @@ export function BookingWizard({
   const recurrenceType = watch('recurrenceType');
   const recurrenceCount = watch('recurrenceCount');
 
+  // Duration state for card-based time selection
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+
+  // Fetch operating hours for the venue
+  const { hours: operatingHours } = useOperatingHours(currentVenue?.id);
+
+  // Fetch existing bookings for the selected space+date to show availability
+  const { data: spaceBookings = [] } = useQuery({
+    queryKey: ['space-day-bookings', selectedSpaceId, selectedDate?.toISOString()],
+    queryFn: async () => {
+      if (!selectedSpaceId || !selectedDate || !currentVenue?.id) return [];
+      const dayStart = startOfDay(selectedDate);
+      const dayEnd = endOfDay(selectedDate);
+      const { data } = await supabase
+        .from('bookings')
+        .select('start_time, end_time')
+        .eq('space_id', selectedSpaceId)
+        .eq('venue_id', currentVenue.id)
+        .neq('status', 'CANCELLED')
+        .gte('start_time', dayStart.toISOString())
+        .lte('start_time', dayEnd.toISOString());
+      return data || [];
+    },
+    enabled: !!selectedSpaceId && !!selectedDate && !!currentVenue?.id,
+  });
+
+  // Generate available time slots based on operating hours
+  const availableTimeSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    const dayOfWeek = selectedDate.getDay();
+    const dayConfig = operatingHours.find(h => h.day_of_week === dayOfWeek);
+    if (!dayConfig || !dayConfig.is_open) return [];
+    const openHour = parseInt(dayConfig.open_time.split(':')[0]);
+    const closeHour = parseInt(dayConfig.close_time.split(':')[0]);
+    const slots: number[] = [];
+    const now = new Date();
+    const isToday = selectedDate.toDateString() === now.toDateString();
+    for (let h = openHour; h < closeHour; h++) {
+      if (isToday && h <= now.getHours()) continue;
+      slots.push(h);
+    }
+    return slots;
+  }, [selectedDate, operatingHours]);
+
+  // Check which slots are occupied
+  const occupiedSlots = useMemo(() => {
+    const occupied = new Set<number>();
+    spaceBookings.forEach(b => {
+      const bStart = new Date(b.start_time);
+      const bEnd = new Date(b.end_time);
+      for (let h = bStart.getHours(); h < bEnd.getHours(); h++) {
+        occupied.add(h);
+      }
+    });
+    return occupied;
+  }, [spaceBookings]);
+
+  // Available durations based on selected start time
+  const availableDurations = useMemo(() => {
+    if (!startHour || !selectedDate) return [];
+    const dayOfWeek = selectedDate.getDay();
+    const dayConfig = operatingHours.find(h => h.day_of_week === dayOfWeek);
+    if (!dayConfig) return [];
+    const closeHour = parseInt(dayConfig.close_time.split(':')[0]);
+    const start = parseInt(startHour);
+    const maxDuration = closeHour - start;
+    const durations: number[] = [];
+    for (let d = 1; d <= Math.min(maxDuration, 4); d++) {
+      let allFree = true;
+      for (let h = start; h < start + d; h++) {
+        if (occupiedSlots.has(h)) {
+          allFree = false;
+          break;
+        }
+      }
+      if (allFree) {
+        durations.push(d);
+      } else {
+        break;
+      }
+    }
+    return durations;
+  }, [startHour, selectedDate, operatingHours, occupiedSlots]);
+
+  // Handle time slot selection
+  const handleTimeSlotSelect = (hour: number) => {
+    setValue('startHour', hour.toString());
+    setSelectedDuration(null);
+    setValue('endHour', '');
+  };
+
+  // Handle duration selection
+  const handleDurationSelect = (duration: number) => {
+    setSelectedDuration(duration);
+    setValue('endHour', (parseInt(startHour) + duration).toString());
+  };
+
   // Track if we should restore from draft or use defaultSlot
   const initialLoadRef = useRef(true);
 
@@ -177,6 +272,7 @@ export function BookingWizard({
   useEffect(() => {
     if (open) {
       setStep(1);
+      setSelectedDuration(null);
       // Only reset with defaultSlot values if this is a fresh open with a slot
       if (defaultSlot && initialLoadRef.current) {
         reset({
@@ -186,7 +282,7 @@ export function BookingWizard({
           spaceId: defaultSlot.spaceId,
           date: defaultSlot.date,
           startHour: defaultSlot.hour.toString(),
-          endHour: (defaultSlot.hour + 1).toString(),
+          endHour: '',
           notes: '',
         });
         clearDraft(); // Clear any existing draft when using defaultSlot
@@ -508,81 +604,125 @@ export function BookingWizard({
                     )}
                   </div>
 
-                  {/* Date and Time */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label className="mb-2 flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4" />
-                        Data
-                      </Label>
-                      <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start">
-                            {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : 'Selecionar'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => {
-                              if (date) {
-                                setValue('date', date);
-                                setDatePickerOpen(false);
-                              }
-                            }}
-                            locale={ptBR}
-                            disabled={(date) => isBefore(date, startOfDay(new Date()))}
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <Label className="mb-2 flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Início
-                      </Label>
-                      <Select value={startHour} onValueChange={(v) => setValue('startHour', v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Hora" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {HOUR_OPTIONS.filter((opt) => {
-                            if (!selectedDate) return true;
-                            const now = new Date();
-                            const isToday = selectedDate.toDateString() === now.toDateString();
-                            if (!isToday) return true;
-                            return parseInt(opt.value) > now.getHours();
-                          }).map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="mb-2 flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Fim
-                      </Label>
-                      <Select value={endHour} onValueChange={(v) => setValue('endHour', v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Hora" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {HOUR_OPTIONS.filter((opt) => parseInt(opt.value) > parseInt(startHour || '0')).map(
-                            (opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  {/* Date Selection */}
+                  <div>
+                    <Label className="mb-2 flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      Data
+                    </Label>
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : 'Selecionar data'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => {
+                            if (date) {
+                              setValue('date', date);
+                              setValue('startHour', '');
+                              setValue('endHour', '');
+                              setSelectedDuration(null);
+                              setDatePickerOpen(false);
+                            }
+                          }}
+                          locale={ptBR}
+                          disabled={(date) => isBefore(date, startOfDay(new Date()))}
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
+
+                  {/* Available Time Slots */}
+                  {selectedSpaceId && selectedDate && (
+                    <div>
+                      <Label className="mb-3 flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Horário disponível
+                      </Label>
+                      {(() => {
+                        const dayOfWeek = selectedDate.getDay();
+                        const dayConfig = operatingHours.find(h => h.day_of_week === dayOfWeek);
+                        if (dayConfig && !dayConfig.is_open) {
+                          return (
+                            <Card className="p-6 text-center bg-muted/50">
+                              <p className="text-muted-foreground">Estabelecimento fechado neste dia</p>
+                            </Card>
+                          );
+                        }
+                        if (availableTimeSlots.length === 0) {
+                          return (
+                            <Card className="p-6 text-center bg-muted/50">
+                              <p className="text-muted-foreground">Nenhum horário disponível</p>
+                            </Card>
+                          );
+                        }
+                        return (
+                          <div className="grid grid-cols-4 gap-2">
+                            {availableTimeSlots.map((hour) => {
+                              const isOccupied = occupiedSlots.has(hour);
+                              const isSelected = startHour === hour.toString();
+                              return (
+                                <Button
+                                  key={hour}
+                                  type="button"
+                                  variant={isSelected ? 'default' : 'outline'}
+                                  disabled={isOccupied}
+                                  className={cn(
+                                    'h-10',
+                                    isSelected && 'bg-primary text-primary-foreground',
+                                    isOccupied && 'opacity-50 line-through'
+                                  )}
+                                  onClick={() => handleTimeSlotSelect(hour)}
+                                >
+                                  {hour.toString().padStart(2, '0')}:00
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Duration Selection */}
+                  {startHour && (
+                    <div>
+                      <Label className="mb-3 flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Duração
+                      </Label>
+                      {availableDurations.length === 0 ? (
+                        <Card className="p-4 text-center bg-muted/50">
+                          <p className="text-sm text-muted-foreground">Nenhuma duração disponível</p>
+                        </Card>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2">
+                          {availableDurations.map((d) => {
+                            const isSelected = selectedDuration === d;
+                            return (
+                              <Button
+                                key={d}
+                                type="button"
+                                variant={isSelected ? 'default' : 'outline'}
+                                className={cn(
+                                  'h-10',
+                                  isSelected && 'bg-primary text-primary-foreground'
+                                )}
+                                onClick={() => handleDurationSelect(d)}
+                              >
+                                {d}h
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Notes */}
                   <div>
