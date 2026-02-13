@@ -1,97 +1,104 @@
 
 
-# Plano de Melhorias e Correções
+# Solucao Definitiva: Eliminar Loops de Re-renderizacao no ServiceBookingWizard
 
-## Resumo
+## Problema Raiz
 
-4 itens a implementar: calendário mensal na página pública, títulos editáveis nas seções, correção do crash na agenda interna e persistência do toggle ativo/inativo.
+O `watch()` do `react-hook-form` cria uma subscricao que causa re-render a CADA mudanca de valor no formulario. Quando `serviceIds` (array) e observado via `watch()`, cada `setValue` gera uma nova referencia de array, que por sua vez re-dispara todos os `useMemo` e o `useProfessionalAvailability` -- criando uma cascata de re-renders que em certos cenarios (cache quente, muitos profissionais, rede lenta) ultrapassa o limite do React.
 
----
+## Estrategia: Substituir `watch()` por estado local controlado
 
-## 1. Calendário Mensal na Página Pública (ServiceBookingWidget)
+Em vez de depender do `watch()` do react-hook-form para os campos criticos (`serviceIds`, `professionalId`, `startTime`), vamos gerenciar esses valores como `useState` local e sincronizar com o form apenas no momento do submit. Isso elimina completamente a cadeia reativa `watch -> setValue -> re-render -> watch`.
 
-**Problema:** O Step 2 do `ServiceBookingWidget` exibe um seletor semanal (7 dias por vez com navegação por setas). O cliente quer uma visão mensal.
+## Mudancas Tecnicas
 
-**Solução:** Substituir o seletor semanal customizado pelo componente `Calendar` (react-day-picker) já existente em `src/components/ui/calendar.tsx`.
+### Arquivo: `src/components/agenda/ServiceBookingWizard.tsx`
 
-**Arquivo:** `src/components/public-page/ServiceBookingWidget.tsx`
-- Remover os estados `weekStart` e `weekDays`
-- Importar `Calendar` de `@/components/ui/calendar`
-- No Step 2, substituir o grid de 7 dias por `<Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={{ before: new Date() }} />`
-- Manter o botão "Continuar" abaixo
+1. **Remover `watch()` para campos problematicos**: Substituir `watch('serviceIds')`, `watch('professionalId')` e `watch('startTime')` por `useState` local.
 
-Também aplicar ao `BookingWidget.tsx` (esportes) para consistência, caso o step de data use o mesmo padrão semanal.
+2. **Manter `watch('customerName')` e `watch('date')`**: Esses campos escalares nao causam problemas de referencia.
 
----
+3. **Sincronizar estado local com o form apenas no submit**: No `onSubmit`, copiar os valores locais para o form antes de validar.
 
-## 2. Títulos Editáveis nas Seções da Página Pública
+4. **Simplificar handlers**: `handleServiceToggle` e `handleProfessionalSelect` agora alteram apenas o estado local (sem `form.setValue` durante interacao).
 
-**Problema:** Os títulos das seções (ex: "Conheça nosso espaço", "O que dizem sobre nós", "Perguntas Frequentes", etc.) são fixos no código.
+5. **Resetar estado local quando o dialog abre**: No `useEffect` de reset, tambem resetar os `useState`.
 
-**Solução:**
+### Mudancas especificas:
 
-**a) Atualizar o tipo `PublicPageSections`** em `src/types/public-page.ts`:
-- Adicionar campo `title?: string` em cada interface de seção: `GallerySection`, `TestimonialsSection`, `FaqSection`, `StatsSection`, `LocationSection`, `HoursSection`
-- Adicionar valores padrão em `DEFAULT_SECTIONS`
+```text
+ANTES (linhas 124-128):
+  const customerName = watch('customerName');
+  const serviceIds = watch('serviceIds');
+  const selectedDate = watch('date');
+  const professionalId = watch('professionalId');
+  const startTime = watch('startTime');
 
-**b) Adicionar campo de edição** em `src/pages/PublicPageConfig.tsx`:
-- Em cada aba de seção, adicionar um `<Input>` para "Título da Seção" logo abaixo do toggle de "Seção ativa"
+DEPOIS:
+  const customerName = watch('customerName');
+  const selectedDate = watch('date');
+  // Campos gerenciados localmente para evitar loops de re-render
+  const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
+  const [localProfessionalId, setLocalProfessionalId] = useState('');
+  const [localStartTime, setLocalStartTime] = useState('');
+```
 
-**c) Usar o título customizado** nos componentes de renderização:
-- `GallerySection.tsx`: `section.title || 'Conheça nosso espaço'`
-- `TestimonialsSection.tsx`: `section.title || 'O que dizem sobre nós'`
-- `FaqSection.tsx`: `section.title || 'Perguntas Frequentes'`
-- `StatsSection.tsx`: (adicionar título, não tem atualmente)
-- `LocationSection.tsx`: `section.title || 'Nossa Localização'`
-- `HoursSection.tsx`: `section.title || 'Horários de Funcionamento'`
+```text
+ANTES (handleServiceToggle):
+  form.setValue('serviceIds', updated, ...);
+  form.setValue('professionalId', '', ...);
+  form.setValue('startTime', '', ...);
 
----
+DEPOIS:
+  setLocalServiceIds(updated);
+  setLocalProfessionalId('');
+  setLocalStartTime('');
+```
 
-## 3. Correção da Instabilidade na Agenda Interna
+```text
+ANTES (handleProfessionalSelect):
+  form.setValue('professionalId', profId, ...);
+  form.setValue('startTime', '', ...);
 
-**Problema:** Ao clicar em um serviço/reserva na agenda, o `BeautyBookingSheet` abre e dispara queries (`useBookingById`, `useBookingServices`, `useOrderItems`). Se alguma dessas queries falhar ou o componente montar/desmontar rapidamente, o `AppErrorBoundary` captura o erro e solicita limpeza de cache.
+DEPOIS:
+  setLocalProfessionalId(profId);
+  setLocalStartTime('');
+```
 
-**Diagnóstico provável:** O `BeautyBookingSheet` renderiza com `booking` ainda `null` (antes do fetch completar), e hooks internos como `useBookingServices` e `useOrderItems` são chamados com `booking?.id ?? null`. O problema pode ocorrer quando `initialBooking` muda para `null` ao fechar o sheet, mas os hooks ainda estão ativos.
+```text
+ANTES (onSubmit):
+  Usa data direto do form
 
-**Solução em `src/components/bookings/BeautyBookingSheet.tsx`:**
-- Adicionar invalidação de queries no `onSuccess` das mutações de status (confirm/cancel) para garantir que o cache atualize imediatamente
-- Proteger a renderização: só renderizar o conteúdo completo quando `open && booking` (evitando renders com dados parciais)
-- Invalidar `['booking', id]` e `['bookings']` após mutations
+DEPOIS:
+  Antes de submeter, sincroniza:
+  form.setValue('serviceIds', localServiceIds);
+  form.setValue('professionalId', localProfessionalId);
+  form.setValue('startTime', localStartTime);
+  Entao submete via handleSubmit
+```
 
-**Solução similar em `src/hooks/useBookingMutations.ts`:**
-- Após `updateBooking.onSuccess`, invalidar também `['booking', data.id]` para que o sheet individual atualize
+```text
+ANTES (reset useEffect):
+  reset({ ..., serviceIds: [], professionalId: '', startTime: '' });
 
----
+DEPOIS:
+  reset({ ..., serviceIds: [], professionalId: '', startTime: '' });
+  setLocalServiceIds([]);
+  setLocalProfessionalId('');
+  setLocalStartTime('');
+```
 
-## 4. Persistência do Toggle Ativo/Inativo
+6. **Todos os `useMemo` e o hook de disponibilidade passam a usar os estados locais** em vez dos valores do `watch()`.
 
-**Problema:** O toggle `publicPageEnabled` é um estado local inicializado como `false`. Ao trocar de aba ou atualizar o navegador, o estado retorna para `false` porque:
-1. O `hasLoadedFromDbRef.current` já é `true` (pois já carregou uma vez), impedindo re-leitura do DB
-2. Se o componente remonta (troca de rota e volta), o ref reseta mas pode haver uma race condition com o draft do `useStatePersist`
+7. **Na UI (Checkbox/Card)**: `isSelected` usa `localServiceIds.includes(service.id)` em vez de `serviceIds.includes(service.id)`.
 
-**Solução em `src/pages/PublicPageConfig.tsx`:**
-- Resetar `hasLoadedFromDbRef.current = false` quando `currentVenue?.id` mudar (para suportar troca de venue)
-- Persistir `publicPageEnabled` no `localStorage` junto com o mecanismo existente de `useStatePersist`, ou simplesmente sempre re-ler do banco ao montar
-- Solução mais simples: remover o `hasLoadedFromDbRef` e usar uma query React Query para buscar os dados da venue, garantindo cache e refetch automático
-- Alternativa direta: ao salvar com sucesso (`handleSave`), chamar `queryClient.invalidateQueries({ queryKey: ['venues'] })` para que o `VenueContext` também atualize com o novo estado
+8. **No submit**: A funcao `onSubmit` usara os valores locais diretamente (sem depender do form para esses campos).
 
----
+## Por que isso e definitivo
 
-## Detalhes Técnicos
-
-### Arquivos a modificar:
-1. `src/types/public-page.ts` - Adicionar `title?: string` nas interfaces
-2. `src/components/public-page/ServiceBookingWidget.tsx` - Trocar seletor semanal por Calendar mensal
-3. `src/components/public-page/GallerySection.tsx` - Usar título dinâmico
-4. `src/components/public-page/TestimonialsSection.tsx` - Usar título dinâmico
-5. `src/components/public-page/FaqSection.tsx` - Usar título dinâmico
-6. `src/components/public-page/StatsSection.tsx` - Usar título dinâmico
-7. `src/components/public-page/LocationSection.tsx` - Usar título dinâmico
-8. `src/components/public-page/HoursSection.tsx` - Usar título dinâmico
-9. `src/pages/PublicPageConfig.tsx` - Campos de edição de título + correção da persistência do toggle
-10. `src/components/bookings/BeautyBookingSheet.tsx` - Proteção contra renders parciais
-11. `src/hooks/useBookingMutations.ts` - Invalidação de query individual do booking
-
-### Nenhuma migration SQL necessária
-Todos os títulos customizados ficam dentro do campo JSONB `public_page_sections`, que já existe.
+- Elimina 100% das subscricoes reativas do `watch()` para arrays
+- Estado local com `useState` e a forma mais previsivel e segura de gerenciar valores no React
+- Nao ha mais cadeia `watch -> setValue -> re-render -> watch`
+- O `useProfessionalAvailability` recebe referencia estavel do `useState` (nao recria array a cada render)
+- Compatible com todos os segmentos (beauty, health, custom) pois todos usam o mesmo `ServiceBookingWizard`
 
