@@ -548,7 +548,13 @@ export function BookingWizard({
                           <SelectValue placeholder="Hora" />
                         </SelectTrigger>
                         <SelectContent>
-                          {HOUR_OPTIONS.map((opt) => (
+                          {HOUR_OPTIONS.filter((opt) => {
+                            if (!selectedDate) return true;
+                            const now = new Date();
+                            const isToday = selectedDate.toDateString() === now.toDateString();
+                            if (!isToday) return true;
+                            return parseInt(opt.value) > now.getHours();
+                          }).map((opt) => (
                             <SelectItem key={opt.value} value={opt.value}>
                               {opt.label}
                             </SelectItem>
