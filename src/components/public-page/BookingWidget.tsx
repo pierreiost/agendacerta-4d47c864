@@ -556,24 +556,24 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email" className="text-sm">Email *</Label>
+                    <Label htmlFor="phone" className="text-sm">Telefone *</Label>
+                    <Input
+                      id="phone"
+                      value={formData.customer_phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
+                      required
+                      maxLength={20}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="text-sm">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={formData.customer_email}
                       onChange={(e) => setFormData(prev => ({ ...prev, customer_email: e.target.value }))}
-                      required
                       maxLength={254}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone" className="text-sm">Telefone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.customer_phone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
-                      maxLength={20}
                       className="mt-1"
                     />
                   </div>
@@ -619,24 +619,24 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="email" className="text-sm">Email *</Label>
+                <Label htmlFor="phone" className="text-sm">Telefone *</Label>
+                <Input
+                  id="phone"
+                  value={formData.customer_phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
+                  required
+                  maxLength={20}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email" className="text-sm">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.customer_email}
                   onChange={(e) => setFormData(prev => ({ ...prev, customer_email: e.target.value }))}
-                  required
                   maxLength={254}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone" className="text-sm">Telefone</Label>
-                <Input
-                  id="phone"
-                  value={formData.customer_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
-                  maxLength={20}
                   className="mt-1"
                 />
               </div>
