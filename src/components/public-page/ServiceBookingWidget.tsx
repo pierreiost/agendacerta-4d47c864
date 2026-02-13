@@ -23,6 +23,7 @@ interface ServiceBookingWidgetProps {
       page_instruction?: string;
     } | null;
   };
+  whatsappPhone?: string | null;
 }
 
 interface PublicService {
@@ -61,7 +62,7 @@ function formatPrice(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
+export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWidgetProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -155,7 +156,7 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
         p_service_ids: selectedServiceIds,
         p_start_time: selectedSlot,
         p_customer_name: customerName,
-        p_customer_email: customerEmail,
+        p_customer_email: customerEmail || 'sem-email@agendamento.local',
         p_customer_phone: customerPhone || undefined,
       });
       if (error) throw error;
@@ -426,6 +427,12 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
     const bookedDateStr = selectedDate ? format(selectedDate, "d 'de' MMMM", { locale: ptBR }) : '';
     const bookedTimeStr = selectedSlot ? format(new Date(selectedSlot), 'HH:mm') : '';
 
+    const cleanPhone = whatsappPhone?.replace(/\D/g, '') || '';
+    const hasWhatsApp = cleanPhone.length >= 8;
+    const whatsAppMessage = encodeURIComponent(
+      `Olá! Acabei de solicitar um agendamento para ${bookedDateStr} às ${bookedTimeStr}. Aguardo a confirmação!`
+    );
+
     return (
       <div className="p-4 sm:p-6 flex flex-col items-center text-center space-y-4 py-10">
         <div className="h-16 w-16 rounded-full bg-warning/20 flex items-center justify-center">
@@ -439,9 +446,21 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
         <p className="text-xs text-muted-foreground">
           Fique atento ao seu WhatsApp/E-mail para a confirmação.
         </p>
+
+        {hasWhatsApp && (
+          <a
+            href={`https://wa.me/${cleanPhone}?text=${whatsAppMessage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] hover:bg-[#128C7E] text-white px-6 py-2.5 text-sm font-medium transition-colors w-full max-w-xs"
+          >
+            📱 Enviar Comprovante via WhatsApp
+          </a>
+        )}
+
         <Button
           variant="outline"
-          className="mt-4"
+          className="mt-2"
           onClick={() => {
             setStep(1);
             setSelectedServiceIds([]);
@@ -495,21 +514,21 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-foreground">E-mail *</label>
-          <Input
-            type="email"
-            value={customerEmail}
-            onChange={e => setCustomerEmail(e.target.value)}
-            placeholder="seu@email.com"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-foreground">Telefone</label>
+          <label className="text-sm font-medium text-foreground">Telefone *</label>
           <Input
             value={customerPhone}
             onChange={e => setCustomerPhone(e.target.value)}
             placeholder="(99) 99999-9999"
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-foreground">E-mail</label>
+          <Input
+            type="email"
+            value={customerEmail}
+            onChange={e => setCustomerEmail(e.target.value)}
+            placeholder="seu@email.com (opcional)"
             className="mt-1"
           />
         </div>
@@ -518,7 +537,7 @@ export function ServiceBookingWidget({ venue }: ServiceBookingWidgetProps) {
       <Button
         className="w-full"
         size="lg"
-        disabled={!customerName || !customerEmail || bookingMutation.isPending}
+        disabled={!customerName || customerPhone.replace(/\D/g, '').length < 8 || bookingMutation.isPending}
         onClick={() => bookingMutation.mutate()}
       >
         {bookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

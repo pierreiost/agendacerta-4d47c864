@@ -237,7 +237,7 @@ export default function PublicPageVenue() {
             <div className="sticky top-24">
               <div className="bg-white rounded-2xl shadow-2xl shadow-black/5 border border-black/5 overflow-hidden">
                 {(venue.segment === 'beauty' || venue.segment === 'health') ? (
-                  <ServiceBookingWidget venue={venue} />
+                  <ServiceBookingWidget venue={venue} whatsappPhone={whatsappPhone} />
                 ) : (
                   <BookingWidget venue={venue} />
                 )}
@@ -253,7 +253,7 @@ export default function PublicPageVenue() {
       </footer>
 
       {/* Mobile: Botão fixo que abre drawer */}
-      <MobileBookingButton venue={venue} />
+      <MobileBookingButton venue={venue} whatsappPhone={whatsappPhone} />
 
       {/* Social Floating Buttons (WhatsApp + Instagram) */}
       <SocialFloatingButtons

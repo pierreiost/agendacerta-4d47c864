@@ -29,9 +29,10 @@ interface PublicVenue {
 
 interface MobileBookingButtonProps {
   venue: PublicVenue;
+  whatsappPhone?: string | null;
 }
 
-export function MobileBookingButton({ venue }: MobileBookingButtonProps) {
+export function MobileBookingButton({ venue, whatsappPhone }: MobileBookingButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const isServiceSegment = venue.segment === 'beauty' || venue.segment === 'health';
@@ -80,7 +81,7 @@ export function MobileBookingButton({ venue }: MobileBookingButtonProps) {
           </DrawerHeader>
           <div className="overflow-y-auto px-4 py-4">
             {isServiceSegment ? (
-              <ServiceBookingWidget venue={venue} />
+              <ServiceBookingWidget venue={venue} whatsappPhone={whatsappPhone} />
             ) : (
               <BookingWidget venue={venue} />
             )}
