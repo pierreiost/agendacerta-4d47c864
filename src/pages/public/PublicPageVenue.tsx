@@ -15,6 +15,7 @@ import {
   PageHeader,
   MobileBookingButton,
   SocialFloatingButtons,
+  ServiceBookingWidget,
 } from '@/components/public-page';
 import { LocationSection } from '@/components/public-page/LocationSection';
 import { HoursSection } from '@/components/public-page/HoursSection';
@@ -34,6 +35,7 @@ interface PublicVenue {
   logo_url: string | null;
   primary_color: string | null;
   phone: string | null;
+  segment: string | null;
   public_page_sections: PublicPageSections | null;
 }
 
@@ -92,6 +94,7 @@ export default function PublicPageVenue() {
         booking_mode: raw.booking_mode as PublicVenue['booking_mode'],
         public_settings: raw.public_settings as PublicVenue['public_settings'],
         public_page_sections: raw.public_page_sections as unknown as PublicPageSections | null,
+        segment: raw.segment || null,
       } as PublicVenue;
     },
     enabled: !!slug,
@@ -233,7 +236,11 @@ export default function PublicPageVenue() {
           >
             <div className="sticky top-24">
               <div className="bg-white rounded-2xl shadow-2xl shadow-black/5 border border-black/5 overflow-hidden">
-                <BookingWidget venue={venue} />
+                {(venue.segment === 'beauty' || venue.segment === 'health') ? (
+                  <ServiceBookingWidget venue={venue} />
+                ) : (
+                  <BookingWidget venue={venue} />
+                )}
               </div>
             </div>
           </div>
