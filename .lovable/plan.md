@@ -1,145 +1,97 @@
 
 
-## Implementacao: Menu Visual de Servicos + Combo + Profissional Inteligente (Beauty)
+# Plano de Melhorias e Correções
 
-Este plano implementa 3 funcionalidades integradas para a pagina publica do segmento Beauty:
-1. Grid visual "Insta-Style" de servicos com imagem de capa
-2. Multi-selecao de servicos (combos) com soma automatica de duracao/preco
-3. Selecao inteligente de profissional baseada na quantidade de bookable members
+## Resumo
 
----
-
-### Etapa 1 - Migration SQL (Banco de Dados)
-
-**1.1 Adicionar `cover_image_url` na tabela `services`**
-
-Nova coluna `text` nullable para armazenar a URL da imagem de capa.
-
-**1.2 Atualizar RPC `get_public_venue_by_slug`**
-
-Incluir `v.segment` no retorno da funcao para que o frontend saiba qual widget renderizar.
-
-**1.3 Criar RPC `get_public_services_by_venue`**
-
-Funcao SECURITY DEFINER com acesso anonimo que retorna servicos ativos de uma venue (apenas id, title, description, price, duration_minutes, cover_image_url). Filtra `is_active = true`, ordena por `display_order`.
-
-**1.4 Criar RPC `get_public_venue_professionals`**
-
-Funcao SECURITY DEFINER com acesso anonimo que:
-- Recebe `p_venue_id` e `p_service_ids[]`
-- Retorna profissionais bookable que atendem TODOS os servicos (member_id, display_name, avatar_url, bio)
-- NUNCA retorna email, phone, user_id ou dados sensíveis
-- Se nenhum profissional bookable existir, busca o admin da venue e o torna bookable automaticamente usando `INSERT ... ON CONFLICT DO NOTHING` na `professional_services` e um UPDATE idempotente em `venue_members`
-
-**1.5 Criar RPC `get_professional_availability_public`**
-
-Funcao SECURITY DEFINER com acesso anonimo que:
-- Recebe `p_venue_id`, `p_date`, `p_total_duration_minutes`, `p_professional_id` (opcional)
-- Gera slots baseado no `slot_interval_minutes` da venue (8h-20h)
-- Usa logica de `OVERLAPS` (tsrange) para verificar conflitos no intervalo `[slot_start, slot_start + total_duration]` contra bookings existentes do profissional
-- Se `p_professional_id` for NULL, agrega slots de todos os profissionais bookable
-- Retorna `(slot_start timestamptz, professional_id uuid, professional_name text)`
-- Timezone: todas as comparacoes em `America/Sao_Paulo`
+4 itens a implementar: calendário mensal na página pública, títulos editáveis nas seções, correção do crash na agenda interna e persistência do toggle ativo/inativo.
 
 ---
 
-### Etapa 2 - Tipos e Hook de Servicos
+## 1. Calendário Mensal na Página Pública (ServiceBookingWidget)
 
-**Arquivo: `src/types/services.ts`**
-- Adicionar `cover_image_url: string | null` em `Service`, `ServiceInsert` e `ServiceUpdate`
+**Problema:** O Step 2 do `ServiceBookingWidget` exibe um seletor semanal (7 dias por vez com navegação por setas). O cliente quer uma visão mensal.
 
-**Arquivo: `src/hooks/useServices.ts`**
-- Incluir `cover_image_url` na mutation de create/update
+**Solução:** Substituir o seletor semanal customizado pelo componente `Calendar` (react-day-picker) já existente em `src/components/ui/calendar.tsx`.
 
----
+**Arquivo:** `src/components/public-page/ServiceBookingWidget.tsx`
+- Remover os estados `weekStart` e `weekDays`
+- Importar `Calendar` de `@/components/ui/calendar`
+- No Step 2, substituir o grid de 7 dias por `<Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={{ before: new Date() }} />`
+- Manter o botão "Continuar" abaixo
 
-### Etapa 3 - Upload de Imagem no Formulario de Servico
-
-**Arquivo: `src/components/services/ServiceFormDialog.tsx`**
-
-Adicionar:
-- Campo de upload de imagem de capa (usando `useFileUpload`)
-- Preview da imagem com botao de remover
-- Upload para bucket `public-page-assets` na pasta `services/{venue_id}/`
-- Campo opcional, schema zod atualizado com `cover_image_url`
-- Envio do `cover_image_url` nas mutations de create e update
+Também aplicar ao `BookingWidget.tsx` (esportes) para consistência, caso o step de data use o mesmo padrão semanal.
 
 ---
 
-### Etapa 4 - Novo Componente ServiceBookingWidget
+## 2. Títulos Editáveis nas Seções da Página Pública
 
-**Arquivo novo: `src/components/public-page/ServiceBookingWidget.tsx`**
+**Problema:** Os títulos das seções (ex: "Conheça nosso espaço", "O que dizem sobre nós", "Perguntas Frequentes", etc.) são fixos no código.
 
-Widget dedicado para o fluxo beauty/health na pagina publica. Fluxo adaptativo em 4 passos:
+**Solução:**
 
-**Passo 1 - Selecao de Servicos (Grid Visual)**
-- Grid responsivo: 1 coluna mobile, 2 colunas tablet, 3 desktop
-- Cards com imagem de capa (aspect-ratio 4:3), fallback com cor/icone
-- Nome, preco e duracao abaixo da imagem
-- Checkbox de selecao no card
-- Barra de resumo sticky no rodape: "2 servicos - R$ 120 - 1h30" + botao "Continuar"
-- Limite de 5 servicos por agendamento
+**a) Atualizar o tipo `PublicPageSections`** em `src/types/public-page.ts`:
+- Adicionar campo `title?: string` em cada interface de seção: `GallerySection`, `TestimonialsSection`, `FaqSection`, `StatsSection`, `LocationSection`, `HoursSection`
+- Adicionar valores padrão em `DEFAULT_SECTIONS`
 
-**Passo 2 - Selecao de Data**
-- Seletor de semana (7 dias) reutilizando padrao existente
-- Navegacao semanal (anterior/proxima)
-- Dias passados desabilitados
+**b) Adicionar campo de edição** em `src/pages/PublicPageConfig.tsx`:
+- Em cada aba de seção, adicionar um `<Input>` para "Título da Seção" logo abaixo do toggle de "Seção ativa"
 
-**Passo 3 - Profissional + Horario (Adaptativo)**
-
-Logica baseada na quantidade de profissionais bookable que atendem os servicos selecionados:
-
-| Cenario | Fluxo |
-|---|---|
-| 0 bookable (auto-criou admin) ou 1 bookable | Pula selecao, mostra direto horarios do unico profissional |
-| 2+ bookable | Cards dos profissionais (foto, nome, bio) -> ao selecionar, mostra horarios dele |
-
-- Grid de horarios: cada slot mostra apenas horario de inicio
-- Slots calculados com base na duracao total do combo
-- Se o usuario alterar servicos no passo 1, profissional e horario sao resetados (state cleanup)
-
-**Passo 4 - Dados do Cliente + Confirmacao**
-- Formulario: nome, email, telefone
-- Resumo: servicos, profissional, data/hora, valor total
-- Botao "Confirmar Agendamento"
-- Chama RPC `create_service_booking` existente (ja suporta multi-servicos)
+**c) Usar o título customizado** nos componentes de renderização:
+- `GallerySection.tsx`: `section.title || 'Conheça nosso espaço'`
+- `TestimonialsSection.tsx`: `section.title || 'O que dizem sobre nós'`
+- `FaqSection.tsx`: `section.title || 'Perguntas Frequentes'`
+- `StatsSection.tsx`: (adicionar título, não tem atualmente)
+- `LocationSection.tsx`: `section.title || 'Nossa Localização'`
+- `HoursSection.tsx`: `section.title || 'Horários de Funcionamento'`
 
 ---
 
-### Etapa 5 - Integracao na Pagina Publica
+## 3. Correção da Instabilidade na Agenda Interna
 
-**Arquivo: `src/pages/public/PublicPageVenue.tsx`**
-- Atualizar interface `PublicVenue` para incluir `segment`
-- Condicionar renderizacao: `segment === 'beauty' || segment === 'health'` -> `ServiceBookingWidget`; caso contrario -> `BookingWidget`
+**Problema:** Ao clicar em um serviço/reserva na agenda, o `BeautyBookingSheet` abre e dispara queries (`useBookingById`, `useBookingServices`, `useOrderItems`). Se alguma dessas queries falhar ou o componente montar/desmontar rapidamente, o `AppErrorBoundary` captura o erro e solicita limpeza de cache.
 
-**Arquivo: `src/components/public-page/MobileBookingButton.tsx`**
-- Atualizar interface para incluir `segment`
-- Renderizar `ServiceBookingWidget` dentro do drawer quando beauty/health
+**Diagnóstico provável:** O `BeautyBookingSheet` renderiza com `booking` ainda `null` (antes do fetch completar), e hooks internos como `useBookingServices` e `useOrderItems` são chamados com `booking?.id ?? null`. O problema pode ocorrer quando `initialBooking` muda para `null` ao fechar o sheet, mas os hooks ainda estão ativos.
 
-**Arquivo: `src/components/public-page/index.ts`**
-- Exportar `ServiceBookingWidget`
+**Solução em `src/components/bookings/BeautyBookingSheet.tsx`:**
+- Adicionar invalidação de queries no `onSuccess` das mutações de status (confirm/cancel) para garantir que o cache atualize imediatamente
+- Proteger a renderização: só renderizar o conteúdo completo quando `open && booking` (evitando renders com dados parciais)
+- Invalidar `['booking', id]` e `['bookings']` após mutations
+
+**Solução similar em `src/hooks/useBookingMutations.ts`:**
+- Após `updateBooking.onSuccess`, invalidar também `['booking', data.id]` para que o sheet individual atualize
 
 ---
 
-### Resumo dos Arquivos
+## 4. Persistência do Toggle Ativo/Inativo
 
-| Arquivo | Acao |
-|---|---|
-| Migration SQL | `cover_image_url` em services, RPCs publicas (4 funcoes), grants anon |
-| `src/types/services.ts` | Adicionar `cover_image_url` nas interfaces |
-| `src/hooks/useServices.ts` | Incluir `cover_image_url` nas mutations |
-| `src/components/services/ServiceFormDialog.tsx` | Upload de imagem de capa |
-| `src/components/public-page/ServiceBookingWidget.tsx` | Criar (novo widget com fluxo adaptativo) |
-| `src/components/public-page/MobileBookingButton.tsx` | Condicionar por segmento |
-| `src/components/public-page/index.ts` | Exportar novo componente |
-| `src/pages/public/PublicPageVenue.tsx` | Condicionar widget por segmento |
+**Problema:** O toggle `publicPageEnabled` é um estado local inicializado como `false`. Ao trocar de aba ou atualizar o navegador, o estado retorna para `false` porque:
+1. O `hasLoadedFromDbRef.current` já é `true` (pois já carregou uma vez), impedindo re-leitura do DB
+2. Se o componente remonta (troca de rota e volta), o ref reseta mas pode haver uma race condition com o draft do `useStatePersist`
 
-### Garantias de Seguranca
+**Solução em `src/pages/PublicPageConfig.tsx`:**
+- Resetar `hasLoadedFromDbRef.current = false` quando `currentVenue?.id` mudar (para suportar troca de venue)
+- Persistir `publicPageEnabled` no `localStorage` junto com o mecanismo existente de `useStatePersist`, ou simplesmente sempre re-ler do banco ao montar
+- Solução mais simples: remover o `hasLoadedFromDbRef` e usar uma query React Query para buscar os dados da venue, garantindo cache e refetch automático
+- Alternativa direta: ao salvar com sucesso (`handleSave`), chamar `queryClient.invalidateQueries({ queryKey: ['venues'] })` para que o `VenueContext` também atualize com o novo estado
 
-- RPCs publicas nunca retornam email, phone, user_id ou dados de auth
-- Auto-criacao do admin como profissional usa `ON CONFLICT DO NOTHING` (idempotente)
-- Disponibilidade usa logica de `OVERLAPS` com `tsrange` para duracao total do combo
-- Todas as comparacoes de tempo em timezone `America/Sao_Paulo`
-- Bucket `public-page-assets` ja possui politicas corretas (SELECT public, INSERT/UPDATE/DELETE autenticado)
-- Reset de estado no frontend ao alterar servicos selecionados
+---
+
+## Detalhes Técnicos
+
+### Arquivos a modificar:
+1. `src/types/public-page.ts` - Adicionar `title?: string` nas interfaces
+2. `src/components/public-page/ServiceBookingWidget.tsx` - Trocar seletor semanal por Calendar mensal
+3. `src/components/public-page/GallerySection.tsx` - Usar título dinâmico
+4. `src/components/public-page/TestimonialsSection.tsx` - Usar título dinâmico
+5. `src/components/public-page/FaqSection.tsx` - Usar título dinâmico
+6. `src/components/public-page/StatsSection.tsx` - Usar título dinâmico
+7. `src/components/public-page/LocationSection.tsx` - Usar título dinâmico
+8. `src/components/public-page/HoursSection.tsx` - Usar título dinâmico
+9. `src/pages/PublicPageConfig.tsx` - Campos de edição de título + correção da persistência do toggle
+10. `src/components/bookings/BeautyBookingSheet.tsx` - Proteção contra renders parciais
+11. `src/hooks/useBookingMutations.ts` - Invalidação de query individual do booking
+
+### Nenhuma migration SQL necessária
+Todos os títulos customizados ficam dentro do campo JSONB `public_page_sections`, que já existe.
 
