@@ -166,14 +166,23 @@ export function ServiceBookingWizard({
   }, [open, defaultDate, reset, clearDraft]);
 
   // Clear professional and time when services change
+  const prevServiceCountRef = useRef(serviceIds.length);
   useEffect(() => {
-    setValue('professionalId', '');
-    setValue('startTime', '');
+    // Only reset when user actually changes services (not on initial load/restore)
+    if (prevServiceCountRef.current !== serviceIds.length && prevServiceCountRef.current !== 0) {
+      setValue('professionalId', '', { shouldDirty: false });
+      setValue('startTime', '', { shouldDirty: false });
+    }
+    prevServiceCountRef.current = serviceIds.length;
   }, [serviceIds.length, setValue]);
 
   // Clear time when professional changes
+  const prevProfessionalRef = useRef(professionalId);
   useEffect(() => {
-    setValue('startTime', '');
+    if (prevProfessionalRef.current !== professionalId && prevProfessionalRef.current !== '') {
+      setValue('startTime', '', { shouldDirty: false });
+    }
+    prevProfessionalRef.current = professionalId;
   }, [professionalId, setValue]);
 
   const filteredCustomers = useMemo(() => {
