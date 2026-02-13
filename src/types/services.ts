@@ -11,6 +11,7 @@ export interface Service {
   duration_minutes: number;
   is_active: boolean;
   display_order: number;
+  cover_image_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +24,7 @@ export interface ServiceInsert {
   duration_minutes?: number;
   is_active?: boolean;
   display_order?: number;
+  cover_image_url?: string | null;
 }
 
 export interface ServiceUpdate {
@@ -32,6 +34,7 @@ export interface ServiceUpdate {
   duration_minutes?: number;
   is_active?: boolean;
   display_order?: number;
+  cover_image_url?: string | null;
 }
 
 export interface ProfessionalService {

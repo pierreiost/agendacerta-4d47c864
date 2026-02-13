@@ -1122,6 +1122,7 @@ export type Database = {
       }
       services: {
         Row: {
+          cover_image_url: string | null
           created_at: string
           description: string | null
           display_order: number | null
@@ -1134,6 +1135,7 @@ export type Database = {
           venue_id: string
         }
         Insert: {
+          cover_image_url?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -1146,6 +1148,7 @@ export type Database = {
           venue_id: string
         }
         Update: {
+          cover_image_url?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -1748,6 +1751,30 @@ export type Database = {
           professional_name: string
         }[]
       }
+      get_professional_availability_public: {
+        Args: {
+          p_date: string
+          p_professional_id?: string
+          p_total_duration_minutes: number
+          p_venue_id: string
+        }
+        Returns: {
+          professional_id: string
+          professional_name: string
+          slot_start: string
+        }[]
+      }
+      get_public_services_by_venue: {
+        Args: { p_venue_id: string }
+        Returns: {
+          cover_image_url: string
+          description: string
+          duration_minutes: number
+          id: string
+          price: number
+          title: string
+        }[]
+      }
       get_public_spaces_by_venue: {
         Args: { p_venue_id: string }
         Returns: {
@@ -1768,7 +1795,17 @@ export type Database = {
           primary_color: string
           public_page_sections: Json
           public_settings: Json
+          segment: string
           slug: string
+        }[]
+      }
+      get_public_venue_professionals: {
+        Args: { p_service_ids: string[]; p_venue_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          display_name: string
+          member_id: string
         }[]
       }
       get_service_order_metrics: {

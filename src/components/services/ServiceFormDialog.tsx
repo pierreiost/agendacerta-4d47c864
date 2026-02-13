@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,6 +25,7 @@ import { Loader2 } from 'lucide-react';
 import { useServices } from '@/hooks/useServices';
 import { useFormPersist } from '@/hooks/useFormPersist';
 import { useVenue } from '@/contexts/VenueContext';
+import { ServiceCoverUpload } from './ServiceCoverUpload';
 import type { Service } from '@/types/services';
 
 const formSchema = z.object({
@@ -47,6 +48,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
   const { currentVenue } = useVenue();
   const { createService, updateService } = useServices();
   const isEditing = !!service;
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -76,8 +78,8 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
           duration_minutes: service.duration_minutes,
           is_active: service.is_active,
         });
+        setCoverImageUrl(service.cover_image_url || null);
       } else {
-        // Only reset to defaults if no draft was recovered
         const currentValues = form.getValues();
         if (!currentValues.title) {
           form.reset({
@@ -88,6 +90,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
             is_active: true,
           });
         }
+        setCoverImageUrl(null);
       }
     }
   }, [open, service, form]);
@@ -95,7 +98,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
   const onSubmit = async (data: FormData) => {
     try {
       if (isEditing && service) {
-        await updateService.mutateAsync({ id: service.id, ...data });
+        await updateService.mutateAsync({ id: service.id, ...data, cover_image_url: coverImageUrl });
       } else {
         await createService.mutateAsync({
           title: data.title,
@@ -103,6 +106,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
           price: data.price,
           duration_minutes: data.duration_minutes,
           is_active: data.is_active,
+          cover_image_url: coverImageUrl,
         });
       }
       clearDraft();
@@ -203,6 +207,15 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
                 )}
               />
             </div>
+
+            {/* Cover image upload */}
+            {currentVenue?.id && (
+              <ServiceCoverUpload
+                venueId={currentVenue.id}
+                value={coverImageUrl}
+                onChange={setCoverImageUrl}
+              />
+            )}
 
             <FormField
               control={form.control}

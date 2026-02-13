@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/drawer';
 import { Calendar, X } from 'lucide-react';
 import { BookingWidget } from './BookingWidget';
+import { ServiceBookingWidget } from './ServiceBookingWidget';
 import { cn } from '@/lib/utils';
 
 interface PublicVenue {
@@ -23,6 +24,7 @@ interface PublicVenue {
   } | null;
   logo_url: string | null;
   primary_color: string | null;
+  segment?: string | null;
 }
 
 interface MobileBookingButtonProps {
@@ -32,13 +34,16 @@ interface MobileBookingButtonProps {
 export function MobileBookingButton({ venue }: MobileBookingButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const buttonLabel = venue.booking_mode === 'calendar'
-    ? 'Agendar Horário'
-    : 'Solicitar Orçamento';
+  const isServiceSegment = venue.segment === 'beauty' || venue.segment === 'health';
+
+  const buttonLabel = isServiceSegment
+    ? 'Agendar Serviço'
+    : venue.booking_mode === 'calendar'
+      ? 'Agendar Horário'
+      : 'Solicitar Orçamento';
 
   return (
     <>
-      {/* Botão fixo no rodapé - só mobile */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-white via-white to-transparent">
         <Button
           size="lg"
@@ -56,7 +61,6 @@ export function MobileBookingButton({ venue }: MobileBookingButtonProps) {
         </Button>
       </div>
 
-      {/* Drawer com o widget */}
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader className="border-b pb-4">
@@ -75,7 +79,11 @@ export function MobileBookingButton({ venue }: MobileBookingButtonProps) {
             </div>
           </DrawerHeader>
           <div className="overflow-y-auto px-4 py-4">
-            <BookingWidget venue={venue} />
+            {isServiceSegment ? (
+              <ServiceBookingWidget venue={venue} />
+            ) : (
+              <BookingWidget venue={venue} />
+            )}
           </div>
         </DrawerContent>
       </Drawer>
