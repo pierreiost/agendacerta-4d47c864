@@ -20,7 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useBooking, useBookings, type Booking } from '@/hooks/useBookings';
+import { useBookingById } from '@/hooks/useBookingQueries';
+import { useBookingMutations } from '@/hooks/useBookingMutations';
+import type { Booking } from '@/hooks/useBookings';
 import { useVenue } from '@/contexts/VenueContext';
 import { getServiceIcon } from '@/lib/segment-utils';
 import { useBookingServices } from '@/hooks/useBookingServices';
@@ -77,10 +79,10 @@ export function BeautyBookingSheet({
   booking: initialBooking,
 }: BeautyBookingSheetProps) {
   // All hooks called unconditionally at the top
-  const { data: booking, isLoading: bookingLoading } = useBooking(initialBooking?.id ?? null);
+  const { data: booking, isLoading: bookingLoading } = useBookingById(initialBooking?.id ?? null);
   const { services, servicesTotal, totalDuration, isLoading: servicesLoading } = useBookingServices(booking?.id ?? null);
   const { orderItems, itemsTotal, removeOrderItem } = useOrderItems(booking?.id ?? null);
-  const { updateBooking } = useBookings();
+  const { updateBooking } = useBookingMutations();
 
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addCustomOpen, setAddCustomOpen] = useState(false);
