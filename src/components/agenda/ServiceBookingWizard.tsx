@@ -202,8 +202,21 @@ export function ServiceBookingWizard({
   const availableSlots = useMemo(() => {
     if (!availability || availability.length === 0) return [];
     const prof = availability.find(a => a.professional_id === localProfessionalId);
-    return prof?.available_slots || [];
-  }, [availability, localProfessionalId]);
+    const slots = prof?.available_slots || [];
+    
+    // Filter out past slots when selected date is today
+    if (selectedDate) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const selected = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+      
+      if (selected.getTime() === today.getTime()) {
+        return slots.filter(slot => new Date(slot) > now);
+      }
+    }
+    
+    return slots;
+  }, [availability, localProfessionalId, selectedDate]);
 
   const handleSelectCustomer = (customer: Customer) => {
     setValue('customerId', customer.id);

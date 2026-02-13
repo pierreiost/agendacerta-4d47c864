@@ -37,6 +37,7 @@ interface CheckoutDialogProps {
   itemsTotal: number;
   grandTotal: number;
   onSuccess: () => void;
+  summaryLabel?: string;
 }
 
 export function CheckoutDialog({
@@ -48,6 +49,7 @@ export function CheckoutDialog({
   itemsTotal,
   grandTotal,
   onSuccess,
+  summaryLabel,
 }: CheckoutDialogProps) {
   const { finalizeBooking } = usePayments(booking.id);
   const [payments, setPayments] = useState<PaymentEntry[]>([
@@ -106,7 +108,7 @@ export function CheckoutDialog({
           {/* Summary */}
           <div className="rounded-lg border p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Espaço ({booking.space?.name})</span>
+              <span>{summaryLabel || `Espaço (${booking.space?.name})`}</span>
               <span>{formatCurrency(spaceTotal)}</span>
             </div>
             {orderItems.length > 0 && (
