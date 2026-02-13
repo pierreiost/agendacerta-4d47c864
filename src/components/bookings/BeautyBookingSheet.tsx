@@ -23,6 +23,7 @@ import {
 import { useBooking, useBookings, type Booking } from '@/hooks/useBookings';
 import { useBookingServices } from '@/hooks/useBookingServices';
 import { useOrderItems } from '@/hooks/useOrderItems';
+import { useRegisterCustomer } from '@/hooks/useRegisterCustomer';
 import { OrderItemsList } from './OrderItemsList';
 import { AddProductDialog } from './AddProductDialog';
 import { AddCustomItemDialog } from './AddCustomItemDialog';
@@ -40,6 +41,7 @@ import {
   Loader2,
   X,
   Scissors,
+  UserPlus,
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, {
@@ -84,6 +86,7 @@ export function BeautyBookingSheet({
   const { services, servicesTotal, totalDuration } = useBookingServices(booking?.id ?? null);
   const { orderItems, itemsTotal, removeOrderItem } = useOrderItems(booking?.id ?? null);
   const { updateBooking } = useBookings();
+  const { registerCustomerFromBooking, isRegistering } = useRegisterCustomer();
 
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addCustomOpen, setAddCustomOpen] = useState(false);
@@ -145,9 +148,23 @@ export function BeautyBookingSheet({
             <div className="p-6 space-y-6">
               {/* Customer Info */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                  Cliente
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    Cliente
+                  </h3>
+                  {!booking.customer_id && !isFinalized && !isCancelled && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => registerCustomerFromBooking(booking)}
+                      disabled={isRegistering}
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      Cadastrar Cliente
+                    </Button>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
@@ -159,7 +176,7 @@ export function BeautyBookingSheet({
                       <span className="text-sm">{booking.customer_phone}</span>
                     </div>
                   )}
-                  {booking.customer_email && (
+                  {booking.customer_email && !booking.customer_email.includes('@agendamento.local') && (
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{booking.customer_email}</span>
