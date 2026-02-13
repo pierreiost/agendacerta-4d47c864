@@ -1595,19 +1595,34 @@ export type Database = {
           success: boolean
         }[]
       }
-      create_service_booking: {
-        Args: {
-          p_customer_email: string
-          p_customer_name: string
-          p_customer_phone?: string
-          p_notes?: string
-          p_professional_id: string
-          p_service_ids: string[]
-          p_start_time: string
-          p_venue_id: string
-        }
-        Returns: string
-      }
+      create_service_booking:
+        | {
+            Args: {
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_notes?: string
+              p_professional_id: string
+              p_service_ids: string[]
+              p_start_time: string
+              p_venue_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_notes?: string
+              p_professional_id: string
+              p_service_ids: string[]
+              p_start_time: string
+              p_status?: string
+              p_venue_id: string
+            }
+            Returns: string
+          }
       create_service_inquiry: {
         Args: {
           p_customer_email: string

@@ -43,7 +43,8 @@ const SPACE_COLORS = [
 ];
 
 export function getSpaceColor(index: number) {
-  return SPACE_COLORS[index % SPACE_COLORS.length];
+  const safeIndex = index < 0 ? 0 : index % SPACE_COLORS.length;
+  return SPACE_COLORS[safeIndex];
 }
 
 export function AgendaSidebar({
