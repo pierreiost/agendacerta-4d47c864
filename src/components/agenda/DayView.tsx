@@ -34,13 +34,12 @@ interface DayViewProps {
   onBookingMove?: (bookingId: string, spaceId: string, newStart: Date, newEnd: Date) => void;
   onBookingResize?: (bookingId: string, newStart: Date, newEnd: Date) => void;
   isServiceBased?: boolean;
+  startHour?: number;
+  endHour?: number;
 }
 
-// Horários visíveis na agenda (8:00 a 22:00)
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
 const HOUR_HEIGHT = 56;
 const SLOT_INCREMENT = 30;
-const BUSINESS_HOURS_START = 8;
 
 function snapMinutesToSlot(minutes: number): number {
   return Math.round(minutes / SLOT_INCREMENT) * SLOT_INCREMENT;
@@ -168,7 +167,11 @@ export function DayView({
   onBookingMove,
   onBookingResize,
   isServiceBased,
+  startHour = 8,
+  endHour = 22,
 }: DayViewProps) {
+  const HOURS = useMemo(() => Array.from({ length: endHour - startHour }, (_, i) => i + startHour), [startHour, endHour]);
+  const BUSINESS_HOURS_START = startHour;
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragPreview, setDragPreview] = useState<{
     spaceId: string;
@@ -189,11 +192,11 @@ export function DayView({
     const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (!scrollContainer) return;
 
-    const targetHour = isToday && currentHour >= BUSINESS_HOURS_START && currentHour <= 22
+    const targetHour = isToday && currentHour >= BUSINESS_HOURS_START && currentHour <= endHour
       ? currentHour
       : BUSINESS_HOURS_START;
 
-    const scrollPosition = (targetHour - 8) * HOUR_HEIGHT;
+    const scrollPosition = (targetHour - startHour) * HOUR_HEIGHT;
 
     setTimeout(() => {
       scrollContainer.scrollTop = Math.max(0, scrollPosition - 20);
@@ -224,7 +227,7 @@ export function DayView({
     const endMinutes = end.getHours() * 60 + end.getMinutes();
     const durationMinutes = endMinutes - startMinutes;
 
-    const top = ((startMinutes - 8 * 60) / 60) * HOUR_HEIGHT;
+    const top = ((startMinutes - startHour * 60) / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
 
     return { top, height: Math.max(height, 28) };
@@ -285,10 +288,10 @@ export function DayView({
         }
       }
 
-      const startHour = newStart.getHours();
-      const endHour = newEnd.getHours();
-      if (startHour < 8) return;
-      if (endHour > 22 || (endHour === 22 && newEnd.getMinutes() > 0)) return;
+      const newStartHour = newStart.getHours();
+      const newEndHour = newEnd.getHours();
+      if (newStartHour < startHour) return;
+      if (newEndHour > endHour || (newEndHour === endHour && newEnd.getMinutes() > 0)) return;
 
       setDragPreview({
         spaceId: dragState.spaceId,
@@ -390,11 +393,11 @@ export function DayView({
           {/* Grade de horários única */}
           <div className="relative">
             {/* Indicador de hora atual */}
-            {isToday && currentHour >= 8 && currentHour <= 22 && (
+            {isToday && currentHour >= startHour && currentHour <= endHour && (
               <div
                 className="absolute left-0 right-0 z-30 pointer-events-none"
                 style={{
-                  top: ((currentHour - 8) * 60 + currentMinute) * (HOUR_HEIGHT / 60),
+                  top: ((currentHour - startHour) * 60 + currentMinute) * (HOUR_HEIGHT / 60),
                 }}
               >
                 <div className="flex items-center">
