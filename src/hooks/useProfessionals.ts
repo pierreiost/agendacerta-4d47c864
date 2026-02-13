@@ -135,11 +135,16 @@ export function useProfessionals() {
 }
 
 export function useProfessionalAvailability(
-  date: Date | null,
+  date: Date | string | null,
   serviceIds: string[],
   professionalId?: string
 ) {
   const { currentVenue } = useVenue();
+
+  // Normalize date to a Date object (form watchers may return a string)
+  const normalizedDate = date instanceof Date ? date : date ? new Date(date) : null;
+  const isValidDate = normalizedDate instanceof Date && !isNaN(normalizedDate.getTime());
+  const safeDate = isValidDate ? normalizedDate : null;
 
   // React Query uses reference equality inside queryKey; arrays coming from form watchers
   // can be re-created on every render, causing endless refetch/re-render loops.
@@ -147,16 +152,16 @@ export function useProfessionalAvailability(
   const serviceIdsKey = serviceIds?.length ? [...serviceIds].sort().join('|') : '';
 
   return useQuery({
-    queryKey: ['professional-availability', currentVenue?.id, date?.toISOString(), serviceIdsKey, professionalId],
+    queryKey: ['professional-availability', currentVenue?.id, safeDate?.toISOString(), serviceIdsKey, professionalId],
     queryFn: async () => {
-      if (!currentVenue?.id || !date || serviceIds.length === 0) return [];
+      if (!currentVenue?.id || !safeDate || serviceIds.length === 0) return [];
 
       // Ensure stable ordering for the RPC input as well (helps caching/debugging).
       const normalizedServiceIds = [...serviceIds].sort();
 
       const { data, error } = await supabase.rpc('get_professional_availability', {
         p_venue_id: currentVenue.id,
-        p_date: date.toISOString().split('T')[0],
+        p_date: safeDate.toISOString().split('T')[0],
         p_service_ids: normalizedServiceIds,
         p_professional_id: professionalId || null,
       });
@@ -164,6 +169,6 @@ export function useProfessionalAvailability(
       if (error) throw error;
       return (data || []) as ProfessionalAvailability[];
     },
-    enabled: !!currentVenue?.id && !!date && serviceIds.length > 0,
+    enabled: !!currentVenue?.id && !!safeDate && serviceIds.length > 0,
   });
 }
