@@ -260,6 +260,7 @@ export function ServiceBookingWizard({
         p_customer_email: data.customerEmail || '',
         p_customer_phone: data.customerPhone || null,
         p_notes: data.notes || null,
+        p_status: 'CONFIRMED',
       });
 
       if (error) throw error;
