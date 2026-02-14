@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import {
   CheckCircle2,
   Calendar as CalendarIcon,
 } from 'lucide-react';
-import { format, startOfDay, isToday } from 'date-fns';
+import { format, startOfDay, isToday, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -55,14 +55,23 @@ interface BookingWidgetProps {
   venue: PublicVenue;
 }
 
-const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => {
-  const hour = i + 8;
-  return {
-    start: `${hour.toString().padStart(2, '0')}:00`,
-    end: `${(hour + 1).toString().padStart(2, '0')}:00`,
-    label: `${hour.toString().padStart(2, '0')}:00 - ${(hour + 1).toString().padStart(2, '0')}:00`,
-  };
-});
+interface OperatingHourPublic {
+  day_of_week: number;
+  open_time: string;
+  close_time: string;
+  is_open: boolean;
+}
+
+function generateTimeSlots(startHour: number, endHour: number) {
+  return Array.from({ length: endHour - startHour }, (_, i) => {
+    const hour = i + startHour;
+    return {
+      start: `${hour.toString().padStart(2, '0')}:00`,
+      end: `${(hour + 1).toString().padStart(2, '0')}:00`,
+      label: `${hour.toString().padStart(2, '0')}:00 - ${(hour + 1).toString().padStart(2, '0')}:00`,
+    };
+  });
+}
 
 // Constantes de segurança para uploads
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -78,6 +87,8 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
   }
   return { valid: true };
 };
+
+
 
 export function BookingWidget({ venue }: BookingWidgetProps) {
   const { toast } = useToast();
@@ -126,6 +137,38 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
     enabled: !!venue?.id && !!selectedSpace?.id && !!selectedDate && venue.booking_mode === 'calendar',
   });
 
+  // Fetch operating hours for this venue
+  const { data: operatingHours = [] } = useQuery({
+    queryKey: ['public-operating-hours', venue?.id],
+    queryFn: async () => {
+      if (!venue?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from('venue_operating_hours')
+        .select('day_of_week, open_time, close_time, is_open')
+        .eq('venue_id', venue.id)
+        .order('day_of_week');
+      if (error) throw error;
+      return (data || []) as OperatingHourPublic[];
+    },
+    enabled: !!venue?.id,
+  });
+
+  // Get operating hours for the selected date
+  const selectedDayHours = useMemo(() => {
+    if (!selectedDate || operatingHours.length === 0) return null;
+    const dow = getDay(selectedDate); // 0=Sunday
+    return operatingHours.find(h => h.day_of_week === dow) || null;
+  }, [selectedDate, operatingHours]);
+
+  const isDayClosed = selectedDayHours ? !selectedDayHours.is_open : false;
+
+  // Generate dynamic time slots based on operating hours
+  const timeSlots = useMemo(() => {
+    if (!selectedDayHours || !selectedDayHours.is_open) return [];
+    const openHour = parseInt(selectedDayHours.open_time.split(':')[0], 10);
+    const closeHour = parseInt(selectedDayHours.close_time.split(':')[0], 10);
+    return generateTimeSlots(openHour, closeHour);
+  }, [selectedDayHours]);
   useEffect(() => {
     return () => {
       photos.forEach(photo => URL.revokeObjectURL(photo.preview));
@@ -490,29 +533,37 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
                     <Clock className="h-4 w-4 text-primary" />
                     Selecione o horário
                   </h4>
-                  <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
-                    {TIME_SLOTS.map((slot) => {
-                      const booked = isSlotBooked(slot.start);
-                      const past = isSlotPast(slot.start);
-                      const selected = selectedSlots.includes(slot.start);
-                      return (
-                        <button
-                          key={slot.start}
-                          type="button"
-                          disabled={booked || past}
-                          onClick={() => toggleSlot(slot.start)}
-                          className={cn(
-                            "py-3 px-3 rounded-xl text-sm font-medium border-2 transition-all duration-200",
-                            selected && "bg-primary text-white border-primary shadow-md",
-                            !selected && !booked && !past && "hover:border-primary hover:bg-primary/5",
-                            (booked || past) && "opacity-40 cursor-not-allowed bg-muted border-transparent"
-                          )}
-                        >
-                          {slot.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {isDayClosed ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                      <p className="font-medium">Fechado neste dia</p>
+                      <p className="text-sm mt-1">Selecione outra data para ver horários disponíveis.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                      {timeSlots.map((slot) => {
+                        const booked = isSlotBooked(slot.start);
+                        const past = isSlotPast(slot.start);
+                        const selected = selectedSlots.includes(slot.start);
+                        return (
+                          <button
+                            key={slot.start}
+                            type="button"
+                            disabled={booked || past}
+                            onClick={() => toggleSlot(slot.start)}
+                            className={cn(
+                              "py-3 px-3 rounded-xl text-sm font-medium border-2 transition-all duration-200",
+                              selected && "bg-primary text-primary-foreground border-primary shadow-md",
+                              !selected && !booked && !past && "hover:border-primary hover:bg-primary/5",
+                              (booked || past) && "opacity-40 cursor-not-allowed bg-muted border-transparent"
+                            )}
+                          >
+                            {slot.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {selectedSlots.length > 0 && (
