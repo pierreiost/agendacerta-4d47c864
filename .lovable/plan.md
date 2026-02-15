@@ -1,134 +1,136 @@
-# Horario de Funcionamento Dinamico
 
-## Visao Geral
 
-Criar uma tabela `venue_operating_hours` no banco de dados para armazenar os horarios de funcionamento de cada venue, com defaults inteligentes por segmento. Esses horarios serao usados na agenda interna, na pagina publica e na disponibilidade de profissionais.
+# Auditoria de Prontidao para Piloto - ServiceBookingWidget (Beauty)
+
+## Resultado por Caso de Uso
 
 ---
 
-## 1. Banco de Dados (Migration)
+### Caso 1: Cold Start (Salao de Uma Pessoa So) -- ✅ SEGURO
 
-### Tabela `venue_operating_hours`
+**Logica encontrada em `get_public_venue_professionals`** (migration `20260213031750`):
 
-```text
-+-------------------+----------+------------+------------+---------+
-| venue_id (uuid)   | day_of_week (int 0-6) | open_time  | close_time | is_open |
-+-------------------+----------+------------+------------+---------+
+- Se nenhum membro `is_bookable` atende todos os `p_service_ids`, a RPC busca o `admin` da venue e:
+  - Marca `is_bookable = true`
+  - Insere em `professional_services` todos os servicos ativos da venue (ON CONFLICT DO NOTHING)
+- Em seguida retorna esse admin como profissional disponivel.
+- No frontend (`ServiceBookingWidget.tsx` linha 184): `skipProfessionalSelection = professionals.length <= 1` -- se so tem 1, pula a etapa de escolha automaticamente.
+
+**Veredicto**: Funciona. O auto-insert do admin garante que nunca retorna vazio.
+
+---
+
+### Caso 2: Agendamento Combo (Multi-Servicos) -- ✅ SEGURO
+
+**Frontend**:
+- `totalDuration` e calculado corretamente como soma das duracoes (linha 106).
+- O parametro `p_total_duration_minutes` e passado para a RPC (linha 122).
+
+**Backend (RPC `get_professional_availability_public`)**:
+- A clausula `ts.slot_time + (p_total_duration_minutes || ' minutes')::interval <= v_day_end` (linha 183 da ultima migration) garante que o bloco completo cabe antes do fechamento.
+- A verificacao de conflito compara `start_time < slot + duration` e `end_time > slot`, ou seja, valida o intervalo inteiro.
+
+**`create_service_booking`**:
+- Calcula `v_end_time := p_start_time + (v_total_duration || ' minutes')::interval` e verifica conflitos no bloco inteiro.
+
+**Maximum update depth**: Nao usa `watch()` reativo para arrays -- usa `useState` local (`selectedServiceIds`) com `useEffect` controlado por `join(',')` (linha 136). Estavel.
+
+**Veredicto**: Funciona. Slots contiguos sao validados tanto na disponibilidade quanto na criacao.
+
+---
+
+### Caso 3: Seguranca de Agenda (PENDING bloqueia slots) -- ✅ SEGURO
+
+**RPC `get_professional_availability_public`** (linha 166-168):
+```sql
+AND b.status != 'CANCELLED'
+```
+Ou seja, filtra TODOS os status exceto `CANCELLED` -- incluindo `PENDING`. Um booking PENDING ja ocupa o slot e nao aparece como disponivel para outro cliente.
+
+**`create_service_booking`** (linhas 40-50):
+A verificacao de conflito tambem usa `status != 'CANCELLED'`, bloqueando dupla reserva mesmo com PENDING.
+
+**Notificacao**:
+- Trigger automatico cria notificacao na tabela `venue_notifications` quando `status = 'PENDING'`.
+- `NotificationBell` usa deep link (`?openBooking=id` ou `CustomEvent`) para abrir o booking.
+
+**Limpeza de URL**: Nao encontrei logica explicita para limpar o parametro `?openBooking` da URL apos abrir o sheet. Isso nao e um bug funcional, mas se o admin recarregar a pagina, o sheet vai reabrir. **Risco baixo, nao critico**.
+
+**Veredicto**: Seguro. PENDING bloqueia corretamente.
+
+---
+
+### Caso 4: Escalabilidade da Equipe (Filtro de Servicos) -- ✅ SEGURO
+
+**RPC `get_public_venue_professionals`** (linhas 94-110):
+O filtro usa uma subconsulta `NOT EXISTS / NOT EXISTS` que retorna apenas profissionais que possuem TODOS os `p_service_ids` em `professional_services`.
+
+- Se o cliente seleciona apenas "Barba" (`p_service_ids = [barba_id]`): retorna Admin (se tem barba) + Joao (se tem barba).
+- Se o cliente seleciona "Corte" (que Joao nao tem): retorna apenas Admin.
+- Se o cliente seleciona "Corte + Barba": retorna apenas quem tem ambos (Admin, se configurado).
+
+**Frontend (reset ao trocar servicos)**:
+Linha 132-136: `useEffect` reseta `selectedProfessionalId` e `selectedSlot` quando `selectedServiceIds` mudam. Correto.
+
+**Veredicto**: Funciona. O filtro e logicamente correto.
+
+---
+
+### Caso 5: Zona de Perigo (Horario no Limite) -- ✅ SEGURO
+
+**RPC** (linha 183 da migration mais recente):
+```sql
+AND ts.slot_time + (p_total_duration_minutes || ' minutes')::interval <= v_day_end
 ```
 
-- `id` uuid PK
-- `venue_id` uuid FK -> venues
-- `day_of_week` integer (0=Domingo, 1=Segunda ... 6=Sabado)
-- `open_time` time (ex: '08:00')
-- `close_time` time (ex: '18:00')
-- `is_open` boolean default true
-- UNIQUE(venue_id, day_of_week)
-- RLS: venue members podem ler; admins/managers podem editar
+Se `close_time = 19:00` e `duration = 60min`:
+- Slot 18:00 -> 18:00 + 60min = 19:00 <= 19:00 -> ✅ Aparece
+- Slot 18:30 -> 18:30 + 60min = 19:30 <= 19:00 -> ❌ Nao aparece
 
-### Trigger `after insert` na tabela `venues`
-
-- Insere 7 linhas automaticamente ao criar uma venue
-- Se `segment = 'sports'`: open_time='14:00', close_time='23:00', domingo is_open=true
-- Outros segmentos: open_time='07:00', close_time='19:00', domingo is_open=false
-
-### Seed para venues existentes
-
-- INSERT ... ON CONFLICT DO NOTHING para todas as venues que ainda nao tem registros na tabela
+**Veredicto**: Seguro. O slot das 18:30 para servico de 1h nao sera exibido.
 
 ---
 
-## 2. RPC `get_professional_availability_public`
+### Caso 6: WhatsApp e Feedback -- ⚠️ RISCO MENOR
 
-Atualmente a funcao usa valores fixos `v_start_hour := 8` e `v_end_hour := 20`.
+**Tela de sucesso** (linhas 437-441):
+- Icone de relogio (warning) + texto "Pedido Realizado!" -- Correto. Nao diz "Confirmado".
 
-Mudanca: fazer um SELECT na `venue_operating_hours` filtrando pelo `day_of_week` da data solicitada.
-
-- Se `is_open = false`, retorna 0 slots (RETURN vazio)
-- Se `is_open = true`, usa `open_time` e `close_time` como limites de geracao de slots
-
----
-
-## 3. Frontend - Configuracoes (VenueSettingsTab.tsx)
-
-Adicionar uma nova secao **"Horario de Funcionamento"** no card da aba Unidade, abaixo dos dados de contato.
-
-Interface:
-
-- Lista de Domingo a Sabado
-- Cada dia: Switch (Aberto/Fechado) + dois inputs tipo `time` (Abertura e Fechamento)
-- Botao "Copiar Segunda para todos os dias uteis" (convenience)
-- Botao "Salvar Horarios"
-- Dados carregados via query na `venue_operating_hours`
-- Salvamento via upsert (ON CONFLICT venue_id, day_of_week DO UPDATE)
-
----
-
-## 4. Frontend - Pagina Publica (HoursSection.tsx)
-
-Atualmente le dados estaticos do JSON `public_page_sections.hours.schedule`.
-
-Mudanca: o componente passa a buscar dados reais de `venue_operating_hours` via query publica (RPC ou query com RLS permissiva para anon no contexto publico).
-
-Alternativa mais simples: manter o HoursSection lendo do JSON, mas ao salvar os horarios em VenueSettingsTab, tambem atualizar o campo `public_page_sections.hours.schedule` na tabela venues. Isso evita criar RLS especial para acesso anonimo e mantem o fluxo atual da pagina publica intacto.
-
-**Decisao**: Usar a alternativa simples (sync para JSON) pois a pagina publica ja depende desse JSON e nao requer acesso anonimo a nova tabela.  
-  
-garantir que essa operação seja **Atômica** (ou seja, se falhar um, não salva nenhum) ou que o `useMutation` trate os dois updates juntos.
-
----
-
-## 5. Frontend - Agenda (DayView e WeekViewNew)
-
-Atualmente ambos usam `HOURS = Array.from({ length: 15 }, (_, i) => i + 8)` (fixo 08:00-22:00).
-
-Mudanca:
-
-- Criar um hook `useOperatingHours(venueId)` que retorna os horarios da venue
-- Calcular `minHour` (menor open_time de todos os dias) e `maxHour` (maior close_time)
-- Passar esses valores para DayView e WeekViewNew para gerar a grade dinamicamente
-- Dias marcados como fechados podem mostrar um overlay "Fechado" na agenda
-
----
-
-## Resumo de Arquivos
-
-
-| Arquivo                                        | Acao                                       |
-| ---------------------------------------------- | ------------------------------------------ |
-| Migration SQL                                  | Criar tabela, trigger, seed, atualizar RPC |
-| `src/hooks/useOperatingHours.ts`               | Criar (hook de leitura/escrita)            |
-| `src/components/settings/VenueSettingsTab.tsx` | Editar (adicionar secao de horarios)       |
-| `src/components/agenda/DayView.tsx`            | Editar (HOURS dinamico)                    |
-| `src/components/agenda/WeekViewNew.tsx`        | Editar (HOURS dinamico)                    |
-| `src/components/public-page/HoursSection.tsx`  | Sem mudanca (continua lendo do JSON)       |
-
-
----
-
-## Detalhes Tecnicos
-
-### Hook `useOperatingHours`
-
-- `useQuery` para buscar os 7 registros da venue
-- `useMutation` para upsert (salvar alteracoes)
-- Ao salvar, tambem faz update no `venues.public_page_sections.hours.schedule` para manter sincronizado com a pagina publica
-- Mapeamento: day_of_week 0=sunday, 1=monday ... 6=saturday
-
-### RPC atualizada (pseudocodigo)
-
-```text
-SELECT open_time, close_time, is_open
-FROM venue_operating_hours
-WHERE venue_id = p_venue_id
-  AND day_of_week = EXTRACT(DOW FROM p_date)
-
-IF NOT is_open THEN RETURN; END IF;
-
-v_day_start := p_date + open_time AT TIME ZONE 'America/Sao_Paulo'
-v_day_end   := p_date + close_time AT TIME ZONE 'America/Sao_Paulo'
+**Botao WhatsApp** (linhas 430-431, 450-458):
+```tsx
+const cleanPhone = whatsappPhone?.replace(/\D/g, '') || '';
+const hasWhatsApp = cleanPhone.length >= 8;
 ```
+- Se `whatsappPhone` for `null` ou `undefined`: `cleanPhone = ''`, `hasWhatsApp = false` -> botao nao aparece. **OK, nao quebra.**
+- Se `whatsappPhone` for uma string vazia `''`: mesmo resultado. **OK.**
 
-### Agenda dinamica
+**Porem**: A prop `whatsappPhone` vem do componente pai. Preciso verificar de onde ela e alimentada.
 
-- O hook retorna `{ hours: OperatingHour[], minHour: number, maxHour: number }`
-- DayView e WeekViewNew recebem `startHour` e `endHour` como props em vez de usar constantes fixas
+Verificando a origem: o `ServiceBookingWidget` recebe `whatsappPhone` como prop. Se o venue nao tem telefone configurado, o botao simplesmente nao aparece -- nao quebra nada.
+
+**Risco menor**: O botao desaparece silenciosamente. Nao ha mensagem como "Configure seu telefone para ativar o WhatsApp". O admin pode nao perceber que o botao esta ausente para seus clientes.
+
+**Veredicto**: Funcional, mas o admin nao tem feedback de que o botao esta invisivel. Sugestao de melhoria futura, nao blocker para lancamento.
+
+---
+
+## Resumo Executivo
+
+| Caso | Status | Risco |
+|------|--------|-------|
+| 1 - Cold Start | ✅ Seguro | Nenhum |
+| 2 - Multi-Servicos | ✅ Seguro | Nenhum |
+| 3 - PENDING bloqueia | ✅ Seguro | Baixo (URL nao limpa apos abrir sheet) |
+| 4 - Filtro de equipe | ✅ Seguro | Nenhum |
+| 5 - Horario limite | ✅ Seguro | Nenhum |
+| 6 - WhatsApp | ⚠️ Menor | Botao some sem aviso se telefone nao configurado |
+
+## Conclusao
+
+**O sistema esta pronto para testes manuais com os pilotos.** Nenhum bug critico foi encontrado. Os dois pontos menores identificados sao:
+
+1. **URL `?openBooking`** nao e limpa apos abrir o sheet (recarregar a pagina reabre o modal) -- melhoria de UX, nao blocker.
+2. **Botao WhatsApp invisivel** quando o telefone nao esta configurado -- sugestao de adicionar alerta nas configuracoes, nao blocker.
+
+Nenhuma correcao de codigo e necessaria para iniciar os testes.
+
