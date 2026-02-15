@@ -53,6 +53,7 @@ interface BookedSlot {
 
 interface BookingWidgetProps {
   venue: PublicVenue;
+  whatsappPhone?: string | null;
 }
 
 interface OperatingHourPublic {
@@ -90,7 +91,7 @@ const validateFile = (file: File): { valid: boolean; error?: string } => {
 
 
 
-export function BookingWidget({ venue }: BookingWidgetProps) {
+export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -382,21 +383,42 @@ export function BookingWidget({ venue }: BookingWidgetProps) {
 
   // Success state
   if (submitted) {
+    const cleanPhone = whatsappPhone?.replace(/\D/g, '') || '';
+    const hasWhatsApp = cleanPhone.length >= 8;
+
+    const bookedDateStr = selectedDate ? format(selectedDate, "d 'de' MMMM", { locale: ptBR }) : '';
+    const bookedTimeStr = selectedSlots.length > 0 ? selectedSlots.sort()[0] : '';
+    const whatsAppMessage = encodeURIComponent(
+      `Olá! Acabei de solicitar uma reserva para ${bookedDateStr} às ${bookedTimeStr}. Aguardo a confirmação!`
+    );
+
     return (
       <div className="p-8 text-center">
         <div className="flex justify-center mb-6">
-          <div className="rounded-2xl bg-green-100 p-4">
-            <CheckCircle2 className="h-10 w-10 text-green-600" />
+          <div className="rounded-2xl bg-warning/20 p-4">
+            <Clock className="h-10 w-10 text-warning" />
           </div>
         </div>
         <h3 className="text-2xl font-bold mb-3">
           {venue.booking_mode === 'calendar' ? 'Reserva Solicitada!' : 'Solicitação Enviada!'}
         </h3>
-        <p className="text-muted-foreground mb-8 text-base">
+        <p className="text-muted-foreground mb-6 text-base">
           {venue.booking_mode === 'calendar'
             ? 'Sua reserva foi recebida e está aguardando confirmação.'
             : 'Sua solicitação foi recebida. Entraremos em contato em breve.'}
         </p>
+
+        {hasWhatsApp && (
+          <a
+            href={`https://wa.me/${cleanPhone}?text=${whatsAppMessage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] hover:bg-[#128C7E] text-white px-6 py-2.5 text-sm font-medium transition-colors w-full max-w-xs mb-4"
+          >
+            📱 Enviar Comprovante via WhatsApp
+          </a>
+        )}
+
         <Button
           variant="outline"
           size="lg"
