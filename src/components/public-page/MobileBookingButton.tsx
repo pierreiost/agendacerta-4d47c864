@@ -83,7 +83,7 @@ export function MobileBookingButton({ venue, whatsappPhone }: MobileBookingButto
             {isServiceSegment ? (
               <ServiceBookingWidget venue={venue} whatsappPhone={whatsappPhone} />
             ) : (
-              <BookingWidget venue={venue} />
+              <BookingWidget venue={venue} whatsappPhone={whatsappPhone} />
             )}
           </div>
         </DrawerContent>

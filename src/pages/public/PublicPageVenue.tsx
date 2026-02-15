@@ -239,7 +239,7 @@ export default function PublicPageVenue() {
                 {(venue.segment === 'beauty' || venue.segment === 'health') ? (
                   <ServiceBookingWidget venue={venue} whatsappPhone={whatsappPhone} />
                 ) : (
-                  <BookingWidget venue={venue} />
+                  <BookingWidget venue={venue} whatsappPhone={whatsappPhone} />
                 )}
               </div>
             </div>
