@@ -7,12 +7,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useProducts } from '@/hooks/useProducts';
 import { useOrderItems } from '@/hooks/useOrderItems';
-import { Search, Plus, Minus, Loader2 } from 'lucide-react';
+import { useVenue } from '@/contexts/VenueContext';
+import { Search, Plus, Minus, Loader2, AlertTriangle } from 'lucide-react';
 
 interface AddProductDialogProps {
   open: boolean;
@@ -27,8 +27,11 @@ export function AddProductDialog({
 }: AddProductDialogProps) {
   const { products, isLoading } = useProducts();
   const { addOrderItem } = useOrderItems(bookingId);
+  const { currentVenue } = useVenue();
   const [search, setSearch] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  const allowNegative = (currentVenue as any)?.allow_negative_stock ?? false;
 
   const activeProducts = products.filter(p => p.is_active);
   const filteredProducts = activeProducts.filter(p =>
@@ -44,6 +47,20 @@ export function AddProductDialog({
   };
 
   const getQuantity = (productId: string) => quantities[productId] ?? 0;
+
+  const canIncrement = (product: typeof products[0]) => {
+    if (!product.track_stock) return true;
+    if (allowNegative) return true;
+    const currentQty = getQuantity(product.id);
+    return currentQty < (product.stock_quantity ?? 0);
+  };
+
+  const getStockLabel = (product: typeof products[0]) => {
+    if (!product.track_stock) return null;
+    const stock = product.stock_quantity ?? 0;
+    const unit = product.unit ?? 'un';
+    return `${stock} ${unit}`;
+  };
 
   const setQuantity = (productId: string, qty: number) => {
     setQuantities(prev => ({
@@ -104,11 +121,14 @@ export function AddProductDialog({
             <div className="space-y-2 py-2">
               {filteredProducts.map((product) => {
                 const qty = getQuantity(product.id);
-                
+                const stockLabel = getStockLabel(product);
+                const blocked = !canIncrement(product) && qty === 0;
+                const atLimit = !canIncrement(product);
+
                 return (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
+                    className={`flex items-center justify-between rounded-lg border p-3 ${blocked ? 'opacity-50' : ''}`}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -119,9 +139,22 @@ export function AddProductDialog({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-primary font-medium">
-                        {formatCurrency(Number(product.price))}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-primary font-medium">
+                          {formatCurrency(Number(product.price))}
+                        </p>
+                        {stockLabel && (
+                          <span className={`text-xs ${(product.stock_quantity ?? 0) <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            • Estoque: {stockLabel}
+                          </span>
+                        )}
+                      </div>
+                      {blocked && (
+                        <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Sem estoque disponível
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -139,6 +172,7 @@ export function AddProductDialog({
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => setQuantity(product.id, qty + 1)}
+                        disabled={atLimit}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>

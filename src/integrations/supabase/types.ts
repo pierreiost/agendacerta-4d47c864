@@ -1479,6 +1479,7 @@ export type Database = {
         Row: {
           accent_color: string | null
           address: string | null
+          allow_negative_stock: boolean
           asaas_customer_id: string | null
           asaas_subscription_id: string | null
           booking_mode: string | null
@@ -1514,6 +1515,7 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           address?: string | null
+          allow_negative_stock?: boolean
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           booking_mode?: string | null
@@ -1549,6 +1551,7 @@ export type Database = {
         Update: {
           accent_color?: string | null
           address?: string | null
+          allow_negative_stock?: boolean
           asaas_customer_id?: string | null
           asaas_subscription_id?: string | null
           booking_mode?: string | null
@@ -1832,27 +1835,44 @@ export type Database = {
             }
             Returns: string
           }
-      create_stock_movement: {
-        Args: {
-          p_notes?: string
-          p_product_id: string
-          p_quantity: number
-          p_reason: string
-          p_reference_id?: string
-          p_reference_type?: string
-          p_type: string
-          p_unit_cost?: number
-          p_user_id?: string
-          p_venue_id: string
-        }
-        Returns: Json
-      }
+      create_stock_movement:
+        | {
+            Args: {
+              p_notes?: string
+              p_product_id: string
+              p_quantity: number
+              p_reason: string
+              p_reference_id?: string
+              p_reference_type?: string
+              p_type: string
+              p_unit_cost?: number
+              p_user_id?: string
+              p_venue_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_notes?: string
+              p_product_id: string
+              p_quantity: number
+              p_reason: string
+              p_reference_id?: string
+              p_reference_type?: string
+              p_type: string
+              p_unit_cost?: number
+              p_user_id?: string
+              p_venue_id: string
+            }
+            Returns: Json
+          }
       create_venue_with_admin:
         | {
             Args: { _address?: string; _name: string; _phone?: string }
             Returns: {
               accent_color: string | null
               address: string | null
+              allow_negative_stock: boolean
               asaas_customer_id: string | null
               asaas_subscription_id: string | null
               booking_mode: string | null
@@ -1903,6 +1923,7 @@ export type Database = {
             Returns: {
               accent_color: string | null
               address: string | null
+              allow_negative_stock: boolean
               asaas_customer_id: string | null
               asaas_subscription_id: string | null
               booking_mode: string | null
