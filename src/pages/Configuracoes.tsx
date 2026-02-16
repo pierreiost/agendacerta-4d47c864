@@ -48,6 +48,7 @@ import { CreateMemberDialog } from '@/components/team/CreateMemberDialog';
 import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
 import type { BookableMember } from '@/types/services';
 import { OSCustomFieldsTab } from '@/components/settings/OSCustomFieldsTab';
+import { ProductSettingsTab } from '@/components/settings/ProductSettingsTab';
 import { getServiceIcon, getClientsLabel } from '@/lib/segment-utils';
 import {
   Loader2,
@@ -63,6 +64,7 @@ import {
   Shield,
   UserPlus,
   FileText,
+  Package,
 } from 'lucide-react';
 
 const reminderFormSchema = z.object({
@@ -207,6 +209,10 @@ export default function Configuracoes() {
             <TabsTrigger value="os-fields">
               <FileText className="mr-2 h-4 w-4" />
               Campos OS
+            </TabsTrigger>
+            <TabsTrigger value="products">
+              <Package className="mr-2 h-4 w-4" />
+              Produtos
             </TabsTrigger>
           </TabsList>
 
@@ -481,6 +487,11 @@ export default function Configuracoes() {
           {/* TAB: CAMPOS OS */}
           <TabsContent value="os-fields">
             <OSCustomFieldsTab />
+          </TabsContent>
+
+          {/* TAB: PRODUTOS */}
+          <TabsContent value="products">
+            <ProductSettingsTab />
           </TabsContent>
 
         </Tabs>
