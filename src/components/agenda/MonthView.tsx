@@ -150,27 +150,33 @@ export function MonthView({
                     </div>
                   )}
 
-                  {/* Booking previews - hidden on mobile */}
-                  <div className="hidden sm:block space-y-0.5 md:space-y-1">
+                   {/* Booking previews - hidden on mobile */}
+                  <div className="hidden sm:block space-y-0.5 md:space-y-1 overflow-hidden">
                     {dayBookings.slice(0, 3).map((booking) => {
                       const spaceIndex = allSpaces.findIndex((s) => s.id === booking.space_id);
                       const colors = getSpaceColor(spaceIndex);
+                      const space = allSpaces.find((s) => s.id === booking.space_id);
 
                       return (
                         <div
                           key={booking.id}
                           className={cn(
-                            'text-[8px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded truncate border-l-2',
+                            'text-[9px] md:text-[11px] leading-tight px-1 md:px-1.5 py-0.5 md:py-1 rounded truncate border-l-2',
                             colors.bg,
-                            colors.border
+                            colors.border,
+                            'text-gray-900 dark:text-gray-900'
                           )}
                           onClick={(e) => {
                             e.stopPropagation();
                             onDayClick(day);
                           }}
                         >
-                          {format(new Date(booking.start_time), 'HH:mm')} -{' '}
-                          <span className="hidden lg:inline">{booking.customer_name || 'Cliente'}</span>
+                          <span className="font-semibold">{format(new Date(booking.start_time), 'HH:mm')}</span>
+                          {' '}
+                          <span className="truncate">{booking.customer_name || 'Cliente'}</span>
+                          {space && (
+                            <span className="hidden xl:inline text-muted-foreground"> · {space.name}</span>
+                          )}
                         </div>
                       );
                     })}
