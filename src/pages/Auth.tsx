@@ -244,7 +244,7 @@ export default function Auth() {
         {/* Logo and branding content */}
         <div className="relative z-10 flex flex-col items-center text-center max-w-md">
           <div className="bg-white rounded-3xl p-6 shadow-2xl mb-8">
-            <img src={logo} alt="AgendaCerta Logo" className="w-24 h-24 object-contain" />
+            <img src={logo} alt="AgendaCerta Logo" className="w-40 h-24 object-contain" />
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">AgendaCerta</h1>
@@ -291,222 +291,224 @@ export default function Auth() {
                 <p className="text-muted-foreground mt-2">{getSubheading()}</p>
               </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-foreground font-medium">
-                  Nome completo
-                </Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Seu nome"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
-              />
-            </div>
-
-            {/* Password fields only show for login/signup modes */}
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-foreground font-medium">
-                    Senha
-                  </Label>
-                  <div className="relative">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {mode === "signup" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-foreground font-medium">
+                      Nome completo
+                    </Label>
                     <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      id="fullName"
+                      type="text"
+                      placeholder="Seu nome"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       required
-                      minLength={6}
-                      className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary pr-12"
+                      className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Password Requirements for Signup */}
-                {mode === "signup" && password.length > 0 && (
-                  <div className="bg-secondary/30 rounded-lg p-4 space-y-2">
-                    <p className="text-sm font-medium text-foreground mb-2">Requisitos da senha:</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div
-                        className={`flex items-center gap-2 ${passwordStrength.hasMinLength ? "text-green-600" : "text-muted-foreground"}`}
-                      >
-                        {passwordStrength.hasMinLength ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                        <span>Mínimo 8 caracteres</span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 ${passwordStrength.hasUpperCase ? "text-green-600" : "text-muted-foreground"}`}
-                      >
-                        {passwordStrength.hasUpperCase ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                        <span>Uma maiúscula</span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 ${passwordStrength.hasNumber ? "text-green-600" : "text-muted-foreground"}`}
-                      >
-                        {passwordStrength.hasNumber ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                        <span>Um número</span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 ${passwordStrength.hasSpecialChar ? "text-green-600" : "text-muted-foreground"}`}
-                      >
-                        {passwordStrength.hasSpecialChar ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                        <span>Um especial (!@#$...)</span>
-                      </div>
-                    </div>
                   </div>
                 )}
 
-                {/* Confirm Password for Signup */}
-                {mode === "signup" && (
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-foreground font-medium">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary"
+                  />
+                </div>
+
+                {/* Password fields only show for login/signup modes */}
+                <>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-foreground font-medium">
-                      Confirmar senha
+                    <Label htmlFor="password" className="text-foreground font-medium">
+                      Senha
                     </Label>
                     <div className="relative">
                       <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
+                        id="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
-                        className={`h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary pr-12 ${
-                          confirmPassword.length > 0 && !passwordsMatch ? "border-destructive" : ""
-                        }`}
+                        minLength={6}
+                        className="h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary pr-12"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
-                    {confirmPassword.length > 0 && !passwordsMatch && (
-                      <p className="text-sm text-destructive flex items-center gap-1">
-                        <AlertTriangle className="h-4 w-4" />
-                        As senhas não coincidem
-                      </p>
-                    )}
+                  </div>
+
+                  {/* Password Requirements for Signup */}
+                  {mode === "signup" && password.length > 0 && (
+                    <div className="bg-secondary/30 rounded-lg p-4 space-y-2">
+                      <p className="text-sm font-medium text-foreground mb-2">Requisitos da senha:</p>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div
+                          className={`flex items-center gap-2 ${passwordStrength.hasMinLength ? "text-green-600" : "text-muted-foreground"}`}
+                        >
+                          {passwordStrength.hasMinLength ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                          <span>Mínimo 8 caracteres</span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-2 ${passwordStrength.hasUpperCase ? "text-green-600" : "text-muted-foreground"}`}
+                        >
+                          {passwordStrength.hasUpperCase ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                          <span>Uma maiúscula</span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-2 ${passwordStrength.hasNumber ? "text-green-600" : "text-muted-foreground"}`}
+                        >
+                          {passwordStrength.hasNumber ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                          <span>Um número</span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-2 ${passwordStrength.hasSpecialChar ? "text-green-600" : "text-muted-foreground"}`}
+                        >
+                          {passwordStrength.hasSpecialChar ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                          <span>Um especial (!@#$...)</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Confirm Password for Signup */}
+                  {mode === "signup" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword" className="text-foreground font-medium">
+                        Confirmar senha
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                          className={`h-12 bg-secondary/50 border-input focus:border-primary focus:ring-primary pr-12 ${
+                            confirmPassword.length > 0 && !passwordsMatch ? "border-destructive" : ""
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                      {confirmPassword.length > 0 && !passwordsMatch && (
+                        <p className="text-sm text-destructive flex items-center gap-1">
+                          <AlertTriangle className="h-4 w-4" />
+                          As senhas não coincidem
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+
+                {mode === "login" && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => setMode("forgot")}
+                    >
+                      Esqueci minha senha
+                    </button>
                   </div>
                 )}
-              </>
 
-            {mode === "login" && (
-              <div className="text-right">
+                {/* Rate limit warning */}
+                {rateLimitInfo && mode === "login" && (
+                  <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      {!rateLimitInfo.allowed ? (
+                        <>
+                          Conta bloqueada temporariamente. Tente novamente{" "}
+                          {rateLimitInfo.lockedUntil && (
+                            <>
+                              às{" "}
+                              {new Date(rateLimitInfo.lockedUntil).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </>
+                          )}
+                          .
+                        </>
+                      ) : rateLimitInfo.attemptsRemaining < 5 ? (
+                        <>
+                          {rateLimitInfo.attemptsRemaining} tentativa{rateLimitInfo.attemptsRemaining !== 1 ? "s" : ""}{" "}
+                          restante{rateLimitInfo.attemptsRemaining !== 1 ? "s" : ""}.
+                        </>
+                      ) : null}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base font-semibold gradient-primary hover:opacity-90 transition-opacity"
+                  disabled={
+                    loading || (rateLimitInfo && !rateLimitInfo.allowed) || (mode === "signup" && !isPasswordValid)
+                  }
+                >
+                  {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  {mode === "login" ? "ENTRAR" : "CADASTRAR"}
+                </Button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <span className="text-muted-foreground">
+                  {mode === "login" ? "Não tem uma conta? " : "Já tem uma conta? "}
+                </span>
                 <button
                   type="button"
-                  className="text-sm text-primary hover:underline"
-                  onClick={() => setMode("forgot")}
+                  className="text-primary font-semibold hover:underline transition-all"
+                  onClick={() => {
+                    setMode(mode === "login" ? "signup" : "login");
+                    setConfirmPassword("");
+                  }}
                 >
-                  Esqueci minha senha
+                  {mode === "login" ? "Cadastre-se" : "Entre"}
                 </button>
               </div>
-            )}
 
-            {/* Rate limit warning */}
-            {rateLimitInfo && mode === "login" && (
-              <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  {!rateLimitInfo.allowed ? (
-                    <>
-                      Conta bloqueada temporariamente. Tente novamente{" "}
-                      {rateLimitInfo.lockedUntil && (
-                        <>
-                          às{" "}
-                          {new Date(rateLimitInfo.lockedUntil).toLocaleTimeString("pt-BR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </>
-                      )}
-                      .
-                    </>
-                  ) : rateLimitInfo.attemptsRemaining < 5 ? (
-                    <>
-                      {rateLimitInfo.attemptsRemaining} tentativa{rateLimitInfo.attemptsRemaining !== 1 ? "s" : ""}{" "}
-                      restante{rateLimitInfo.attemptsRemaining !== 1 ? "s" : ""}.
-                    </>
-                  ) : null}
-                </AlertDescription>
-              </Alert>
-            )}
+              {/* Link to Pricing */}
+              <div className="mt-6 text-center">
+                <Link
+                  to="/inicio#precos"
+                  className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                >
+                  <span>Ver nossos planos</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
 
-            <Button
-              type="submit"
-              className="w-full h-12 text-base font-semibold gradient-primary hover:opacity-90 transition-opacity"
-              disabled={loading || (rateLimitInfo && !rateLimitInfo.allowed) || (mode === "signup" && !isPasswordValid)}
-            >
-              {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-              {mode === "login" ? "ENTRAR" : "CADASTRAR"}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <span className="text-muted-foreground">
-              {mode === "login" ? "Não tem uma conta? " : "Já tem uma conta? "}
-            </span>
-            <button
-              type="button"
-              className="text-primary font-semibold hover:underline transition-all"
-              onClick={() => {
-                setMode(mode === "login" ? "signup" : "login");
-                setConfirmPassword("");
-              }}
-            >
-              {mode === "login" ? "Cadastre-se" : "Entre"}
-            </button>
-          </div>
-
-          {/* Link to Pricing */}
-          <div className="mt-6 text-center">
-            <Link
-              to="/inicio#precos"
-              className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-            >
-              <span>Ver nossos planos</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {/* Mobile Privacy Policy Link */}
-          <div className="lg:hidden mt-6 text-center">
-            <Link
-              to="/privacy"
-              className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
-            >
-              Política de Privacidade
-            </Link>
-          </div>
+              {/* Mobile Privacy Policy Link */}
+              <div className="lg:hidden mt-6 text-center">
+                <Link
+                  to="/privacy"
+                  className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
+                >
+                  Política de Privacidade
+                </Link>
+              </div>
             </>
           )}
         </div>
