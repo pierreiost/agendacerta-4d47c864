@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePayments, PAYMENT_METHODS, type PaymentMethod } from '@/hooks/usePayments';
+import { useStockMovements } from '@/hooks/useStockMovements';
 import type { Booking } from '@/hooks/useBookings';
 import type { OrderItem } from '@/hooks/useOrderItems';
 import { Plus, Trash2, AlertCircle, Loader2, Check } from 'lucide-react';
@@ -52,6 +53,7 @@ export function CheckoutDialog({
   summaryLabel,
 }: CheckoutDialogProps) {
   const { finalizeBooking } = usePayments(booking.id);
+  const { deductStockForSale } = useStockMovements();
   const [payments, setPayments] = useState<PaymentEntry[]>([
     { id: '1', method: 'PIX', amount: grandTotal },
   ]);
@@ -94,6 +96,20 @@ export function CheckoutDialog({
         method: p.method,
       })),
     });
+
+    // Auto-deduct stock for products with track_stock enabled
+    const stockItems = orderItems
+      .filter((item) => item.product_id && item.product?.track_stock)
+      .map((item) => ({
+        productId: item.product_id!,
+        quantity: item.quantity,
+        bookingId: booking.id,
+      }));
+
+    if (stockItems.length > 0) {
+      await deductStockForSale.mutateAsync(stockItems);
+    }
+
     onSuccess();
   };
 
