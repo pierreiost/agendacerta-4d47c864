@@ -1651,29 +1651,54 @@ export type Database = {
         }
         Returns: string
       }
-      create_recurring_bookings: {
-        Args: {
-          p_base_date: string
-          p_customer_email?: string
-          p_customer_id?: string
-          p_customer_name: string
-          p_customer_phone?: string
-          p_end_hour: number
-          p_notes?: string
-          p_recurrence_count?: number
-          p_recurrence_type?: string
-          p_space_id: string
-          p_space_price_per_hour?: number
-          p_start_hour: number
-          p_venue_id: string
-        }
-        Returns: {
-          booking_date: string
-          booking_id: string
-          error_message: string
-          success: boolean
-        }[]
-      }
+      create_recurring_bookings:
+        | {
+            Args: {
+              p_base_date: string
+              p_customer_email?: string
+              p_customer_id?: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_end_hour: number
+              p_notes?: string
+              p_recurrence_count?: number
+              p_recurrence_type?: string
+              p_space_id: string
+              p_space_price_per_hour?: number
+              p_start_hour: number
+              p_venue_id: string
+            }
+            Returns: {
+              booking_date: string
+              booking_id: string
+              error_message: string
+              success: boolean
+            }[]
+          }
+        | {
+            Args: {
+              p_base_date: string
+              p_customer_email?: string
+              p_customer_id?: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_end_hour: number
+              p_notes?: string
+              p_recurrence_count?: number
+              p_recurrence_type?: string
+              p_space_id: string
+              p_space_price_per_hour?: number
+              p_start_hour: number
+              p_timezone?: string
+              p_venue_id: string
+            }
+            Returns: {
+              booking_date: string
+              booking_id: string
+              error_message: string
+              success: boolean
+            }[]
+          }
       create_service_booking:
         | {
             Args: {
