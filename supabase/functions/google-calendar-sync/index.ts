@@ -393,7 +393,25 @@ serve(async (req) => {
       }
     }
 
-    // Fallback to venue-wide token if no professional token found
+    // Fallback: try the authenticated user's own token
+    if (!tokenData) {
+      const { data: userToken, error: userTokenError } = await supabase
+        .from("google_calendar_tokens")
+        .select("*")
+        .eq("venue_id", venue_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (userTokenError) {
+        console.error("Error fetching user token");
+      }
+      if (userToken) {
+        tokenData = userToken;
+        console.log(`Using authenticated user's calendar for sync: ${maskString(user.id)}`);
+      }
+    }
+
+    // Fallback to venue-wide token if no user-specific token found
     if (!tokenData) {
       const { data: venueToken, error: tokenError } = await supabase
         .from("google_calendar_tokens")
