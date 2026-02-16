@@ -244,7 +244,7 @@ export default function Auth() {
         {/* Logo and branding content */}
         <div className="relative z-10 flex flex-col items-center text-center max-w-md">
           <div className="mb-8">
-            <img src={logo} alt="AgendaCerta Logo" className="w-96 h-auto block" />
+            <img src={logo} alt="AgendaCerta Logo" className="h-auto block" style={{ width: '36rem' }} />
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">AgendaCerta</h1>
