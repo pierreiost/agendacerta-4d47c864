@@ -34,6 +34,7 @@ interface CreateRecurringBookingsParams {
   space_price_per_hour?: number;
   recurrence_type?: 'weekly' | 'monthly';
   recurrence_count?: number;
+  timezone?: string;
 }
 
 interface RecurringBookingResult {
@@ -125,6 +126,7 @@ export function useBookingRPC() {
         p_space_price_per_hour: params.space_price_per_hour || 0,
         p_recurrence_type: params.recurrence_type || 'weekly',
         p_recurrence_count: params.recurrence_count || 1,
+        p_timezone: params.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
 
       if (error) throw error;
