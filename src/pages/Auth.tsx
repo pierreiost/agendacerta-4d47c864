@@ -244,10 +244,8 @@ export default function Auth() {
         {/* Logo and branding content */}
         <div className="relative z-10 flex flex-col items-center text-center max-w-md">
           <div className="mb-8">
-            <img src={logo} alt="AgendaCerta Logo" className="h-auto block" style={{ width: '36rem' }} />
+            <img src={logo} alt="AgendaCerta Logo" className="h-auto block" style={{ width: '30rem' }} />
           </div>
-
-          <h1 className="text-4xl font-bold text-white mb-4">AgendaCerta</h1>
 
           <p className="text-lg text-white/80 mb-8">Sistema completo de gestão e agendamento para seu negócio.</p>
 

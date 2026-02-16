@@ -222,7 +222,7 @@ export default function Onboarding() {
         <div className="relative z-10 max-w-md">
           {/* Logo */}
           <div className="mb-8 inline-block">
-            <img src={logo} alt="AgendaCerta" className="h-auto block" style={{ width: '36rem' }} />
+            <img src={logo} alt="AgendaCerta" className="h-auto block" style={{ width: '30rem' }} />
           </div>
 
           <h1 className="text-3xl font-bold text-white mb-4">
