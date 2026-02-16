@@ -663,31 +663,49 @@ export type Database = {
       products: {
         Row: {
           category_id: string | null
+          cost_price: number
           created_at: string
           id: string
           is_active: boolean | null
+          min_stock: number | null
           name: string
           price: number
+          sku: string | null
+          stock_quantity: number
+          track_stock: boolean
+          unit: string
           updated_at: string
           venue_id: string
         }
         Insert: {
           category_id?: string | null
+          cost_price?: number
           created_at?: string
           id?: string
           is_active?: boolean | null
+          min_stock?: number | null
           name: string
           price: number
+          sku?: string | null
+          stock_quantity?: number
+          track_stock?: boolean
+          unit?: string
           updated_at?: string
           venue_id: string
         }
         Update: {
           category_id?: string | null
+          cost_price?: number
           created_at?: string
           id?: string
           is_active?: boolean | null
+          min_stock?: number | null
           name?: string
           price?: number
+          sku?: string | null
+          stock_quantity?: number
+          track_stock?: boolean
+          unit?: string
           updated_at?: string
           venue_id?: string
         }
@@ -1227,6 +1245,69 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          balance_after: number
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reason: string
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          unit_cost: number | null
+          venue_id: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reason: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+          unit_cost?: number | null
+          venue_id: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+          unit_cost?: number | null
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1751,6 +1832,21 @@ export type Database = {
             }
             Returns: string
           }
+      create_stock_movement: {
+        Args: {
+          p_notes?: string
+          p_product_id: string
+          p_quantity: number
+          p_reason: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_type: string
+          p_unit_cost?: number
+          p_user_id?: string
+          p_venue_id: string
+        }
+        Returns: Json
+      }
       create_venue_with_admin:
         | {
             Args: { _address?: string; _name: string; _phone?: string }

@@ -1,39 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useProducts, useProductCategories, type Product } from '@/hooks/useProducts';
 import { useVenue } from '@/contexts/VenueContext';
 import { ProductFormDialog } from '@/components/products/ProductFormDialog';
 import { ProductCategoryFormDialog } from '@/components/products/ProductCategoryFormDialog';
+import { StockMovementDialog } from '@/components/products/StockMovementDialog';
+import { StockHistoryDialog } from '@/components/products/StockHistoryDialog';
 import { useModalPersist } from '@/hooks/useModalPersist';
-import { Plus, MoreHorizontal, Pencil, Trash2, Tag, Loader2, Package } from 'lucide-react';
+import {
+  Plus, MoreHorizontal, Pencil, Trash2, Tag, Loader2, Package,
+  ArrowUpDown, History, AlertTriangle, Boxes, DollarSign,
+} from 'lucide-react';
+
+function StockBadge({ product }: { product: Product }) {
+  if (!product.track_stock) {
+    return <span className="text-muted-foreground text-sm">—</span>;
+  }
+
+  const qty = product.stock_quantity ?? 0;
+  const min = product.min_stock;
+  const unit = product.unit ?? 'un';
+  const isLow = min != null && qty <= min;
+
+  return (
+    <Badge variant={isLow ? 'destructive' : 'secondary'} className="font-mono">
+      {qty} {unit}
+    </Badge>
+  );
+}
 
 export default function Produtos() {
   const { currentVenue } = useVenue();
@@ -45,8 +53,9 @@ export default function Produtos() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [movementProduct, setMovementProduct] = useState<Product | null>(null);
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
 
-  // Restore modal state on mount
   useEffect(() => {
     if (isReady) {
       const wasProductDialogOpen = registerModal('productForm', false);
@@ -57,7 +66,6 @@ export default function Produtos() {
     }
   }, [isReady, registerModal]);
 
-  // Track modal state changes
   useEffect(() => {
     if (isReady) {
       setModalState('productForm', productDialogOpen);
@@ -66,10 +74,7 @@ export default function Produtos() {
 
   const handleProductDialogChange = (open: boolean) => {
     setProductDialogOpen(open);
-    if (!open) {
-      setEditingProduct(null);
-      clearModal('productForm');
-    }
+    if (!open) { setEditingProduct(null); clearModal('productForm'); }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -85,18 +90,20 @@ export default function Produtos() {
   };
 
   const handleToggleActive = async (product: Product) => {
-    await updateProduct.mutateAsync({
-      id: product.id,
-      is_active: !product.is_active,
-    });
+    await updateProduct.mutateAsync({ id: product.id, is_active: !product.is_active });
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+  // Stock summary metrics
+  const stockMetrics = useMemo(() => {
+    const tracked = products.filter((p) => p.track_stock);
+    if (tracked.length === 0) return null;
+    const lowStock = tracked.filter((p) => p.min_stock != null && (p.stock_quantity ?? 0) <= p.min_stock);
+    const totalValue = tracked.reduce((sum, p) => sum + (p.stock_quantity ?? 0) * Number(p.cost_price ?? 0), 0);
+    return { trackedCount: tracked.length, lowStockCount: lowStock.length, totalValue };
+  }, [products]);
 
   return (
     <AppLayout>
@@ -104,9 +111,7 @@ export default function Produtos() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Produtos</h1>
-            <p className="text-muted-foreground">
-              Gerencie os produtos disponíveis para consumo
-            </p>
+            <p className="text-muted-foreground">Gerencie os produtos disponíveis para consumo</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setCategoryDialogOpen(true)}>
@@ -119,6 +124,39 @@ export default function Produtos() {
             </Button>
           </div>
         </div>
+
+        {/* Stock summary cards */}
+        {stockMetrics && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="flex items-center gap-3 pt-6">
+                <Boxes className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Produtos rastreados</p>
+                  <p className="text-2xl font-bold">{stockMetrics.trackedCount}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-3 pt-6">
+                <AlertTriangle className={`h-8 w-8 ${stockMetrics.lowStockCount > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+                <div>
+                  <p className="text-sm text-muted-foreground">Estoque baixo</p>
+                  <p className="text-2xl font-bold">{stockMetrics.lowStockCount}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-3 pt-6">
+                <DollarSign className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Valor em estoque</p>
+                  <p className="text-2xl font-bold">{formatCurrency(stockMetrics.totalValue)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <Card>
           <CardHeader>
@@ -135,9 +173,7 @@ export default function Produtos() {
                   <Package className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="font-semibold text-lg">Nenhum produto cadastrado</h3>
-                <p className="text-muted-foreground mt-1">
-                  Comece criando seu primeiro produto
-                </p>
+                <p className="text-muted-foreground mt-1">Comece criando seu primeiro produto</p>
                 <Button className="mt-4" onClick={() => setProductDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Produto
@@ -150,6 +186,7 @@ export default function Produtos() {
                     <TableHead>Nome</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Preço</TableHead>
+                    <TableHead>Estoque</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[70px]"></TableHead>
                   </TableRow>
@@ -157,17 +194,25 @@ export default function Produtos() {
                 <TableBody>
                   {products.map((product) => (
                     <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>
+                          {product.name}
+                          {product.sku && (
+                            <span className="block text-xs text-muted-foreground">{product.sku}</span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {product.category ? (
-                          <Badge variant="secondary">
-                            {product.category.name}
-                          </Badge>
+                          <Badge variant="secondary">{product.category.name}</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>{formatCurrency(Number(product.price))}</TableCell>
+                      <TableCell>
+                        <StockBadge product={product} />
+                      </TableCell>
                       <TableCell>
                         <Switch
                           checked={product.is_active ?? false}
@@ -186,6 +231,20 @@ export default function Produtos() {
                               <Pencil className="mr-2 h-4 w-4" />
                               Editar
                             </DropdownMenuItem>
+                            {product.track_stock && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => setMovementProduct(product)}>
+                                  <ArrowUpDown className="mr-2 h-4 w-4" />
+                                  Movimentar Estoque
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setHistoryProduct(product)}>
+                                  <History className="mr-2 h-4 w-4" />
+                                  Histórico de Estoque
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => setDeletingProduct(product)}
@@ -218,6 +277,22 @@ export default function Produtos() {
         onOpenChange={setCategoryDialogOpen}
         venueId={currentVenue?.id ?? ''}
       />
+
+      {movementProduct && (
+        <StockMovementDialog
+          open={!!movementProduct}
+          onOpenChange={(open) => !open && setMovementProduct(null)}
+          product={movementProduct}
+        />
+      )}
+
+      {historyProduct && (
+        <StockHistoryDialog
+          open={!!historyProduct}
+          onOpenChange={(open) => !open && setHistoryProduct(null)}
+          product={historyProduct}
+        />
+      )}
 
       <AlertDialog open={!!deletingProduct} onOpenChange={() => setDeletingProduct(null)}>
         <AlertDialogContent>
