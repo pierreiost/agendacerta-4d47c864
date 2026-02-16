@@ -6,9 +6,10 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Calendar, X } from 'lucide-react';
+import { Calendar, X, Wrench } from 'lucide-react';
 import { BookingWidget } from './BookingWidget';
 import { ServiceBookingWidget } from './ServiceBookingWidget';
+import { InquiryWidget } from './InquiryWidget';
 import { cn } from '@/lib/utils';
 
 interface PublicVenue {
@@ -36,12 +37,17 @@ export function MobileBookingButton({ venue, whatsappPhone }: MobileBookingButto
   const [isOpen, setIsOpen] = useState(false);
 
   const isServiceSegment = venue.segment === 'beauty' || venue.segment === 'health';
+  const isCustomSegment = venue.segment === 'custom';
 
-  const buttonLabel = isServiceSegment
-    ? 'Agendar Serviço'
-    : venue.booking_mode === 'calendar'
-      ? 'Agendar Horário'
-      : 'Solicitar Orçamento';
+  const buttonLabel = isCustomSegment
+    ? 'Solicitar Orçamento'
+    : isServiceSegment
+      ? 'Agendar Serviço'
+      : venue.booking_mode === 'calendar'
+        ? 'Agendar Horário'
+        : 'Solicitar Orçamento';
+
+  const ButtonIcon = isCustomSegment ? Wrench : Calendar;
 
   return (
     <>
@@ -57,7 +63,7 @@ export function MobileBookingButton({ venue, whatsappPhone }: MobileBookingButto
             "flex items-center justify-center gap-2"
           )}
         >
-          <Calendar className="h-5 w-5" />
+          <ButtonIcon className="h-5 w-5" />
           {buttonLabel}
         </Button>
       </div>
@@ -80,7 +86,9 @@ export function MobileBookingButton({ venue, whatsappPhone }: MobileBookingButto
             </div>
           </DrawerHeader>
           <div className="overflow-y-auto px-4 py-4">
-            {isServiceSegment ? (
+            {isCustomSegment ? (
+              <InquiryWidget venue={venue} whatsappPhone={whatsappPhone} />
+            ) : isServiceSegment ? (
               <ServiceBookingWidget venue={venue} whatsappPhone={whatsappPhone} />
             ) : (
               <BookingWidget venue={venue} whatsappPhone={whatsappPhone} />

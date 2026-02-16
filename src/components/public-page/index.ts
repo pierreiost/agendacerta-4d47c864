@@ -11,3 +11,4 @@ export { PageHeader } from './PageHeader';
 export { MobileBookingButton } from './MobileBookingButton';
 export { SocialFloatingButtons } from './SocialFloatingButtons';
 export { ServiceBookingWidget } from './ServiceBookingWidget';
+export { InquiryWidget } from './InquiryWidget';

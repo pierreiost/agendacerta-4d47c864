@@ -886,6 +886,7 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_phone: string | null
+          device_model: string | null
           id: string
           notes: string | null
           photo_urls: string[] | null
@@ -899,6 +900,7 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_phone?: string | null
+          device_model?: string | null
           id?: string
           notes?: string | null
           photo_urls?: string[] | null
@@ -912,6 +914,7 @@ export type Database = {
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null
+          device_model?: string | null
           id?: string
           notes?: string | null
           photo_urls?: string[] | null
@@ -1699,17 +1702,30 @@ export type Database = {
             }
             Returns: string
           }
-      create_service_inquiry: {
-        Args: {
-          p_customer_email: string
-          p_customer_name: string
-          p_customer_phone?: string
-          p_photo_urls?: string[]
-          p_problem_description?: string
-          p_venue_id: string
-        }
-        Returns: string
-      }
+      create_service_inquiry:
+        | {
+            Args: {
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_photo_urls?: string[]
+              p_problem_description?: string
+              p_venue_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_device_model?: string
+              p_photo_urls?: string[]
+              p_problem_description?: string
+              p_venue_id: string
+            }
+            Returns: string
+          }
       create_venue_with_admin:
         | {
             Args: { _address?: string; _name: string; _phone?: string }

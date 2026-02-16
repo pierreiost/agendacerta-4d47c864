@@ -16,6 +16,7 @@ import {
   MobileBookingButton,
   SocialFloatingButtons,
   ServiceBookingWidget,
+  InquiryWidget,
 } from '@/components/public-page';
 import { LocationSection } from '@/components/public-page/LocationSection';
 import { HoursSection } from '@/components/public-page/HoursSection';
@@ -238,6 +239,8 @@ export default function PublicPageVenue() {
               <div className="bg-white rounded-2xl shadow-2xl shadow-black/5 border border-black/5 overflow-hidden">
                 {(venue.segment === 'beauty' || venue.segment === 'health') ? (
                   <ServiceBookingWidget venue={venue} whatsappPhone={whatsappPhone} />
+                ) : venue.segment === 'custom' ? (
+                  <InquiryWidget venue={venue} whatsappPhone={whatsappPhone} />
                 ) : (
                   <BookingWidget venue={venue} whatsappPhone={whatsappPhone} />
                 )}
