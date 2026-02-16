@@ -1,122 +1,59 @@
 
+# Correção: Reservas Recorrentes com Fuso Horário Incorreto
 
-# Widget de Orcamento para Assistencia Tecnica
+## Problema Identificado
 
-## Resumo
+A função de banco de dados `create_recurring_bookings` constrói timestamps usando o fuso horário do servidor (UTC) em vez do fuso horário do usuario (BRT/UTC-3).
 
-Hoje, se uma loja do segmento "custom" (Assistencia Tecnica) tiver sua pagina publica acessada, o sistema mostra incorretamente um calendario de agendamento. Este plano cria um widget dedicado de captacao de orcamentos e o integra automaticamente baseado no segmento da venue.
+Quando o usuario seleciona "14:00" no wizard, a funcao grava `14:00 UTC`, que equivale a `11:00 BRT`. Como a grade da agenda comeca as 14:00 BRT (horario de funcionamento configurado), essas reservas ficam com posicao negativa e sao invisíveis.
 
----
+As reservas avulsas (nao recorrentes) funcionam corretamente porque o JavaScript do navegador constroi o timestamp completo com o fuso local antes de enviar ao backend.
 
-## O que sera feito
+## Solucao
 
-### 1. Novo componente: InquiryWidget
+Modificar a funcao RPC `create_recurring_bookings` para aceitar um parametro de timezone e usar esse fuso ao construir os timestamps.
 
-Criar `src/components/public-page/InquiryWidget.tsx` -- um formulario limpo e dedicado para orcamentos tecnicos, **sem calendario ou selecao de horarios**.
+### Mudancas Necessarias
 
-**Campos do formulario:**
-- Modelo do equipamento (texto, obrigatorio) -- ex: "iPhone 13", "MacBook Pro 2021"
-- Descricao do defeito (textarea, obrigatorio)
-- Fotos do dano (upload opcional, max 5 fotos) -- reutiliza o bucket `inquiry-photos` existente
-- Nome completo (obrigatorio)
-- WhatsApp (obrigatorio, com validacao minima de 8 digitos)
-- Email (opcional)
+**1. Migracao SQL - Alterar a funcao `create_recurring_bookings`**
 
-**Tela de sucesso:**
-- Icone de relogio (warning) + "Solicitacao Recebida!"
-- Mensagem: "Nossa equipe tecnica analisara seu relato e entrara em contato."
-- Botao WhatsApp pre-preenchido: "Ola! Acabei de enviar uma solicitacao de orcamento para [modelo]. Aguardo retorno!"
-- Botao "Nova solicitacao"
+Adicionar parametro `p_timezone text DEFAULT 'America/Sao_Paulo'` e alterar a construcao dos timestamps de:
 
-**Icone do header:** Wrench (em vez de Calendar/Scissors)
-
-### 2. Alteracao no banco de dados
-
-**2a. Adicionar coluna `device_model` na tabela `service_inquiries`:**
-```
-ALTER TABLE service_inquiries ADD COLUMN device_model TEXT;
+```text
+v_start_time := (v_current_date || ' ' || p_start_hour || ':00:00')::timestamptz;
 ```
 
-**2b. Atualizar RPC `create_service_inquiry`:**
-- Adicionar parametro `p_device_model TEXT DEFAULT NULL`
-- Remover a restricao `booking_mode != 'inquiry'` e substituir por uma validacao que aceite tanto `booking_mode = 'inquiry'` quanto venues do segmento `custom`
-- Inserir `device_model` no INSERT
+Para:
 
-**2c. Criar trigger de notificacao para `service_inquiries`:**
-```sql
-CREATE FUNCTION notify_new_inquiry() ...
-  INSERT INTO venue_notifications (venue_id, type, title, message, reference_id)
-  VALUES (NEW.venue_id, 'NEW_INQUIRY', 'Nova Solicitacao de Orcamento',
-          'Cliente ' || NEW.customer_name || ' solicitou orcamento para ' || COALESCE(NEW.device_model, 'equipamento'),
-          NEW.id);
-```
-Trigger: `AFTER INSERT ON service_inquiries FOR EACH ROW`
-
-### 3. Roteamento na pagina publica
-
-**`PublicPageVenue.tsx`** -- atualizar a logica de renderizacao:
-
-```
-if (beauty || health) -> ServiceBookingWidget
-else if (custom) -> InquiryWidget       <-- NOVO
-else -> BookingWidget (sports/calendar)
+```text
+v_start_time := ((v_current_date || ' ' || p_start_hour || ':00:00') AT TIME ZONE p_timezone);
 ```
 
-**`MobileBookingButton.tsx`** -- mesma logica:
-- Importar `InquiryWidget`
-- Adicionar condicional `venue.segment === 'custom'`
-- Label do botao mobile: "Solicitar Orcamento"
-- Icone: `Wrench` em vez de `Calendar`
+Isso garante que "14:00" seja interpretado como 14:00 no fuso do usuario, resultando em `17:00 UTC` (correto).
 
-### 4. Exportar componente
+**2. Frontend - `src/hooks/useBookingRPC.ts`**
 
-Atualizar `src/components/public-page/index.ts` para exportar o `InquiryWidget`.
+Passar o timezone do navegador (`Intl.DateTimeFormat().resolvedOptions().timeZone`) como parametro adicional na chamada RPC:
 
----
+```text
+p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+```
 
-## Arquivos modificados
+**3. Corrigir reservas ja criadas com horario errado**
+
+Executar uma query de correcao para ajustar as reservas recorrentes existentes do venue afetado, somando 3 horas aos timestamps (diferenca UTC para BRT).
+
+### Arquivos Afetados
 
 | Arquivo | Acao |
 |---------|------|
-| `src/components/public-page/InquiryWidget.tsx` | Criar (novo componente) |
-| `src/pages/public/PublicPageVenue.tsx` | Editar (roteamento por segmento) |
-| `src/components/public-page/MobileBookingButton.tsx` | Editar (roteamento + icone) |
-| `src/components/public-page/index.ts` | Editar (exportar InquiryWidget) |
-| Migration SQL | Criar (coluna device_model + trigger notificacao + atualizar RPC) |
+| Nova migracao SQL | Recriar funcao `create_recurring_bookings` com parametro `p_timezone` |
+| `src/hooks/useBookingRPC.ts` | Passar timezone do navegador na chamada RPC |
+| Interface `CreateRecurringBookingsParams` | Adicionar campo `timezone` |
 
----
+### Impacto
 
-## Detalhes tecnicos
-
-### Fluxo de dados do InquiryWidget
-
-```text
-[Cliente preenche form]
-       |
-       v
-[Upload fotos -> bucket inquiry-photos]
-       |
-       v
-[supabase.rpc('create_service_inquiry', { ... p_device_model })]
-       |
-       v
-[Trigger: INSERT venue_notifications (type=NEW_INQUIRY)]
-       |
-       v
-[Sino do admin: "Nova Solicitacao de Orcamento - iPhone 13"]
-```
-
-### Validacao do RPC atualizada
-
-A RPC passara a aceitar venues onde:
-- `booking_mode = 'inquiry'` (comportamento atual preservado), **OU**
-- `segment = 'custom'` (novo -- permite assistencias tecnicas)
-
-Isso garante retrocompatibilidade com venues existentes que ja usam o modo inquiry.
-
-### Componentes reutilizados
-- Upload de fotos: logica inline (mesmo padrao do BookingWidget existente) com validacao de MIME type e tamanho
-- Bucket `inquiry-photos`: ja existe e tem RLS configurado
-- Toasts e estados de loading: padrao Sonner/useToast do projeto
-- WhatsApp link: mesma logica `wa.me` usada nos outros widgets
-
+- Reservas recorrentes futuras serao criadas no horario correto
+- Reservas ja criadas serao corrigidas via migracao de dados
+- Nenhuma mudanca na interface visual do wizard
+- Compatibilidade mantida (timezone tem valor padrao `America/Sao_Paulo`)
