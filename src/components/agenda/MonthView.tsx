@@ -81,7 +81,7 @@ export function MonthView({
   const weekDayNamesShort = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
   return (
-    <Card className="flex-1 shadow-soft overflow-hidden">
+    <Card className="flex-1 flex flex-col shadow-soft overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-7 border-b border-border">
         {weekDayNames.map((day, i) => (
@@ -96,9 +96,9 @@ export function MonthView({
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1">
+      <div className="flex-1 grid" style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}>
         {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="grid grid-cols-7 border-b border-border last:border-b-0">
+          <div key={weekIndex} className="grid grid-cols-7 border-b border-border last:border-b-0 min-h-0">
           {week.map((day) => {
               const dayBookings = getBookingsForDay(day);
               const spaceDots = getSpaceDotsForDay(day);
@@ -109,7 +109,7 @@ export function MonthView({
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    'min-h-[50px] md:min-h-[70px] p-1 md:p-1.5 border-r border-border last:border-r-0',
+                    'p-1 md:p-1.5 border-r border-border last:border-r-0 overflow-hidden',
                     'transition-colors duration-200 hover:bg-muted/50 cursor-pointer',
                     !isCurrentMonth && 'bg-muted/20 text-muted-foreground',
                     today && 'bg-primary/5'
@@ -152,7 +152,7 @@ export function MonthView({
 
                   {/* Booking previews - hidden on mobile */}
                   <div className="hidden sm:block space-y-0.5 md:space-y-1">
-                    {dayBookings.slice(0, 2).map((booking) => {
+                    {dayBookings.slice(0, 3).map((booking) => {
                       const spaceIndex = allSpaces.findIndex((s) => s.id === booking.space_id);
                       const colors = getSpaceColor(spaceIndex);
 
@@ -174,9 +174,9 @@ export function MonthView({
                         </div>
                       );
                     })}
-                    {dayBookings.length > 2 && (
+                    {dayBookings.length > 3 && (
                       <div className="text-[8px] md:text-[10px] text-muted-foreground pl-1">
-                        +{dayBookings.length - 2}
+                        +{dayBookings.length - 3}
                       </div>
                     )}
                   </div>
