@@ -235,11 +235,16 @@ export function AppSidebar() {
             <button className="flex w-full items-center gap-2 rounded-lg p-2 transition-all hover:bg-sidebar-accent active:scale-[0.98]">
               {/* Logo ou Ícone da Venue */}
               {currentVenue?.logo_url ? (
-                <img 
-                  src={currentVenue.logo_url} 
-                  alt={currentVenue.name} 
-                  className="h-9 w-auto max-w-[120px] object-contain flex-shrink-0"
-                />
+                <Avatar className="size-9 rounded-lg shadow-md ring-2 ring-brand/30">
+                  <AvatarImage 
+                    src={currentVenue.logo_url} 
+                    alt={currentVenue.name} 
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="rounded-lg bg-brand text-brand-foreground font-semibold text-sm">
+                    {getVenueInitials(currentVenue.name)}
+                  </AvatarFallback>
+                </Avatar>
               ) : (
                 <div className="flex size-9 items-center justify-center rounded-lg bg-brand text-brand-foreground shadow-md ring-2 ring-brand/30">
                   <Building2 className="size-4" />

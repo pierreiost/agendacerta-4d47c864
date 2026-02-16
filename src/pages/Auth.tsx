@@ -243,8 +243,8 @@ export default function Auth() {
 
         {/* Logo and branding content */}
         <div className="relative z-10 flex flex-col items-center text-center max-w-md">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl mb-8">
-            <img src={logo} alt="AgendaCerta Logo" className="w-40 h-24 object-contain" />
+          <div className="bg-white rounded-2xl p-3 shadow-2xl mb-8">
+            <img src={logo} alt="AgendaCerta Logo" className="w-44 h-auto object-contain" />
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">AgendaCerta</h1>
@@ -271,8 +271,8 @@ export default function Auth() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center mb-8">
-            <div className="bg-primary rounded-2xl p-4 mb-4">
-              <img src={logo} alt="AgendaCerta Logo" className="w-16 h-16 object-contain" />
+            <div className="bg-primary rounded-xl p-2 mb-4">
+              <img src={logo} alt="AgendaCerta Logo" className="w-20 h-auto object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">AgendaCerta</h1>
             <p className="text-sm text-muted-foreground text-center mt-2">
