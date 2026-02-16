@@ -243,8 +243,8 @@ export default function Auth() {
 
         {/* Logo and branding content */}
         <div className="relative z-10 flex flex-col items-center text-center max-w-md">
-          <div className="bg-white rounded-2xl p-3 shadow-2xl mb-8">
-            <img src={logo} alt="AgendaCerta Logo" className="w-44 h-auto object-contain" />
+          <div className="bg-white rounded-2xl shadow-2xl mb-8 overflow-hidden">
+            <img src={logo} alt="AgendaCerta Logo" className="w-48 h-auto block" />
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">AgendaCerta</h1>
