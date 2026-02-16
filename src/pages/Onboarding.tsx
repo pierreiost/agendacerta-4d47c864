@@ -221,8 +221,8 @@ export default function Onboarding() {
         
         <div className="relative z-10 max-w-md">
           {/* Logo */}
-          <div className="bg-white rounded-2xl p-4 shadow-xl mb-8 inline-block">
-            <img src={logo} alt="AgendaCerta" className="w-16 h-16 object-contain" />
+          <div className="mb-8 inline-block">
+            <img src={logo} alt="AgendaCerta" className="h-auto block" style={{ width: '36rem' }} />
           </div>
 
           <h1 className="text-3xl font-bold text-white mb-4">
@@ -251,9 +251,7 @@ export default function Onboarding() {
           <CardHeader className="text-center pb-4">
             {/* Mobile Logo */}
             <div className="lg:hidden flex justify-center mb-4">
-              <div className="bg-primary rounded-xl p-3">
-                <img src={logo} alt="AgendaCerta" className="w-10 h-10 object-contain" />
-              </div>
+              <img src={logo} alt="AgendaCerta" className="w-24 h-auto object-contain" />
             </div>
 
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
