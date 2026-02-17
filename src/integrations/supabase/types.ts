@@ -1511,14 +1511,17 @@ export type Database = {
           asaas_subscription_id: string | null
           booking_mode: string | null
           business_category: string | null
+          city: string | null
           cnpj_cpf: string | null
           created_at: string
           dark_mode: boolean | null
           dashboard_mode: string | null
           email: string | null
           id: string
+          is_marketplace_visible: boolean
           logo_url: string | null
           name: string
+          niche_id: string | null
           phone: string | null
           phones: string[] | null
           plan_type: string | null
@@ -1532,6 +1535,7 @@ export type Database = {
           slot_interval_minutes: number | null
           slug: string | null
           slug_set_at: string | null
+          state: string | null
           status: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at: string | null
           subscription_status: string | null
@@ -1547,14 +1551,17 @@ export type Database = {
           asaas_subscription_id?: string | null
           booking_mode?: string | null
           business_category?: string | null
+          city?: string | null
           cnpj_cpf?: string | null
           created_at?: string
           dark_mode?: boolean | null
           dashboard_mode?: string | null
           email?: string | null
           id?: string
+          is_marketplace_visible?: boolean
           logo_url?: string | null
           name: string
+          niche_id?: string | null
           phone?: string | null
           phones?: string[] | null
           plan_type?: string | null
@@ -1568,6 +1575,7 @@ export type Database = {
           slot_interval_minutes?: number | null
           slug?: string | null
           slug_set_at?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
@@ -1583,14 +1591,17 @@ export type Database = {
           asaas_subscription_id?: string | null
           booking_mode?: string | null
           business_category?: string | null
+          city?: string | null
           cnpj_cpf?: string | null
           created_at?: string
           dark_mode?: boolean | null
           dashboard_mode?: string | null
           email?: string | null
           id?: string
+          is_marketplace_visible?: boolean
           logo_url?: string | null
           name?: string
+          niche_id?: string | null
           phone?: string | null
           phones?: string[] | null
           plan_type?: string | null
@@ -1604,6 +1615,7 @@ export type Database = {
           slot_interval_minutes?: number | null
           slug?: string | null
           slug_set_at?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
@@ -1611,7 +1623,15 @@ export type Database = {
           updated_at?: string
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "venues_niche_id_fkey"
+            columns: ["niche_id"]
+            isOneToOne: false
+            referencedRelation: "niches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1890,14 +1910,17 @@ export type Database = {
               asaas_subscription_id: string | null
               booking_mode: string | null
               business_category: string | null
+              city: string | null
               cnpj_cpf: string | null
               created_at: string
               dark_mode: boolean | null
               dashboard_mode: string | null
               email: string | null
               id: string
+              is_marketplace_visible: boolean
               logo_url: string | null
               name: string
+              niche_id: string | null
               phone: string | null
               phones: string[] | null
               plan_type: string | null
@@ -1911,6 +1934,7 @@ export type Database = {
               slot_interval_minutes: number | null
               slug: string | null
               slug_set_at: string | null
+              state: string | null
               status: Database["public"]["Enums"]["subscription_status"] | null
               subscription_ends_at: string | null
               subscription_status: string | null
@@ -1941,14 +1965,17 @@ export type Database = {
               asaas_subscription_id: string | null
               booking_mode: string | null
               business_category: string | null
+              city: string | null
               cnpj_cpf: string | null
               created_at: string
               dark_mode: boolean | null
               dashboard_mode: string | null
               email: string | null
               id: string
+              is_marketplace_visible: boolean
               logo_url: string | null
               name: string
+              niche_id: string | null
               phone: string | null
               phones: string[] | null
               plan_type: string | null
@@ -1962,6 +1989,7 @@ export type Database = {
               slot_interval_minutes: number | null
               slug: string | null
               slug_set_at: string | null
+              state: string | null
               status: Database["public"]["Enums"]["subscription_status"] | null
               subscription_ends_at: string | null
               subscription_status: string | null
@@ -1998,6 +2026,21 @@ export type Database = {
           revenue_change: number
           total_expenses: number
           total_revenue: number
+        }[]
+      }
+      get_marketplace_filters: { Args: never; Returns: Json }
+      get_marketplace_venues: {
+        Args: { p_city?: string; p_niche_id?: string }
+        Returns: {
+          city: string
+          id: string
+          logo_url: string
+          name: string
+          niche_name: string
+          primary_color: string
+          segment: Database["public"]["Enums"]["venue_segment"]
+          slug: string
+          state: string
         }[]
       }
       get_professional_availability: {
