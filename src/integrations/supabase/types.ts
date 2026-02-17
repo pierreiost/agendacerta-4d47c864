@@ -461,6 +461,33 @@ export type Database = {
         }
         Relationships: []
       }
+      niches: {
+        Row: {
+          created_at: string
+          icon_url: string | null
+          id: string
+          name: string
+          segment: Database["public"]["Enums"]["venue_segment"]
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          segment: Database["public"]["Enums"]["venue_segment"]
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          segment?: Database["public"]["Enums"]["venue_segment"]
+          slug?: string
+        }
+        Relationships: []
+      }
       oauth_states: {
         Row: {
           created_at: string
