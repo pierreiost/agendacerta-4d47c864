@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,8 +20,9 @@ import { useTabPersist } from '@/hooks/useTabPersist';
 import {
   Loader2, Globe, Image, MessageSquare, BarChart3, HelpCircle,
   MapPin, Clock, Share2, Plus, Trash2, Upload, X, ExternalLink, 
-  GripVertical, Star, Palette, ImageIcon, Link as LinkIcon
+  GripVertical, Star, Palette, ImageIcon, Link as LinkIcon, Store
 } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PublicPageSections, DEFAULT_SECTIONS, Testimonial, FaqItem, GalleryImage, CustomStat } from '@/types/public-page';
 import { cn } from '@/lib/utils';
 
@@ -56,6 +58,25 @@ export default function PublicPageConfig() {
   const [logoInputMode, setLogoInputMode] = useState<'url' | 'file'>('url');
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [publicPageEnabled, setPublicPageEnabled] = useState(false);
+  const [isMarketplaceVisible, setIsMarketplaceVisible] = useState(false);
+  const [nicheId, setNicheId] = useState<string | null>(null);
+  const [venueCity, setVenueCity] = useState('');
+  const [venueState, setVenueState] = useState('RS');
+
+  // Load niches filtered by venue segment
+  const { data: niches } = useQuery({
+    queryKey: ['niches', currentVenue?.segment],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('niches')
+        .select('id, name, slug, segment')
+        .eq('segment', currentVenue?.segment || 'beauty')
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentVenue?.segment,
+  });
   
   
   const { activeTab, onTabChange } = useTabPersist({ key: 'public_page_config', defaultValue: 'branding' });
@@ -84,10 +105,14 @@ export default function PublicPageConfig() {
         // But we still need to load publicPageEnabled from DB since it's not in sections
         const { data } = await supabase
           .from('venues')
-          .select('public_page_enabled')
+          .select('public_page_enabled, is_marketplace_visible, niche_id, city, state')
           .eq('id', currentVenue.id)
           .single();
         setPublicPageEnabled(!!data?.public_page_enabled);
+        setIsMarketplaceVisible(!!data?.is_marketplace_visible);
+        setNicheId(data?.niche_id || null);
+        setVenueCity(data?.city || '');
+        setVenueState(data?.state || 'RS');
         setIsDataLoaded(true);
         return;
       }
@@ -95,7 +120,7 @@ export default function PublicPageConfig() {
       // No draft, load from database
       const { data } = await supabase
         .from('venues')
-        .select('public_page_sections, primary_color, logo_url, public_page_enabled')
+        .select('public_page_sections, primary_color, logo_url, public_page_enabled, is_marketplace_visible, niche_id, city, state')
         .eq('id', currentVenue.id)
         .single();
       
@@ -109,6 +134,10 @@ export default function PublicPageConfig() {
         setPublicLogoUrl(data.logo_url);
       }
       setPublicPageEnabled(!!data?.public_page_enabled);
+      setIsMarketplaceVisible(!!data?.is_marketplace_visible);
+      setNicheId(data?.niche_id || null);
+      setVenueCity(data?.city || '');
+      setVenueState(data?.state || 'RS');
       
       setIsDataLoaded(true);
     };
@@ -126,6 +155,10 @@ export default function PublicPageConfig() {
         primary_color: primaryColor || null,
         logo_url: publicLogoUrl || null,
         public_page_enabled: publicPageEnabled,
+        is_marketplace_visible: isMarketplaceVisible,
+        niche_id: nicheId || null,
+        city: venueCity || null,
+        state: venueState || null,
       })
       .eq('id', currentVenue.id);
 
@@ -284,7 +317,11 @@ export default function PublicPageConfig() {
         </div>
 
         <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-auto gap-1 p-1">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9 h-auto gap-1 p-1">
+            <TabsTrigger value="marketplace" className="flex-col py-1.5 h-auto">
+              <Store className="h-4 w-4 mb-0.5" />
+              <span className="text-xs">Marketplace</span>
+            </TabsTrigger>
             <TabsTrigger value="branding" className="flex-col py-1.5 h-auto">
               <Palette className="h-4 w-4 mb-0.5" />
               <span className="text-xs">Identidade</span>
@@ -1015,6 +1052,72 @@ export default function PublicPageConfig() {
                   </div>
                 </CardContent>
               )}
+            </Card>
+          </TabsContent>
+
+          {/* Marketplace */}
+          <TabsContent value="marketplace">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Store className="h-4 w-4" />
+                  Marketplace
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Apareça na vitrine pública para que novos clientes encontrem você
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-medium">Aparecer no Marketplace</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Seu perfil ficará visível na busca pública
+                    </p>
+                  </div>
+                  <Switch
+                    checked={isMarketplaceVisible}
+                    onCheckedChange={setIsMarketplaceVisible}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Nicho Principal</Label>
+                  <Select value={nicheId || ''} onValueChange={(v) => setNicheId(v || null)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione seu nicho" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(niches || []).map((n) => (
+                        <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Mostrando nichos do segmento: {currentVenue?.segment || '—'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Cidade</Label>
+                    <Input
+                      value={venueCity}
+                      onChange={(e) => setVenueCity(e.target.value)}
+                      placeholder="Ex: Porto Alegre"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Estado (UF)</Label>
+                    <Input
+                      value={venueState}
+                      onChange={(e) => setVenueState(e.target.value)}
+                      placeholder="RS"
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

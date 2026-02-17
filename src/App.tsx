@@ -30,6 +30,7 @@ import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PublicPageVenue from "./pages/public/PublicPageVenue";
+import Marketplace from "./pages/Marketplace";
 import { Loader2 } from "lucide-react";
 import { AppErrorBoundary } from "@/components/shared/AppErrorBoundary";
 
@@ -159,6 +160,7 @@ function AppWithProviders() {
       <Routes>
         {/* Public marketing routes - outside of auth/venue providers */}
         <Route path="/inicio" element={<LandingPage />} />
+        <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/v/:slug" element={<PublicPageVenue />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         {/* All other routes go through the providers */}
