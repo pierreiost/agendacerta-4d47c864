@@ -1,134 +1,103 @@
 
 
-# Controle de Estoque integrado aos Produtos
+# Marketplace MVP - AgendaCerta
 
 ## Resumo
+Criar uma vitrine publica onde clientes finais buscam profissionais por nicho e cidade, com nichos organizados por segmento do negocio.
 
-Adicionar controle de estoque diretamente na pagina de Produtos existente, sem criar uma pagina separada. Cada produto tera campos de estoque (quantidade atual, estoque minimo, custo) e toda movimentacao sera registrada em um ledger imutavel (Kardex).
+---
 
-## Banco de Dados
+## 1. Banco de Dados
 
-### 1. Alterar tabela `products`
+### Migracao 1 - Tabela `niches` com coluna `segment` + Seed amplo
 
-Adicionar as colunas:
-
-- `cost_price` (numeric, default 0) - Custo do produto
-- `stock_quantity` (integer, default 0) - Saldo atual em cache
-- `min_stock` (integer, nullable) - Estoque minimo para alerta
-- `track_stock` (boolean, default false) - Se controla estoque
-- `sku` (text, nullable) - Codigo do produto
-- `unit` (text, default 'un') - Unidade (un, kg, L)
-
-### 2. Criar tabela `stock_movements` (Kardex)
-
-Registros imutaveis de toda movimentacao:
-
+Tabela `niches`:
 - `id` (uuid, PK)
-- `venue_id` (uuid, FK)
-- `product_id` (uuid, FK products)
-- `type` (text: IN, OUT, ADJUSTMENT)
-- `reason` (text: purchase, sale, loss, return, adjustment, initial)
-- `quantity` (integer, sempre positivo)
-- `unit_cost` (numeric, nullable)
-- `reference_id` (uuid, nullable) - Referencia ao booking
-- `reference_type` (text, nullable) - Tipo da referencia
-- `notes` (text, nullable)
-- `balance_after` (integer) - Snapshot do saldo apos movimentacao
-- `created_by` (uuid)
-- `created_at` (timestamptz)
+- `name` (text, NOT NULL)
+- `slug` (text, UNIQUE)
+- `icon_url` (text, nullable)
+- `segment` (venue_segment, NOT NULL) -- vincula ao segmento
 
-### 3. Funcao atomica `create_stock_movement`
+RLS: SELECT publico (anon + authenticated). Sem INSERT/UPDATE/DELETE para usuarios comuns.
 
-Funcao PostgreSQL que:
-1. Faz lock na linha do produto (`SELECT FOR UPDATE`)
-2. Calcula novo saldo baseado no tipo (IN soma, OUT/ADJUSTMENT subtrai)
-3. Valida estoque negativo (impede se `track_stock = true`)
-4. Insere registro imutavel em `stock_movements`
-5. Atualiza `stock_quantity` no produto
-6. Retorna o movimento criado
+**Seed por segmento:**
 
-### 4. RLS Policies
+**beauty** (Saloes e Barbearias):
+Barbeiro, Cabeleireiro(a), Manicure, Pedicure, Maquiador(a), Design de Sobrancelhas, Esteticista, Depilador(a), Extensionista de Cilios, Colorista, Trancista, Nail Designer, Micropigmentador(a), Visagista, Penteadista
 
-- `stock_movements`: SELECT para venue members, INSERT via funcao RPC
-- Sem UPDATE ou DELETE (imutavel)
+**health** (Clinicas e Saude):
+Nutricionista, Psicologo(a), Fisioterapeuta, Dentista, Fonoaudiologo(a), Terapeuta Ocupacional, Acupunturista, Quiropraxista, Podologo(a), Massagista, Personal Trainer, Pilates/Yoga, Dermatologista, Medico(a), Enfermeiro(a), Osteopata, Naturopata
 
-### 5. Indice para performance
+**sports** (Quadras e Espacos):
+Quadra de Beach Tennis, Quadra de Futevolei, Quadra Society, Quadra de Tenis, Quadra de Padel, Quadra de Volei, Quadra de Basquete, Campo de Futebol, Piscina, Espaco Fitness, Salao de Festas, Espaco de Eventos
 
-```text
-CREATE INDEX idx_stock_movements_product ON stock_movements(venue_id, product_id, created_at DESC);
-```
+**custom** (Assistencia Tecnica e Servicos Gerais):
+Encanador, Eletricista, Tecnico HVAC, Tecnico de Informatica, Tecnico de Celular, Tecnico de Eletrodomesticos, Veterinario(a), Passeador de Caes, Pet Sitter, Faxina/Diarista, Jardineiro(a), Pintor(a), Marceneiro(a), Serralheiro(a), Vidraceiro, Dedetizador, Fotografo(a), Tatuador(a)
 
-## Frontend - Alteracoes
+### Migracao 2 - Novas colunas em `venues`
 
-### 1. Formulario de Produto (`ProductFormDialog.tsx`)
+- `niche_id` (uuid, FK para niches, nullable)
+- `city` (text, nullable)
+- `state` (text, nullable, default 'RS')
+- `is_marketplace_visible` (boolean, default false)
 
-Adicionar secao "Controle de Estoque" com toggle `track_stock`:
-- Quando ativo, mostrar campos: SKU, Unidade, Custo (R$), Estoque Minimo
-- Quando criando produto novo com estoque, pedir "Estoque Inicial"
+### Migracao 3 - RPCs publicas
 
-### 2. Tabela de Produtos (`Produtos.tsx`)
+**`get_marketplace_venues(p_niche_id uuid, p_city text)`**
+- SECURITY DEFINER
+- Retorna: id, name, slug, logo_url, city, state, niche_name, primary_color, segment
+- Filtros: `is_marketplace_visible = true`, `public_page_enabled = true`, status in ('active','trialing')
+- Filtro opcional por niche_id e city (ILIKE)
 
-Adicionar coluna "Estoque" na tabela com:
-- Quantidade atual (ex: "42 un")
-- Badge colorido: vermelho se abaixo do minimo, verde se ok, cinza se nao rastreia
-- Texto "-" quando `track_stock = false`
+**`get_marketplace_filters()`**
+- Retorna nichos e cidades distintas de venues visiveis
+- Inclui a coluna `segment` nos nichos para agrupamento visual
 
-### 3. Dialog de Movimentacao Manual
+---
 
-Novo componente `StockMovementDialog.tsx`:
-- Acessado pelo menu de acoes (3 pontos) de cada produto
-- Opcao "Movimentar Estoque" no dropdown
-- Campos: Tipo (Entrada/Saida/Ajuste), Motivo (dropdown), Quantidade, Custo unitario (se entrada), Observacoes
-- Mostra saldo atual e saldo apos movimentacao em tempo real
+## 2. Frontend - Pagina do Marketplace
 
-### 4. Dialog de Historico de Movimentacoes
+### Novo: `src/pages/Marketplace.tsx`
+- Hero com titulo "Encontre o profissional certo"
+- Dropdown de Nicho (agrupado por segmento para melhor UX)
+- Input/Dropdown de Cidade (autocomplete das cidades disponiveis)
+- Grid de cards responsivos: logo, nome, badge nicho, cidade/UF, botao "Agendar" que redireciona para `/v/{slug}`
+- Estado vazio quando sem resultados
 
-Novo componente `StockHistoryDialog.tsx`:
-- Acessado pelo menu de acoes do produto
-- Opcao "Historico de Estoque" no dropdown
-- Lista cronologica de movimentacoes com: Data, Tipo (badge colorido), Motivo, Quantidade, Saldo Apos, Usuario
+### Novo: `src/hooks/useMarketplace.ts`
+- `useMarketplaceVenues(nicheId, city)` - chama RPC
+- `useMarketplaceFilters()` - carrega nichos e cidades
 
-### 5. Integracao com Vendas (Saida Automatica)
+### Rota em `src/App.tsx`
+- Adicionar `/marketplace` como rota publica (junto com `/inicio`, `/v/:slug`)
 
-Quando um booking com `order_items` contendo produtos com `track_stock = true` e confirmado/finalizado:
-- Criar movimentacoes de saida automaticas para cada produto vendido
-- Reason: "sale", reference_id: booking_id
+---
 
-### 6. Cards de resumo no topo da pagina
+## 3. Configuracoes do Profissional
 
-Adicionar cards opcionais acima da tabela (quando houver produtos com estoque):
-- Total de produtos rastreados
-- Produtos com estoque baixo (abaixo do minimo)
-- Valor total do estoque (quantidade x custo)
+### Alterar: `src/pages/PublicPageConfig.tsx`
+Adicionar novo card "Marketplace" com:
+- Switch "Aparecer no Marketplace" (`is_marketplace_visible`)
+- Select "Nicho Principal" (carregando da tabela `niches` **filtrado pelo segmento do venue**)
+- Inputs "Cidade" e "Estado (UF)"
+- Atualizar `handleSave` para salvar os novos campos
 
-## Hook `useStockMovements`
+---
 
-Novo hook com:
-- `createMovement(data)` - Chama RPC `create_stock_movement`
-- `useMovementHistory(productId)` - Query para historico de um produto
-- Invalidacao automatica de `products` ao criar movimento
-
-## Arquivos Afetados
+## 4. Arquivos a criar/modificar
 
 | Arquivo | Acao |
-|---------|------|
-| Nova migracao SQL | Alterar `products`, criar `stock_movements`, criar funcao, RLS, indice |
-| `src/hooks/useProducts.ts` | Atualizar tipo `Product` (novos campos automaticos via types) |
-| `src/hooks/useStockMovements.ts` | Novo hook para movimentacoes |
-| `src/components/products/ProductFormDialog.tsx` | Adicionar campos de estoque |
-| `src/components/products/StockMovementDialog.tsx` | Novo - dialog de movimentacao manual |
-| `src/components/products/StockHistoryDialog.tsx` | Novo - dialog de historico |
-| `src/pages/Produtos.tsx` | Coluna estoque, badges, cards resumo, acoes extras no dropdown |
-| `src/hooks/useOrderItems.ts` | Integrar saida automatica ao confirmar venda |
+|---|---|
+| Migracao SQL 1 | Criar tabela `niches` com coluna `segment` + seed de 60+ profissoes |
+| Migracao SQL 2 | Alterar `venues` (niche_id, city, state, is_marketplace_visible) |
+| Migracao SQL 3 | RPCs get_marketplace_venues e get_marketplace_filters |
+| `src/pages/Marketplace.tsx` | Criar - pagina completa |
+| `src/hooks/useMarketplace.ts` | Criar - hook de dados |
+| `src/App.tsx` | Adicionar rota /marketplace |
+| `src/pages/PublicPageConfig.tsx` | Adicionar controles marketplace com nichos filtrados por segmento |
 
-## Sequencia de Implementacao
-
-1. Migracao do banco (tabela, funcao, RLS, indice)
-2. Hook `useStockMovements`
-3. Atualizar formulario de produto com campos de estoque
-4. Atualizar tabela de produtos com coluna de estoque e badges
-5. Dialog de movimentacao manual
-6. Dialog de historico
-7. Cards de resumo
-8. Integracao automatica com vendas
+## 5. Seguranca
+- Tabela `niches`: leitura publica, sem escrita por usuarios
+- RPCs SECURITY DEFINER retornando apenas dados publicos
+- Venues so aparecem se `is_marketplace_visible = true` E `public_page_enabled = true`
 
