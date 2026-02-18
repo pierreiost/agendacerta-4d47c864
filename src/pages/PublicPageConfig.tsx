@@ -96,28 +96,7 @@ export default function PublicPageConfig() {
     if (!currentVenue?.id) return;
     
     const loadData = async () => {
-      // Check if there's a draft first
-      const storageKey = `state_draft_public_page_${currentVenue.id}`;
-      const hasDraft = localStorage.getItem(storageKey);
-      
-      if (hasDraft) {
-        // If there's a draft, the useStatePersist hook will handle restoration
-        // But we still need to load publicPageEnabled from DB since it's not in sections
-        const { data } = await supabase
-          .from('venues')
-          .select('public_page_enabled, is_marketplace_visible, niche_id, city, state')
-          .eq('id', currentVenue.id)
-          .single();
-        setPublicPageEnabled(!!data?.public_page_enabled);
-        setIsMarketplaceVisible(!!data?.is_marketplace_visible);
-        setNicheId(data?.niche_id || null);
-        setVenueCity(data?.city || '');
-        setVenueState(data?.state || 'RS');
-        setIsDataLoaded(true);
-        return;
-      }
-
-      // No draft, load from database
+      // Always load from database first to ensure we have the latest data
       const { data } = await supabase
         .from('venues')
         .select('public_page_sections, primary_color, logo_url, public_page_enabled, is_marketplace_visible, niche_id, city, state')
