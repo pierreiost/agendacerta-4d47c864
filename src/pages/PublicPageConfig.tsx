@@ -296,6 +296,7 @@ export default function PublicPageConfig() {
                 id="public-page-toggle"
                 checked={publicPageEnabled}
                 onCheckedChange={setPublicPageEnabled}
+                disabled={!isDataLoaded}
               />
               <Label htmlFor="public-page-toggle" className="text-sm font-medium">
                 {publicPageEnabled ? 'Ativa' : 'Inativa'}
@@ -309,7 +310,7 @@ export default function PublicPageConfig() {
                 </a>
               </Button>
             )}
-            <Button onClick={handleSave} disabled={isLoading} size="sm">
+            <Button onClick={handleSave} disabled={isLoading || !isDataLoaded} size="sm">
               {isLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Salvar
             </Button>
@@ -356,6 +357,11 @@ export default function PublicPageConfig() {
             </TabsTrigger>
           </TabsList>
 
+          {!isDataLoaded ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (<>
           {/* Branding / Identity Section */}
           <TabsContent value="branding">
             <div className="grid gap-4 lg:grid-cols-2">
@@ -1120,6 +1126,7 @@ export default function PublicPageConfig() {
               </CardContent>
             </Card>
           </TabsContent>
+          </>)}
         </Tabs>
       </div>
     </AppLayout>
