@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Store, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, MapPin, Store, ArrowRight, Loader2, CalendarSearch } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const SEGMENT_LABELS: Record<string, string> = {
   beauty: 'Beleza & Estética',
@@ -40,9 +41,17 @@ export default function Marketplace() {
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground mb-3">
             Encontre o profissional certo
           </h1>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto mb-8">
+          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto mb-6">
             Busque por categoria e cidade, e agende diretamente com o profissional.
           </p>
+          <div className="flex justify-center mb-8">
+            <Button asChild variant="outline" size="sm" className="gap-2 rounded-xl">
+              <Link to="/minhas-reservas">
+                <CalendarSearch className="h-4 w-4" />
+                Consultar Minhas Reservas
+              </Link>
+            </Button>
+          </div>
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
