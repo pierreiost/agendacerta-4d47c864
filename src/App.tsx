@@ -31,6 +31,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PublicPageVenue from "./pages/public/PublicPageVenue";
 import Marketplace from "./pages/Marketplace";
+import MinhasReservas from "./pages/MinhasReservas";
 import { Loader2 } from "lucide-react";
 import { AppErrorBoundary } from "@/components/shared/AppErrorBoundary";
 
@@ -162,6 +163,7 @@ function AppWithProviders() {
         <Route path="/inicio" element={<LandingPage />} />
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/v/:slug" element={<PublicPageVenue />} />
+        <Route path="/minhas-reservas" element={<MinhasReservas />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         {/* All other routes go through the providers */}
         <Route path="/*" element={<AppRoutesWithPersist />} />
