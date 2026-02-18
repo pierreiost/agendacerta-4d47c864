@@ -15,7 +15,7 @@ import { useVenue } from '@/contexts/VenueContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { useStatePersist } from '@/hooks/useStatePersist';
+
 import { useTabPersist } from '@/hooks/useTabPersist';
 import {
   Loader2, Globe, Image, MessageSquare, BarChart3, HelpCircle,
@@ -83,13 +83,6 @@ export default function PublicPageConfig() {
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
 
-  // Use state persistence for sections
-  const { clearDraft } = useStatePersist({
-    key: `public_page_${currentVenue?.id}`,
-    state: sections,
-    setState: setSections,
-    isReady: isDataLoaded && !!currentVenue?.id,
-  });
 
   // Load sections and branding from venue
   useEffect(() => {
@@ -146,8 +139,6 @@ export default function PublicPageConfig() {
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
     } else {
-      // Clear draft on successful save
-      clearDraft();
       toast({ title: 'Configurações salvas!' });
       refetchVenues();
     }
