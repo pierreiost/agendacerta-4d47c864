@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, CalendarSearch } from 'lucide-react';
 import logo from '@/assets/logo.svg';
 import { cn } from '@/lib/utils';
 
@@ -71,8 +72,24 @@ export function LandingNav({ onCTA }: LandingNavProps) {
             ))}
           </div>
 
-          {/* CTA Button */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* CTA Buttons */}
+          <div className="hidden md:flex items-center gap-3">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className={cn(
+                "gap-2 rounded-xl font-medium transition-colors",
+                isScrolled
+                  ? "border-border text-muted-foreground hover:text-primary"
+                  : "border-white/30 text-white/90 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Link to="/minhas-reservas">
+                <CalendarSearch className="h-4 w-4" />
+                Minhas Reservas
+              </Link>
+            </Button>
             <Button 
               onClick={onCTA}
               className="gradient-primary hover:opacity-90 px-6"
@@ -108,7 +125,13 @@ export function LandingNav({ onCTA }: LandingNavProps) {
                 {link.label}
               </button>
             ))}
-            <Button onClick={onCTA} className="w-full gradient-primary mt-4">
+            <Button asChild variant="outline" className="w-full gap-2 mt-2">
+              <Link to="/minhas-reservas">
+                <CalendarSearch className="h-4 w-4" />
+                Minhas Reservas
+              </Link>
+            </Button>
+            <Button onClick={onCTA} className="w-full gradient-primary mt-2">
               Começar Grátis
             </Button>
           </div>
