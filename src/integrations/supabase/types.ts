@@ -2004,6 +2004,21 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      get_client_bookings_by_phone: {
+        Args: { p_phone: string }
+        Returns: {
+          booking_id: string
+          customer_name: string
+          end_time: string
+          grand_total: number
+          professional_name: string
+          service_title: string
+          start_time: string
+          status: string
+          venue_name: string
+          venue_whatsapp: string
+        }[]
+      }
       get_dashboard_metrics: {
         Args: { p_venue_id: string }
         Returns: {
