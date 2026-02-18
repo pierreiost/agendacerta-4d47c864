@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Search } from 'lucide-react';
 
 interface PageHeaderProps {
   venueName: string;
@@ -43,22 +43,34 @@ export function PageHeader({ venueName, logoUrl, whatsappPhone }: PageHeaderProp
               </span>
             </div>
 
-            {/* Botão Contato - Direita */}
-            {hasValidPhone && (
+            {/* Botões - Direita */}
+            <div className="flex items-center gap-2">
               <Button
                 asChild
-                className="gap-2 rounded-xl font-semibold bg-white hover:bg-white/90 text-primary shadow-md hover:scale-105 active:scale-95 transition-all duration-300"
+                variant="outline"
+                className="gap-2 rounded-xl font-semibold bg-white/20 hover:bg-white/30 text-primary-foreground border-white/30 hover:scale-105 active:scale-95 transition-all duration-300"
               >
-                <a
-                  href={`https://wa.me/${cleanPhone}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span>WhatsApp</span>
+                <a href="/marketplace" target="_blank" rel="noopener noreferrer">
+                  <Search className="h-4 w-4" />
+                  <span className="hidden sm:inline">Explorar</span>
                 </a>
               </Button>
-            )}
+              {hasValidPhone && (
+                <Button
+                  asChild
+                  className="gap-2 rounded-xl font-semibold bg-white hover:bg-white/90 text-primary shadow-md hover:scale-105 active:scale-95 transition-all duration-300"
+                >
+                  <a
+                    href={`https://wa.me/${cleanPhone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>WhatsApp</span>
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
