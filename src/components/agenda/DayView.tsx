@@ -18,7 +18,7 @@ import {
   isToday as isDateToday,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { User, Clock, DollarSign, GripVertical, MapPin } from 'lucide-react';
+import { User, Clock, DollarSign, GripVertical, MapPin, Scissors } from 'lucide-react';
 
 type Space = Tables<'spaces'> & {
   category?: Tables<'categories'> | null;
@@ -527,10 +527,19 @@ export function DayView({
                       <span className="truncate">{booking.customer_name || 'Cliente'}</span>
                     </div>
 
-                    {/* Nome do espaço */}
+                    {/* Nome do espaço ou serviço */}
                     <div className="flex items-center gap-0.5 text-[8px] md:text-[10px] text-muted-foreground mt-0.5">
-                      <MapPin className="h-2 w-2 md:h-2.5 md:w-2.5 flex-shrink-0" />
-                      <span className="truncate">{space?.name || 'Espaço'}</span>
+                      {booking.booking_type === 'service' ? (
+                        <>
+                          <Scissors className="h-2 w-2 md:h-2.5 md:w-2.5 flex-shrink-0" />
+                          <span className="truncate">Serviço</span>
+                        </>
+                      ) : (
+                        <>
+                          <MapPin className="h-2 w-2 md:h-2.5 md:w-2.5 flex-shrink-0" />
+                          <span className="truncate">{space?.name || 'Espaço'}</span>
+                        </>
+                      )}
                     </div>
 
                     {height >= 48 && (

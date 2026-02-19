@@ -158,6 +158,8 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
         p_customer_name: customerName,
         p_customer_email: customerEmail || 'sem-email@agendamento.local',
         p_customer_phone: customerPhone || undefined,
+        p_status: 'PENDING',
+        p_notes: 'Agendamento via página pública',
       });
       if (error) throw error;
       return data;
