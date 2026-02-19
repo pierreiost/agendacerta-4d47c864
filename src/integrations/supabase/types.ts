@@ -1832,7 +1832,7 @@ export type Database = {
           }
       create_service_booking: {
         Args: {
-          p_customer_email: string
+          p_customer_email?: string
           p_customer_name: string
           p_customer_phone?: string
           p_notes?: string

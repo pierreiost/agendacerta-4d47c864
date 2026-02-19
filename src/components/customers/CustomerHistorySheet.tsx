@@ -34,6 +34,7 @@ import {
   AlertCircle,
   Plus,
   Heart,
+  Scissors,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +50,7 @@ interface BookingWithItems {
   start_time: string;
   end_time: string;
   status: string;
+  booking_type: string | null;
   space_total: number | null;
   items_total: number | null;
   grand_total: number | null;
@@ -56,6 +58,7 @@ interface BookingWithItems {
   space: { name: string } | null;
   order_items: { id: string; description: string; quantity: number; unit_price: number; subtotal: number }[];
   payments: { id: string; amount: number; method: string }[];
+  booking_services: { id: string; price: number; duration_minutes: number; service: { title: string } | null }[];
 }
 
 const statusConfig = {
@@ -78,8 +81,9 @@ export function CustomerHistorySheet({ open, onOpenChange, customer, venueSegmen
       if (!customer?.id) return [];
       const { data, error } = await supabase
         .from('bookings')
-        .select(`id, start_time, end_time, status, space_total, items_total, grand_total, notes,
-          space:spaces(name), order_items(id, description, quantity, unit_price, subtotal), payments(id, amount, method)`)
+        .select(`id, start_time, end_time, status, booking_type, space_total, items_total, grand_total, notes,
+          space:spaces(name), order_items(id, description, quantity, unit_price, subtotal), payments(id, amount, method),
+          booking_services(id, price, duration_minutes, service:services(title))`)
         .eq('customer_id', customer.id)
         .order('start_time', { ascending: false });
       if (error) throw error;
@@ -162,8 +166,21 @@ export function CustomerHistorySheet({ open, onOpenChange, customer, venueSegmen
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{booking.space?.name || 'Espaço removido'}</span>
+                          {booking.booking_type === 'service' ? (
+                            <>
+                              <Scissors className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">
+                                {booking.booking_services?.length > 0
+                                  ? booking.booking_services.map(bs => bs.service?.title || 'Serviço').join(', ')
+                                  : 'Serviço'}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{booking.space?.name || 'Espaço removido'}</span>
+                            </>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
@@ -193,8 +210,14 @@ export function CustomerHistorySheet({ open, onOpenChange, customer, venueSegmen
                     )}
                     <div className="flex justify-between items-center pt-2 border-t">
                       <div className="space-y-0.5">
-                        {booking.space_total && booking.space_total > 0 && <p className="text-xs text-muted-foreground">Espaço: {formatCurrency(booking.space_total)}</p>}
-                        {booking.items_total && booking.items_total > 0 && <p className="text-xs text-muted-foreground">Consumo: {formatCurrency(booking.items_total)}</p>}
+                        {booking.booking_type === 'service' ? (
+                          booking.grand_total && booking.grand_total > 0 && <p className="text-xs text-muted-foreground">Serviços: {formatCurrency(booking.grand_total)}</p>
+                        ) : (
+                          <>
+                            {booking.space_total && booking.space_total > 0 && <p className="text-xs text-muted-foreground">Espaço: {formatCurrency(booking.space_total)}</p>}
+                            {booking.items_total && booking.items_total > 0 && <p className="text-xs text-muted-foreground">Consumo: {formatCurrency(booking.items_total)}</p>}
+                          </>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold">{formatCurrency(booking.grand_total || 0)}</p>
