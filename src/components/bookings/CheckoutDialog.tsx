@@ -95,6 +95,7 @@ export function CheckoutDialog({
         amount: p.amount,
         method: p.method,
       })),
+      grandTotal,
     });
 
     // Auto-deduct stock for products with track_stock enabled
@@ -206,7 +207,7 @@ export function CheckoutDialog({
             )}
 
             {isValid && (
-              <Alert className="border-emerald-500 bg-emerald-50 text-emerald-700">
+              <Alert className="border-success bg-success/10 text-success-foreground">
                 <Check className="h-4 w-4" />
                 <AlertDescription>
                   Pagamento completo! Pronto para finalizar.
