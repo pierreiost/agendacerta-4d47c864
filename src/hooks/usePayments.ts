@@ -72,7 +72,7 @@ export function usePayments(bookingId: string | null) {
   });
 
   const finalizeBooking = useMutation({
-    mutationFn: async ({ bookingId, payments }: { bookingId: string; payments: { amount: number; method: PaymentMethod }[] }) => {
+    mutationFn: async ({ bookingId, payments, grandTotal }: { bookingId: string; payments: { amount: number; method: PaymentMethod }[]; grandTotal?: number }) => {
       // Insert all payments
       for (const payment of payments) {
         const { error } = await supabase
@@ -86,10 +86,17 @@ export function usePayments(bookingId: string | null) {
         if (error) throw error;
       }
 
+      // If grandTotal is provided, persist it before finalizing (ensures financial module reads correct value)
+      type BookingStatus = 'CANCELLED' | 'CONFIRMED' | 'FINALIZED' | 'PENDING';
+      const updatePayload: { status: BookingStatus; grand_total?: number } = { status: 'FINALIZED' };
+      if (grandTotal !== undefined && grandTotal > 0) {
+        updatePayload.grand_total = grandTotal;
+      }
+
       // Update booking status to FINALIZED
       const { error: updateError } = await supabase
         .from('bookings')
-        .update({ status: 'FINALIZED' })
+        .update(updatePayload)
         .eq('id', bookingId);
 
       if (updateError) throw updateError;

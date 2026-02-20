@@ -1715,6 +1715,14 @@ export type Database = {
       }
     }
     Functions: {
+      add_service_to_booking: {
+        Args: {
+          p_booking_id: string
+          p_professional_id?: string
+          p_service_id: string
+        }
+        Returns: undefined
+      }
       check_login_rate_limit: {
         Args: {
           _email: string

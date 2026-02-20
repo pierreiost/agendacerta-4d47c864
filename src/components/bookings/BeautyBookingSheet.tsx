@@ -28,6 +28,7 @@ import { DuplicateCustomerDialog } from './DuplicateCustomerDialog';
 import { OrderItemsList } from './OrderItemsList';
 import { AddProductDialog } from './AddProductDialog';
 import { AddCustomItemDialog } from './AddCustomItemDialog';
+import { AddServiceToBookingDialog } from './AddServiceToBookingDialog';
 import { CheckoutDialog } from './CheckoutDialog';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -91,6 +92,7 @@ export function BeautyBookingSheet({
 
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addCustomOpen, setAddCustomOpen] = useState(false);
+  const [addServiceOpen, setAddServiceOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
@@ -268,7 +270,15 @@ export function BeautyBookingSheet({
                     Consumo
                   </h3>
                   {!isFinalized && !isCancelled && (
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-wrap">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAddServiceOpen(true)}
+                      >
+                        <Scissors className="h-4 w-4 mr-1" />
+                        Serviço
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -362,6 +372,12 @@ export function BeautyBookingSheet({
       <AddCustomItemDialog
         open={addCustomOpen}
         onOpenChange={setAddCustomOpen}
+        bookingId={booking.id}
+      />
+
+      <AddServiceToBookingDialog
+        open={addServiceOpen}
+        onOpenChange={setAddServiceOpen}
         bookingId={booking.id}
       />
 
