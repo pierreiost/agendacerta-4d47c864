@@ -17,9 +17,6 @@ interface BookingServiceWithDetails {
   professional: {
     id: string;
     display_name: string | null;
-    profile: {
-      full_name: string;
-    } | null;
   } | null;
 }
 
@@ -42,8 +39,7 @@ export function useBookingServices(bookingId: string | null) {
           service:services(id, title, description),
           professional:venue_members(
             id,
-            display_name,
-            profile:profiles(full_name)
+            display_name
           )
         `)
         .eq('booking_id', bookingId)
