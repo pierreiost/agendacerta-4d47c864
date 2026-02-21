@@ -180,11 +180,21 @@ export function CheckoutDialog({
                     R$
                   </span>
                   <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={payment.amount}
-                    onChange={(e) => updatePayment(payment.id, 'amount', parseFloat(e.target.value) || 0)}
+                    type="text"
+                    inputMode="decimal"
+                    value={payment.amount === 0 ? '' : payment.amount}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+                      if (raw === '' || raw === '.') {
+                        updatePayment(payment.id, 'amount', 0);
+                      } else {
+                        const parsed = parseFloat(raw);
+                        if (!isNaN(parsed)) {
+                          updatePayment(payment.id, 'amount', parsed);
+                        }
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
                     className="pl-10"
                   />
                 </div>
