@@ -230,7 +230,6 @@ export function BeautyBookingSheet({
                     {services.map((s) => {
                       const profName =
                         s.professional?.display_name ||
-                        s.professional?.profile?.full_name ||
                         null;
                       return (
                         <div key={s.id} className="flex items-start justify-between gap-2">
