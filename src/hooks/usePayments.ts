@@ -105,6 +105,8 @@ export function usePayments(bookingId: string | null) {
       queryClient.invalidateQueries({ queryKey: ['payments', bookingId] });
       queryClient.invalidateQueries({ queryKey: ['booking', bookingId] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
       toast({ title: 'Comanda fechada com sucesso!' });
     },
     onError: (error) => {
