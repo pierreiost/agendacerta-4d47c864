@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,13 @@ export function CheckoutDialog({
   const [payments, setPayments] = useState<PaymentEntry[]>([
     { id: '1', method: 'PIX', amount: grandTotal },
   ]);
+
+  // Sync payment amount when dialog opens or grandTotal changes
+  useEffect(() => {
+    if (open) {
+      setPayments([{ id: '1', method: 'PIX', amount: grandTotal }]);
+    }
+  }, [open, grandTotal]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
