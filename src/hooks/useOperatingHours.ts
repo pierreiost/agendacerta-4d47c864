@@ -10,6 +10,8 @@ export interface OperatingHour {
   open_time: string;   // "HH:mm" or "HH:mm:ss"
   close_time: string;
   is_open: boolean;
+  lunch_start: string | null;
+  lunch_end: string | null;
 }
 
 const DAY_MAP: Record<number, string> = {
@@ -69,6 +71,8 @@ export function useOperatingHours(venueId: string | undefined) {
         open_time: h.open_time,
         close_time: h.close_time,
         is_open: h.is_open,
+        lunch_start: h.lunch_start || null,
+        lunch_end: h.lunch_end || null,
       }));
 
       const { error: upsertError } = await (supabase as any)
@@ -78,13 +82,15 @@ export function useOperatingHours(venueId: string | undefined) {
       if (upsertError) throw upsertError;
 
       // 2. Sync to public_page_sections.hours.schedule (atomic with the above via sequential calls)
-      const schedule: Record<string, { open: string | null; close: string | null; closed: boolean }> = {};
+      const schedule: Record<string, { open: string | null; close: string | null; closed: boolean; lunch_start?: string | null; lunch_end?: string | null }> = {};
       updatedHours.forEach((h) => {
         const dayName = DAY_MAP[h.day_of_week];
         schedule[dayName] = {
           open: h.is_open ? h.open_time.slice(0, 5) : null,
           close: h.is_open ? h.close_time.slice(0, 5) : null,
           closed: !h.is_open,
+          lunch_start: h.is_open && h.lunch_start ? h.lunch_start.slice(0, 5) : null,
+          lunch_end: h.is_open && h.lunch_end ? h.lunch_end.slice(0, 5) : null,
         };
       });
 
