@@ -33,7 +33,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col w-full overflow-hidden">
           <header className="sticky top-0 z-10 flex h-10 md:h-11 items-center gap-2 md:gap-3 border-b bg-background/95 px-2 md:px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-            <SidebarTrigger className="-ml-1" />
+            <SidebarTrigger />
             {title && (
               <h1 className="text-sm md:text-base font-semibold truncate">{title}</h1>
             )}
