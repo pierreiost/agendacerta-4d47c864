@@ -1447,6 +1447,8 @@ export type Database = {
           day_of_week: number
           id: string
           is_open: boolean
+          lunch_end: string | null
+          lunch_start: string | null
           open_time: string
           venue_id: string
         }
@@ -1455,6 +1457,8 @@ export type Database = {
           day_of_week: number
           id?: string
           is_open?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
           open_time?: string
           venue_id: string
         }
@@ -1463,6 +1467,8 @@ export type Database = {
           day_of_week?: number
           id?: string
           is_open?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
           open_time?: string
           venue_id?: string
         }

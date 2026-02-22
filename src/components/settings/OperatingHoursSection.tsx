@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useOperatingHours, OperatingHour } from '@/hooks/useOperatingHours';
-import { Clock, Copy, Loader2 } from 'lucide-react';
+import { Clock, Copy, Loader2, Coffee } from 'lucide-react';
 
 const DAY_LABELS: Record<number, string> = {
   0: 'Domingo',
@@ -46,7 +46,14 @@ export function OperatingHoursSection({ venueId }: OperatingHoursSectionProps) {
     setLocalHours((prev) =>
       prev.map((h) => {
         if (h.day_of_week >= 2 && h.day_of_week <= 5) {
-          return { ...h, open_time: monday.open_time, close_time: monday.close_time, is_open: monday.is_open };
+          return {
+            ...h,
+            open_time: monday.open_time,
+            close_time: monday.close_time,
+            is_open: monday.is_open,
+            lunch_start: monday.lunch_start,
+            lunch_end: monday.lunch_end,
+          };
         }
         return h;
       })
@@ -91,36 +98,75 @@ export function OperatingHoursSection({ venueId }: OperatingHoursSectionProps) {
             return (
               <div
                 key={day}
-                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-2 border-b last:border-b-0"
+                className="flex flex-col gap-2 py-3 border-b last:border-b-0"
               >
-                <div className="flex items-center gap-3 min-w-[160px]">
-                  <Switch
-                    checked={hourData.is_open}
-                    onCheckedChange={(checked) => updateDay(day, { is_open: checked })}
-                  />
-                  <Label className="text-sm font-medium w-[120px]">
-                    {DAY_LABELS[day]}
-                  </Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="flex items-center gap-3 min-w-[160px]">
+                    <Switch
+                      checked={hourData.is_open}
+                      onCheckedChange={(checked) => updateDay(day, { is_open: checked })}
+                    />
+                    <Label className="text-sm font-medium w-[120px]">
+                      {DAY_LABELS[day]}
+                    </Label>
+                  </div>
+
+                  {hourData.is_open ? (
+                    <div className="flex items-center gap-2 ml-8 sm:ml-0">
+                      <Input
+                        type="time"
+                        value={hourData.open_time.slice(0, 5)}
+                        onChange={(e) => updateDay(day, { open_time: e.target.value })}
+                        className="w-[120px]"
+                      />
+                      <span className="text-muted-foreground text-sm">às</span>
+                      <Input
+                        type="time"
+                        value={hourData.close_time.slice(0, 5)}
+                        onChange={(e) => updateDay(day, { close_time: e.target.value })}
+                        className="w-[120px]"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground ml-8 sm:ml-0">Fechado</span>
+                  )}
                 </div>
 
-                {hourData.is_open ? (
-                  <div className="flex items-center gap-2 ml-8 sm:ml-0">
-                    <Input
-                      type="time"
-                      value={hourData.open_time.slice(0, 5)}
-                      onChange={(e) => updateDay(day, { open_time: e.target.value })}
-                      className="w-[120px]"
-                    />
-                    <span className="text-muted-foreground text-sm">às</span>
-                    <Input
-                      type="time"
-                      value={hourData.close_time.slice(0, 5)}
-                      onChange={(e) => updateDay(day, { close_time: e.target.value })}
-                      className="w-[120px]"
-                    />
+                {hourData.is_open && (
+                  <div className="flex items-center gap-2 ml-8 sm:ml-[160px]">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={!!(hourData.lunch_start && hourData.lunch_end)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updateDay(day, { lunch_start: '12:00', lunch_end: '13:00' });
+                          } else {
+                            updateDay(day, { lunch_start: null, lunch_end: null });
+                          }
+                        }}
+                        className="scale-90"
+                      />
+                      <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Intervalo</span>
+                    </div>
+                    {hourData.lunch_start && hourData.lunch_end && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="time"
+                          value={hourData.lunch_start.slice(0, 5)}
+                          onChange={(e) => updateDay(day, { lunch_start: e.target.value })}
+                          className="w-[110px] h-8 text-sm"
+                        />
+                        <span className="text-muted-foreground text-xs">às</span>
+                        <Input
+                          type="time"
+                          value={hourData.lunch_end.slice(0, 5)}
+                          onChange={(e) => updateDay(day, { lunch_end: e.target.value })}
+                          className="w-[110px] h-8 text-sm"
+                        />
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground ml-8 sm:ml-0">Fechado</span>
                 )}
               </div>
             );
