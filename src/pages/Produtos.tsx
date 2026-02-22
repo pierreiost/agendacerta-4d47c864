@@ -108,19 +108,21 @@ export default function Produtos() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Produtos</h1>
             <p className="text-muted-foreground">Gerencie os produtos disponíveis para consumo</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setCategoryDialogOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setCategoryDialogOpen(true)}>
               <Tag className="mr-2 h-4 w-4" />
-              Categorias
+              <span className="hidden sm:inline">Categorias</span>
+              <span className="sm:hidden">Cat.</span>
             </Button>
-            <Button onClick={() => { setEditingProduct(null); setProductDialogOpen(true); }}>
+            <Button size="sm" onClick={() => { setEditingProduct(null); setProductDialogOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" />
-              Novo Produto
+              <span className="hidden sm:inline">Novo Produto</span>
+              <span className="sm:hidden">Novo</span>
             </Button>
           </div>
         </div>
@@ -159,8 +161,13 @@ export default function Produtos() {
         )}
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Lista de Produtos</CardTitle>
+            {products.length > 0 && (
+              <Badge variant="secondary" className="text-sm">
+                {products.length} {products.length === 1 ? 'produto' : 'produtos'}
+              </Badge>
+            )}
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -180,85 +187,148 @@ export default function Produtos() {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Preço</TableHead>
-                    <TableHead>Estoque</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">
-                        <div>
-                          {product.name}
-                          {product.sku && (
-                            <span className="block text-xs text-muted-foreground">{product.sku}</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {product.category ? (
-                          <Badge variant="secondary">{product.category.name}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{formatCurrency(Number(product.price))}</TableCell>
-                      <TableCell>
-                        <StockBadge product={product} />
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={product.is_active ?? false}
-                          onCheckedChange={() => handleToggleActive(product)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            {product.track_stock && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setMovementProduct(product)}>
-                                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                                  Movimentar Estoque
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setHistoryProduct(product)}>
-                                  <History className="mr-2 h-4 w-4" />
-                                  Histórico de Estoque
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => setDeletingProduct(product)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              <>
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Preço</TableHead>
+                      <TableHead>Estoque</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[70px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            {product.name}
+                            {product.sku && (
+                              <span className="block text-xs text-muted-foreground">{product.sku}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {product.category ? (
+                            <Badge variant="secondary">{product.category.name}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{formatCurrency(Number(product.price))}</TableCell>
+                        <TableCell>
+                          <StockBadge product={product} />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={product.is_active ?? false}
+                            onCheckedChange={() => handleToggleActive(product)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              {product.track_stock && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => setMovementProduct(product)}>
+                                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                                    Movimentar Estoque
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setHistoryProduct(product)}>
+                                    <History className="mr-2 h-4 w-4" />
+                                    Histórico de Estoque
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDeletingProduct(product)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y">
+                {products.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between gap-3 p-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{product.name}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-sm text-muted-foreground">{formatCurrency(Number(product.price))}</span>
+                        <StockBadge product={product} />
+                        {product.category && (
+                          <Badge variant="outline" className="text-xs">{product.category.name}</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch
+                        checked={product.is_active ?? false}
+                        onCheckedChange={() => handleToggleActive(product)}
+                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          {product.track_stock && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => setMovementProduct(product)}>
+                                <ArrowUpDown className="mr-2 h-4 w-4" />
+                                Movimentar Estoque
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setHistoryProduct(product)}>
+                                <History className="mr-2 h-4 w-4" />
+                                Histórico
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeletingProduct(product)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </>
             )}
           </CardContent>
         </Card>
