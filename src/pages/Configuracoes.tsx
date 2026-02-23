@@ -187,7 +187,8 @@ export default function Configuracoes() {
         </div>
 
         <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
-          <TabsList className="flex-wrap">
+          <div className="w-full overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <TabsList className="inline-flex w-auto flex-wrap">
             <TabsTrigger value="venue">
               <Building2 className="mr-2 h-4 w-4" />
               Unidade
@@ -215,6 +216,7 @@ export default function Configuracoes() {
               Produtos
             </TabsTrigger>
           </TabsList>
+          </div>
 
           {/* TAB: UNIDADE */}
           <TabsContent value="venue">

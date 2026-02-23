@@ -71,12 +71,12 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">{titleInfo.title}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">{titleInfo.title}</h1>
             <p className="text-muted-foreground mt-1">{titleInfo.subtitle}</p>
           </div>
-          <Button onClick={() => navigate(primaryAction.path)} size="lg" className="gap-2">
+          <Button onClick={() => navigate(primaryAction.path)} size="lg" className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             {primaryAction.label}
           </Button>
@@ -86,7 +86,7 @@ export default function Dashboard() {
         {renderDashboardContent()}
 
         {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           <Card
             className="border-border shadow-soft hover:shadow-soft-lg transition-all cursor-pointer group"
             onClick={() => navigate("/agenda")}

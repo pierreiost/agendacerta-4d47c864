@@ -267,7 +267,7 @@ export function DashboardBookings() {
                 <div
                   key={booking.id}
                   className={cn(
-                    "min-w-[250px] max-w-[280px] flex-shrink-0",
+                    "min-w-[200px] sm:min-w-[250px] max-w-[280px] flex-shrink-0",
                     "p-4 rounded-xl border-2 border-border bg-card",
                     "hover:border-primary-300 hover:shadow-soft transition-all duration-200 cursor-pointer",
                     "group"

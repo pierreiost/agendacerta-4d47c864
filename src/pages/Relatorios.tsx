@@ -287,7 +287,7 @@ export default function Relatorios() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
@@ -328,13 +328,15 @@ export default function Relatorios() {
 
         {/* Charts */}
         <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="revenue">Faturamento</TabsTrigger>
-            <TabsTrigger value="occupancy">Ocupação</TabsTrigger>
-            <TabsTrigger value="customers">Clientes</TabsTrigger>
-            <TabsTrigger value="os">Ordens de Serviço</TabsTrigger>
-            <TabsTrigger value="exports">Exportações</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <TabsList className="inline-flex w-auto">
+              <TabsTrigger value="revenue">Faturamento</TabsTrigger>
+              <TabsTrigger value="occupancy">Ocupação</TabsTrigger>
+              <TabsTrigger value="customers">Clientes</TabsTrigger>
+              <TabsTrigger value="os">Ordens de Serviço</TabsTrigger>
+              <TabsTrigger value="exports">Exportações</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="revenue">
             <Card>
@@ -434,7 +436,7 @@ export default function Relatorios() {
           </TabsContent>
 
           <TabsContent value="os">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Total OS</CardTitle>
@@ -527,7 +529,7 @@ export default function Relatorios() {
           </TabsContent>
 
           <TabsContent value="exports">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {/* Export Customers */}
               <Card>
                 <CardHeader>
