@@ -106,7 +106,7 @@ export default function Dashboard() {
 
           <Card
             className="border-border shadow-soft hover:shadow-soft-lg transition-all cursor-pointer group"
-            onClick={() => navigate("/espacos")}
+            onClick={() => navigate(dashboardMode === 'appointments' ? "/servicos" : dashboardMode === 'service_orders' ? "/ordens-servico" : "/espacos")}
           >
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -115,10 +115,10 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">
-                    {dashboardMode === 'service_orders' ? 'Ordens' : 'Espaços'}
+                    {dashboardMode === 'appointments' ? 'Serviços' : dashboardMode === 'service_orders' ? 'Ordens' : 'Espaços'}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {dashboardMode === 'service_orders' ? 'Gerenciar OS' : 'Gerenciar locais'}
+                    {dashboardMode === 'appointments' ? 'Gerenciar serviços' : dashboardMode === 'service_orders' ? 'Gerenciar OS' : 'Gerenciar locais'}
                   </p>
                 </div>
               </div>
