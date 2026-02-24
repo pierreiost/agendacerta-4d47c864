@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -116,6 +116,7 @@ export function CustomerFormDialog({
   const { toast } = useToast();
   const { lookupCep, isLoading: isLoadingCep } = useCepLookup();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const prevOpenRef = useRef(false);
   const isEditing = !!customer;
 
   const form = useForm<FormData>({
@@ -161,7 +162,8 @@ export function CustomerFormDialog({
         estado: parsed.estado,
         notes: customer.notes ?? '',
       });
-    } else if (!open) {
+    } else if (prevOpenRef.current && !open) {
+      // Only reset on close transition (was open, now closed)
       form.reset({
         name: '',
         email: '',
@@ -177,6 +179,7 @@ export function CustomerFormDialog({
         notes: '',
       });
     }
+    prevOpenRef.current = open;
   }, [customer, form, open, clearDraft]);
 
   // Auto-lookup CEP when 8 digits are entered
