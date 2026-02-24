@@ -35,7 +35,13 @@ import MinhasReservas from "./pages/MinhasReservas";
 import { Loader2 } from "lucide-react";
 import { AppErrorBoundary } from "@/components/shared/AppErrorBoundary";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function useSuperAdminCheck() {
   const { user } = useAuth();

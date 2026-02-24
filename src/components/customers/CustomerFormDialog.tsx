@@ -306,7 +306,7 @@ export function CustomerFormDialog({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="email"
@@ -362,7 +362,7 @@ export function CustomerFormDialog({
             <div className="border-t pt-4 mt-4">
               <p className="text-sm font-medium mb-3">Endereço</p>
               
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <FormField
                   control={form.control}
                   name="cep"
@@ -403,7 +403,7 @@ export function CustomerFormDialog({
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3 mt-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                 <FormField
                   control={form.control}
                   name="numero"
@@ -449,8 +449,8 @@ export function CustomerFormDialog({
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3 mt-3">
-                <div className="col-span-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                <div className="col-span-1 sm:col-span-3">
                   <FormField
                     control={form.control}
                     name="cidade"

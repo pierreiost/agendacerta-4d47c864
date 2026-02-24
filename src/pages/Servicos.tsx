@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, MoreHorizontal, Pencil, Trash2, Clock, Loader2, Heart, Scissors } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Power, Clock, Loader2, Heart, Scissors } from 'lucide-react';
 import { useServices } from '@/hooks/useServices';
 import { useVenue } from '@/contexts/VenueContext';
 import { useModalPersist } from '@/hooks/useModalPersist';
@@ -220,13 +220,15 @@ export default function Servicos() {
                               <Pencil className="mr-2 h-4 w-4" />
                               Editar
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => handleDeleteClick(service)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
+                            {service.is_active && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDeleteClick(service)}
+                              >
+                                <Power className="mr-2 h-4 w-4" />
+                                Desativar
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -254,9 +256,9 @@ export default function Servicos() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir serviço</AlertDialogTitle>
+            <AlertDialogTitle>Desativar serviço</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir "{serviceToDelete?.title}"? Esta ação não pode ser desfeita.
+              Tem certeza que deseja desativar "{serviceToDelete?.title}"? O serviço não aparecerá mais para novos agendamentos, mas o histórico será mantido.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -266,7 +268,7 @@ export default function Servicos() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteService.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Excluir
+              Desativar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
