@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, MoreHorizontal, Pencil, Power, Clock, Loader2, Heart, Scissors } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Power, Clock, Loader2, Heart, Scissors, Filter } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useServices } from '@/hooks/useServices';
 import { useVenue } from '@/contexts/VenueContext';
 import { useModalPersist } from '@/hooks/useModalPersist';
@@ -57,6 +60,19 @@ export default function Servicos() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+
+  // Filters state – extensible for future filters
+  const [filters, setFilters] = useState({ showInactive: false });
+
+  const filteredServices = useMemo(() => {
+    let result = services;
+    if (!filters.showInactive) {
+      result = result.filter(s => s.is_active);
+    }
+    return result;
+  }, [services, filters]);
+
+  const inactiveCount = useMemo(() => services.filter(s => !s.is_active).length, [services]);
   
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('servicos');
   const [formOpen, setFormOpen] = useState(false);
@@ -138,11 +154,42 @@ export default function Servicos() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Catálogo de Serviços</CardTitle>
-            <CardDescription>
-              {services.length} serviço(s) cadastrado(s)
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div>
+              <CardTitle>Catálogo de Serviços</CardTitle>
+              <CardDescription>
+                {filteredServices.length} serviço(s) {filters.showInactive ? 'no total' : 'ativo(s)'}
+                {!filters.showInactive && inactiveCount > 0 && ` · ${inactiveCount} inativo(s)`}
+              </CardDescription>
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filtros
+                  {filters.showInactive && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">1</Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Filtros</p>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="show-inactive"
+                      checked={filters.showInactive}
+                      onCheckedChange={(checked) =>
+                        setFilters(prev => ({ ...prev, showInactive: !!checked }))
+                      }
+                    />
+                    <Label htmlFor="show-inactive" className="text-sm cursor-pointer">
+                      Mostrar inativos
+                    </Label>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -163,6 +210,12 @@ export default function Servicos() {
                   Adicionar Primeiro Serviço
                 </Button>
               </div>
+            ) : filteredServices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-muted-foreground text-sm">
+                  Nenhum serviço encontrado com os filtros atuais.
+                </p>
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -175,7 +228,7 @@ export default function Servicos() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {services.map((service) => (
+                  {filteredServices.map((service) => (
                     <TableRow key={service.id}>
                       <TableCell>
                         <div>
