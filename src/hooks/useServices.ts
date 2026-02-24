@@ -85,18 +85,18 @@ export function useServices() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('services')
-        .delete()
+        .update({ is_active: false })
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services', currentVenue?.id] });
-      toast({ title: 'Serviço excluído!' });
+      toast({ title: 'Serviço desativado com sucesso!' });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Erro ao excluir serviço',
+        title: 'Erro ao desativar serviço',
         description: error.message,
         variant: 'destructive',
       });

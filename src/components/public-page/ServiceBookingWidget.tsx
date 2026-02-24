@@ -398,10 +398,10 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
                             }
                           }}
                           className={cn(
-                            'py-2.5 px-3 rounded-lg text-sm font-medium transition-all border',
+                            'py-2.5 px-3 rounded-lg text-sm font-medium transition-all border touch-manipulation',
                             isSelected
                               ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                              : 'bg-background border-border hover:border-primary/50 text-foreground'
+                              : 'bg-background border-border active:border-primary/50 md:hover:border-primary/50 text-foreground'
                           )}
                         >
                           {timeStr}
