@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -140,9 +140,14 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
     setSelectedSlot(null);
   }, [selectedDate]);
 
-  // Reset slot when professional changes
+  // Reset slot when professional changes (only for manual selection, not auto-assign)
+  const prevProfessionalRef = useRef<string | null>(null);
   useEffect(() => {
-    setSelectedSlot(null);
+    // Only reset slot if the professional was previously set and changed (manual re-selection)
+    if (prevProfessionalRef.current !== null && selectedProfessionalId !== prevProfessionalRef.current) {
+      setSelectedSlot(null);
+    }
+    prevProfessionalRef.current = selectedProfessionalId;
   }, [selectedProfessionalId]);
 
   // Booking mutation
