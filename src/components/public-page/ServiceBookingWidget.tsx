@@ -49,6 +49,18 @@ interface AvailableSlot {
 }
 
 const MAX_SERVICES = 5;
+const SERVICES_PER_PAGE = 4;
+
+function getAdaptiveLayout(count: number) {
+  if (count <= 4) {
+    return { imageAspect: 'aspect-[4/3]', showDescription: true, descClamp: 'line-clamp-2', gap: 'gap-3', padding: 'p-3' };
+  }
+  if (count <= 6) {
+    return { imageAspect: 'aspect-[3/2]', showDescription: true, descClamp: 'line-clamp-1', gap: 'gap-2', padding: 'p-2' };
+  }
+  // 7
+  return { imageAspect: 'aspect-[2/1]', showDescription: false, descClamp: '', gap: 'gap-2', padding: 'p-2' };
+}
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -72,6 +84,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [servicePage, setServicePage] = useState(0);
 
   // Fetch services
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -132,6 +145,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
   useEffect(() => {
     setSelectedProfessionalId(null);
     setSelectedSlot(null);
+    setServicePage(0);
     if (step > 2) setStep(2);
   }, [selectedServiceIds.join(',')]);
 
@@ -198,6 +212,73 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
 
   // ─── STEP 1: Service Selection ─────────────────────────────
   if (step === 1) {
+    const usePagination = services.length >= 8;
+    const totalPages = Math.ceil(services.length / SERVICES_PER_PAGE);
+    const layout = !usePagination ? getAdaptiveLayout(services.length) : null;
+    const visibleServices = usePagination
+      ? services.slice(servicePage * SERVICES_PER_PAGE, servicePage * SERVICES_PER_PAGE + SERVICES_PER_PAGE)
+      : services;
+
+    const renderServiceCard = (service: PublicService) => {
+      const isSelected = selectedServiceIds.includes(service.id);
+      const imageAspect = layout?.imageAspect || 'aspect-[4/3]';
+      const cardPadding = layout?.padding || 'p-3';
+      return (
+        <Card
+          key={service.id}
+          className={cn(
+            'overflow-hidden cursor-pointer transition-all duration-200 border-2',
+            isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-muted-foreground/20'
+          )}
+          onClick={() => toggleService(service.id)}
+        >
+          {/* Cover image */}
+          <div className={cn(imageAspect, 'relative bg-muted')}>
+            {service.cover_image_url ? (
+              <img
+                src={service.cover_image_url}
+                alt={service.title}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                <Scissors className="h-10 w-10 text-primary/30" />
+              </div>
+            )}
+            {/* Selection checkbox overlay */}
+            <div className="absolute top-2 right-2">
+              <div className={cn(
+                'h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all',
+                isSelected ? 'bg-primary border-primary' : 'bg-white/80 border-muted-foreground/30'
+              )}>
+                {isSelected && <Check className="h-3.5 w-3.5 text-primary-foreground" />}
+              </div>
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className={cardPadding}>
+            <h3 className="font-semibold text-sm text-foreground leading-tight">{service.title}</h3>
+            {layout?.showDescription && service.description && (
+              <p className={cn('text-xs text-muted-foreground mt-1', layout.descClamp)}>{service.description}</p>
+            )}
+            {/* For paginated mode (no layout), always show description */}
+            {!layout && service.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
+            )}
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-sm font-bold text-primary">{formatPrice(service.price)}</span>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatDuration(service.duration_minutes)}
+              </span>
+            </div>
+          </div>
+        </Card>
+      );
+    };
+
     return (
       <div className="p-4 sm:p-6 space-y-4">
         <div>
@@ -216,61 +297,55 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
         ) : services.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço disponível.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {services.map(service => {
-              const isSelected = selectedServiceIds.includes(service.id);
-              return (
-                <Card
-                  key={service.id}
-                  className={cn(
-                    'overflow-hidden cursor-pointer transition-all duration-200 border-2',
-                    isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-muted-foreground/20'
-                  )}
-                  onClick={() => toggleService(service.id)}
-                >
-                  {/* Cover image */}
-                  <div className="aspect-[4/3] relative bg-muted">
-                    {service.cover_image_url ? (
-                      <img
-                        src={service.cover_image_url}
-                        alt={service.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                        <Scissors className="h-10 w-10 text-primary/30" />
-                      </div>
-                    )}
-                    {/* Selection checkbox overlay */}
-                    <div className="absolute top-2 right-2">
-                      <div className={cn(
-                        'h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all',
-                        isSelected ? 'bg-primary border-primary' : 'bg-white/80 border-muted-foreground/30'
-                      )}>
-                        {isSelected && <Check className="h-3.5 w-3.5 text-primary-foreground" />}
-                      </div>
-                    </div>
-                  </div>
+          <>
+            <div className={cn('grid grid-cols-1 sm:grid-cols-2', layout?.gap || 'gap-3')}>
+              {visibleServices.map(renderServiceCard)}
+            </div>
 
-                  {/* Info */}
-                  <div className="p-3">
-                    <h3 className="font-semibold text-sm text-foreground leading-tight">{service.title}</h3>
-                    {service.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
-                    )}
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm font-bold text-primary">{formatPrice(service.price)}</span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatDuration(service.duration_minutes)}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+            {/* Pagination controls for 8+ services */}
+            {usePagination && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pt-1">
+                <button
+                  onClick={() => setServicePage(p => Math.max(0, p - 1))}
+                  disabled={servicePage === 0}
+                  className={cn(
+                    'h-8 w-8 rounded-full flex items-center justify-center transition-colors',
+                    servicePage === 0
+                      ? 'text-muted-foreground/30 cursor-not-allowed'
+                      : 'text-foreground hover:bg-muted'
+                  )}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setServicePage(i)}
+                      className={cn(
+                        'h-2 w-2 rounded-full transition-all',
+                        i === servicePage ? 'bg-primary w-4' : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                      )}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setServicePage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={servicePage === totalPages - 1}
+                  className={cn(
+                    'h-8 w-8 rounded-full flex items-center justify-center transition-colors',
+                    servicePage === totalPages - 1
+                      ? 'text-muted-foreground/30 cursor-not-allowed'
+                      : 'text-foreground hover:bg-muted'
+                  )}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Sticky summary bar */}
