@@ -925,6 +925,84 @@ export type Database = {
           },
         ]
       }
+      saas_crm_columns: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
+      saas_crm_leads: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          person_name: string
+          plan: string | null
+          segment: string | null
+          status_id: string
+          updated_at: string
+          venue_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id?: string
+          person_name: string
+          plan?: string | null
+          segment?: string | null
+          status_id: string
+          updated_at?: string
+          venue_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          person_name?: string
+          plan?: string | null
+          segment?: string | null
+          status_id?: string
+          updated_at?: string
+          venue_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_crm_leads_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "saas_crm_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_crm_leads_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_inquiries: {
         Row: {
           created_at: string | null
@@ -2142,6 +2220,7 @@ export type Database = {
           member_id: string
         }[]
       }
+      get_saas_global_metrics: { Args: never; Returns: Json }
       get_service_order_metrics: {
         Args: { p_end_date?: string; p_start_date?: string; p_venue_id: string }
         Returns: {
