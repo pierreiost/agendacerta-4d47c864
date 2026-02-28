@@ -954,6 +954,7 @@ export type Database = {
           company_name: string
           created_at: string
           id: string
+          notes: string | null
           person_name: string
           plan: string | null
           segment: string | null
@@ -966,6 +967,7 @@ export type Database = {
           company_name: string
           created_at?: string
           id?: string
+          notes?: string | null
           person_name: string
           plan?: string | null
           segment?: string | null
@@ -978,6 +980,7 @@ export type Database = {
           company_name?: string
           created_at?: string
           id?: string
+          notes?: string | null
           person_name?: string
           plan?: string | null
           segment?: string | null

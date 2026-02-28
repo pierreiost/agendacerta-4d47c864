@@ -1,59 +1,82 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { CrmColumn } from '@/hooks/useCrmBoard';
+import { Trash2, Save } from 'lucide-react';
+import type { CrmLead, CrmColumn } from '@/hooks/useCrmBoard';
 
-interface AddLeadDialogProps {
-  open: boolean;
-  onClose: () => void;
+interface LeadDetailSheetProps {
+  lead: CrmLead | null;
   columns: CrmColumn[];
-  onAdd: (lead: {
-    person_name: string;
-    company_name: string;
-    whatsapp: string | null;
-    plan: string;
-    segment: string;
-    status_id: string;
-    venue_id: string | null;
-    notes: string | null;
-  }) => void;
-  isAdding: boolean;
+  onClose: () => void;
+  onUpdate: (data: Partial<CrmLead> & { id: string }) => void;
+  onDelete: (id: string) => void;
 }
 
-export function AddLeadDialog({ open, onClose, columns, onAdd, isAdding }: AddLeadDialogProps) {
+export function LeadDetailSheet({ lead, columns, onClose, onUpdate, onDelete }: LeadDetailSheetProps) {
   const [form, setForm] = useState({
-    person_name: '',
     company_name: '',
+    person_name: '',
     whatsapp: '',
     plan: 'basic',
     segment: 'sports',
-    status_id: columns[0]?.id || '',
+    status_id: '',
     notes: '',
   });
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const handleSubmit = () => {
-    if (!form.person_name || !form.company_name || !form.status_id) return;
-    onAdd({
-      ...form,
+  useEffect(() => {
+    if (lead) {
+      setForm({
+        company_name: lead.company_name,
+        person_name: lead.person_name,
+        whatsapp: lead.whatsapp || '',
+        plan: lead.plan || 'basic',
+        segment: lead.segment || 'sports',
+        status_id: lead.status_id,
+        notes: lead.notes || '',
+      });
+      setConfirmDelete(false);
+    }
+  }, [lead]);
+
+  const handleSave = () => {
+    if (!lead) return;
+    onUpdate({
+      id: lead.id,
+      company_name: form.company_name,
+      person_name: form.person_name,
       whatsapp: form.whatsapp || null,
+      plan: form.plan,
+      segment: form.segment,
+      status_id: form.status_id,
       notes: form.notes || null,
-      venue_id: null,
     });
-    setForm({ person_name: '', company_name: '', whatsapp: '', plan: 'basic', segment: 'sports', status_id: columns[0]?.id || '', notes: '' });
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (!lead) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    onDelete(lead.id);
     onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-white/10 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-white">Novo Lead</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
+    <Sheet open={!!lead} onOpenChange={() => onClose()}>
+      <SheetContent side="right" className="bg-slate-900 border-white/10 text-white sm:max-w-md w-full">
+        <SheetHeader>
+          <SheetTitle className="text-white">Detalhes do Lead</SheetTitle>
+          <SheetDescription className="text-white/40">Edite as informações do lead</SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-4 py-4 overflow-y-auto max-h-[calc(100vh-200px)]">
           <div className="space-y-1">
             <Label className="text-white/70">Empresa *</Label>
             <Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} className="bg-white/10 border-white/20 text-white" />
@@ -107,15 +130,27 @@ export function AddLeadDialog({ open, onClose, columns, onAdd, isAdding }: AddLe
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               placeholder="Anotações sobre o lead..."
-              className="bg-white/10 border-white/20 text-white min-h-[80px]"
+              className="bg-white/10 border-white/20 text-white min-h-[100px]"
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-white/20 text-white hover:bg-white/10">Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={isAdding || !form.person_name || !form.company_name}>Adicionar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+        <div className="flex items-center justify-between pt-4 border-t border-white/10">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+            className={`gap-1.5 ${confirmDelete ? 'border-red-500 text-red-400 hover:bg-red-500/20' : 'border-white/20 text-white/60 hover:bg-white/10'}`}
+          >
+            <Trash2 className="h-4 w-4" />
+            {confirmDelete ? 'Confirmar exclusão' : 'Excluir'}
+          </Button>
+          <Button onClick={handleSave} size="sm" className="gap-1.5 bg-indigo-600 hover:bg-indigo-500" disabled={!form.company_name || !form.person_name}>
+            <Save className="h-4 w-4" />
+            Salvar
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

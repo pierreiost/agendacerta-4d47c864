@@ -18,6 +18,7 @@ export interface CrmLead {
   plan: string;
   segment: string;
   status_id: string;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +75,21 @@ export function useCrmBoard() {
     onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
+  const updateLeadMutation = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<CrmLead> & { id: string }) => {
+      const { error } = await supabase
+        .from('saas_crm_leads')
+        .update({ ...data, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['crm-leads'] });
+      toast({ title: 'Lead atualizado!' });
+    },
+    onError: (e) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
   const deleteLeadMutation = useMutation({
     mutationFn: async (leadId: string) => {
       const { error } = await supabase.from('saas_crm_leads').delete().eq('id', leadId);
@@ -92,6 +108,7 @@ export function useCrmBoard() {
     loading: loadingColumns || loadingLeads,
     moveLead: moveLeadMutation.mutate,
     addLead: addLeadMutation.mutate,
+    updateLead: updateLeadMutation.mutate,
     deleteLead: deleteLeadMutation.mutate,
     isAdding: addLeadMutation.isPending,
   };

@@ -1,6 +1,6 @@
 import { CrmLead } from '@/hooks/useCrmBoard';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Trash2 } from 'lucide-react';
+import { MessageCircle, Trash2, StickyNote } from 'lucide-react';
 import { Draggable } from '@hello-pangea/dnd';
 
 const PLAN_STYLES: Record<string, string> = {
@@ -19,9 +19,10 @@ interface CrmLeadCardProps {
   lead: CrmLead;
   index: number;
   onDelete: (id: string) => void;
+  onClick: () => void;
 }
 
-export function CrmLeadCard({ lead, index, onDelete }: CrmLeadCardProps) {
+export function CrmLeadCard({ lead, index, onDelete, onClick }: CrmLeadCardProps) {
   const whatsappUrl = lead.whatsapp
     ? `https://wa.me/${lead.whatsapp.replace(/\D/g, '')}`
     : null;
@@ -33,7 +34,8 @@ export function CrmLeadCard({ lead, index, onDelete }: CrmLeadCardProps) {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`rounded-xl border border-white/15 bg-white/[0.08] backdrop-blur-sm p-4 transition-all hover:bg-white/[0.12] hover:border-white/25 hover:shadow-lg ${
+          onClick={onClick}
+          className={`rounded-xl border border-white/15 bg-white/[0.08] backdrop-blur-sm p-4 transition-all hover:bg-white/[0.12] hover:border-white/25 hover:shadow-lg cursor-pointer ${
             snapshot.isDragging ? 'shadow-2xl shadow-indigo-500/20 rotate-2 scale-105' : ''
           }`}
         >
@@ -46,7 +48,13 @@ export function CrmLeadCard({ lead, index, onDelete }: CrmLeadCardProps) {
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
-          <p className="text-xs text-white/50 mb-3">{lead.person_name}</p>
+          <p className="text-xs text-white/50 mb-2">{lead.person_name}</p>
+          {lead.notes && (
+            <div className="flex items-start gap-1.5 mb-2">
+              <StickyNote className="h-3 w-3 text-white/30 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-white/40 line-clamp-2">{lead.notes}</p>
+            </div>
+          )}
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${PLAN_STYLES[lead.plan] || PLAN_STYLES.basic}`}>
               {lead.plan === 'max' ? 'Max' : 'Basic'}

@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_crm_leads ADD COLUMN notes text;
