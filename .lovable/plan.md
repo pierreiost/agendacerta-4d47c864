@@ -1,88 +1,86 @@
 
 
-# Melhorias no Super Admin - CRM como Painel Principal
+# Execucao: 4 Ajustes no Super Admin
 
-## Resumo das mudancas
+## Passo 1 - Sidebar: apenas "Super Admin" para superadmins
 
-4 problemas identificados para resolver:
+**Arquivo**: `src/components/layout/AppSidebar.tsx` (linhas 150-167)
 
-1. **Remover tabs "Dashboard" e "Clientes"** - O Super Admin sera apenas o CRM (painel unico)
-2. **Adicionar campo OBS (observacoes) nos leads** - Migracao no banco + campo no form
-3. **Criar visualizacao/edicao de lead ao clicar** - Sheet lateral com todos os dados editaveis
-4. **Corrigir responsividade** - Colunas devem expandir para ocupar a tela toda, sem barra de rolagem desnecessaria
+Substituir os 2 grupos (PRINCIPAL + ADMINISTRACAO) por um unico grupo:
 
----
-
-## 1. Simplificar SuperAdmin.tsx
-
-Remover o sistema de tabs e os imports de `SuperAdminDashboard` e `VenueClientsTab`. O conteudo principal sera diretamente o `CrmBoard`, mantendo o header glass com titulo "Centro de Comando" mas sem botoes de tabs.
-
-**Arquivo**: `src/pages/SuperAdmin.tsx`
-
----
-
-## 2. Adicionar campo `notes` na tabela `saas_crm_leads`
-
-**Migracao SQL**:
-```sql
-ALTER TABLE public.saas_crm_leads ADD COLUMN notes text;
+```typescript
+const allMenuGroups: MenuGroup[] = isSuperAdmin
+  ? [
+      {
+        label: "ADMINISTRACAO",
+        items: [
+          { title: "Super Admin", href: "/superadmin", icon: Shield },
+        ],
+      },
+    ]
+  : [ /* ... menu regular inalterado ... */ ];
 ```
 
-Atualizar a interface `CrmLead` no hook `useCrmBoard.ts` para incluir `notes: string | null`.
-
-Adicionar campo "Observacoes" (Textarea) no `AddLeadDialog.tsx`.
+Remove Dashboard, Clientes e Relatorios do menu do superadmin.
 
 ---
 
-## 3. Sheet de visualizacao/edicao do lead
+## Passo 2 - Persistencia com useFormPersist (react-hook-form)
 
-Criar componente `src/components/superadmin/LeadDetailSheet.tsx`:
-- Abre ao clicar no card do lead (nao no drag)
-- Sheet lateral (lado direito) com estilo glass (bg-slate-900, border-white/10)
-- Campos editaveis: empresa, contato, whatsapp, plano, segmento, coluna, observacoes
-- Botao "Salvar" que chama um novo mutation `updateLead` no hook
-- Botao "Excluir" com confirmacao
+Os dois formularios (AddLeadDialog e LeadDetailSheet) precisam ser convertidos de `useState` para `react-hook-form` + `useFormPersist`, seguindo o padrao arquitetural do projeto.
 
-**Mudancas no hook** `useCrmBoard.ts`:
-- Adicionar `updateLeadMutation` para atualizar todos os campos de um lead
-- Expor `updateLead` no return
+### AddLeadDialog.tsx
 
-**Mudancas no** `CrmLeadCard.tsx`:
-- Adicionar prop `onClick` para abrir o sheet
-- O click no card (exceto drag e botoes) abre o detail sheet
+- Importar `useForm` do react-hook-form e `useFormPersist` do projeto
+- Criar schema de form com `useForm({ defaultValues: { person_name: '', company_name: '', ... } })`
+- Conectar `useFormPersist({ form, key: 'crm_add_lead' })`
+- Substituir inputs `value={form.x} onChange={...}` por `{...form.register('field')}` e controlled components para Selects
+- No submit: chamar `clearDraft()` antes de fechar
+- No cancelar: chamar `clearDraft()` e resetar o form
 
-**Mudancas no** `CrmBoard.tsx`:
-- Estado para lead selecionado (`selectedLead`)
-- Renderizar `LeadDetailSheet` passando o lead selecionado
+### LeadDetailSheet.tsx
 
----
-
-## 4. Corrigir responsividade do board
-
-**Mudancas no** `CrmColumn.tsx`:
-- Remover `w-72 flex-shrink-0` fixo
-- Usar `flex-1 min-w-[220px]` para que as colunas expandam igualmente e ocupem todo o espaco disponivel
-- Em telas menores onde nao cabe tudo, manter scroll horizontal
-
-**Mudancas no** `CrmBoard.tsx`:
-- No container flex do board, usar `min-w-0` e garantir que em telas grandes as colunas preencham 100% da largura
-- Remover `overflow-x-auto` em telas grandes (so manter em mobile)
-
-**Mudancas no** `SuperAdmin.tsx`:
-- Trocar `container` por `px-4 lg:px-8` no content area para nao limitar a largura maxima do board em telas grandes
+- Mesma conversao para react-hook-form
+- Key de persistencia dinamica por lead: `crm_edit_lead_${lead?.id}`
+- Usar `form.reset(...)` no useEffect quando o lead muda (com guard para nao sobrescrever draft)
+- `clearDraft()` no salvar e no excluir
 
 ---
 
-## Arquivos modificados
+## Passo 3 - Unificar WhatsApp e Contato
+
+O campo `whatsapp` separado e redundante. Unificar em um unico campo "Telefone (WhatsApp)" que serve tanto como contato quanto como link do WhatsApp.
+
+### AddLeadDialog.tsx e LeadDetailSheet.tsx
+- Remover o campo "WhatsApp" separado
+- Renomear label do campo `whatsapp` para **"Telefone (WhatsApp)"**
+- O campo `person_name` continua como "Contato" (nome da pessoa)
+- O valor do campo telefone e usado diretamente para gerar o link `wa.me/`
+
+### CrmLeadCard.tsx
+- Exibir o telefone formatado abaixo do nome do contato (se existir)
+- Manter o icone do WhatsApp usando `unmask(lead.whatsapp)` para o link
+
+---
+
+## Passo 4 - Mascara de telefone
+
+### AddLeadDialog.tsx e LeadDetailSheet.tsx
+- Importar `maskPhone` e `unmask` de `@/lib/masks`
+- Aplicar `maskPhone` no onChange do campo de telefone: `(00) 00000-0000`
+- No submit, salvar com `unmask()` para o banco (apenas digitos)
+- No CrmLeadCard, usar `unmask()` para o link wa.me e `maskPhone()` para exibicao visual
+
+---
+
+## Arquivos modificados (4 arquivos, 0 novos)
 
 | Arquivo | Mudanca |
 |---|---|
-| `src/pages/SuperAdmin.tsx` | Remover tabs, renderizar CrmBoard direto, ajustar padding |
-| `src/hooks/useCrmBoard.ts` | Adicionar `notes` na interface, adicionar `updateLead` mutation |
-| `src/components/superadmin/CrmBoard.tsx` | Estado de lead selecionado, renderizar LeadDetailSheet |
-| `src/components/superadmin/CrmColumn.tsx` | Responsividade flex-1 |
-| `src/components/superadmin/CrmLeadCard.tsx` | onClick para abrir detail, mostrar preview de notes |
-| `src/components/superadmin/AddLeadDialog.tsx` | Adicionar campo Observacoes |
-| `src/components/superadmin/LeadDetailSheet.tsx` | **NOVO** - Sheet de visualizacao/edicao |
-| Migracao SQL | Adicionar coluna `notes` |
+| `src/components/layout/AppSidebar.tsx` | Sidebar superadmin so com "Super Admin" |
+| `src/components/superadmin/AddLeadDialog.tsx` | react-hook-form + useFormPersist + unificar campo + mascara |
+| `src/components/superadmin/LeadDetailSheet.tsx` | react-hook-form + useFormPersist + unificar campo + mascara |
+| `src/components/superadmin/CrmLeadCard.tsx` | Exibir telefone formatado, manter link WhatsApp |
+
+Nenhuma migracao de banco necessaria. O campo `whatsapp` na tabela continua sendo reutilizado, apenas a UI muda.
 
