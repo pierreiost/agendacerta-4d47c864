@@ -1,7 +1,8 @@
 import { CrmLead } from '@/hooks/useCrmBoard';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Trash2, StickyNote } from 'lucide-react';
+import { MessageCircle, Trash2, StickyNote, Phone } from 'lucide-react';
 import { Draggable } from '@hello-pangea/dnd';
+import { maskPhone, unmask } from '@/lib/masks';
 
 const PLAN_STYLES: Record<string, string> = {
   basic: 'bg-slate-500/20 text-slate-300 border-slate-400/30',
@@ -23,9 +24,9 @@ interface CrmLeadCardProps {
 }
 
 export function CrmLeadCard({ lead, index, onDelete, onClick }: CrmLeadCardProps) {
-  const whatsappUrl = lead.whatsapp
-    ? `https://wa.me/${lead.whatsapp.replace(/\D/g, '')}`
-    : null;
+  const phoneDigits = lead.whatsapp ? unmask(lead.whatsapp) : null;
+  const whatsappUrl = phoneDigits ? `https://wa.me/55${phoneDigits}` : null;
+  const formattedPhone = phoneDigits ? maskPhone(phoneDigits) : null;
 
   return (
     <Draggable draggableId={lead.id} index={index}>
@@ -48,7 +49,13 @@ export function CrmLeadCard({ lead, index, onDelete, onClick }: CrmLeadCardProps
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
-          <p className="text-xs text-white/50 mb-2">{lead.person_name}</p>
+          <p className="text-xs text-white/50 mb-1">{lead.person_name}</p>
+          {formattedPhone && (
+            <div className="flex items-center gap-1 mb-2">
+              <Phone className="h-3 w-3 text-white/30" />
+              <p className="text-[11px] text-white/40">{formattedPhone}</p>
+            </div>
+          )}
           {lead.notes && (
             <div className="flex items-start gap-1.5 mb-2">
               <StickyNote className="h-3 w-3 text-white/30 mt-0.5 shrink-0" />

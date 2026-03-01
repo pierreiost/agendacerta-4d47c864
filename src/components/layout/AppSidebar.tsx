@@ -149,19 +149,10 @@ export function AppSidebar() {
   // Build menu items based on whether user is superadmin or regular user
   const allMenuGroups: MenuGroup[] = isSuperAdmin
     ? [
-        // SuperAdmin specific menu
-        {
-          label: "PRINCIPAL",
-          items: [
-            { title: "Dashboard", href: "/", icon: Home, module: "dashboard" as Module },
-          ],
-        },
         {
           label: "ADMINISTRAÇÃO",
           items: [
             { title: "Super Admin", href: "/superadmin", icon: Shield },
-            { title: "Clientes", href: "/clientes", icon: Users, module: "clientes" as Module },
-            { title: "Relatórios", href: "/relatorios", icon: BarChart3, module: "relatorios" as Module },
           ],
         },
       ]
