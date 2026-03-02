@@ -37,6 +37,7 @@ export function useCrmBoard() {
       if (error) throw error;
       return data as CrmColumn[];
     },
+    refetchOnWindowFocus: false,
   });
 
   const { data: leads = [], isLoading: loadingLeads } = useQuery({
@@ -49,6 +50,7 @@ export function useCrmBoard() {
       if (error) throw error;
       return data as CrmLead[];
     },
+    refetchOnWindowFocus: false,
   });
 
   const moveLeadMutation = useMutation({
