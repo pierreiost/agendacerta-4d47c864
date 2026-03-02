@@ -159,21 +159,21 @@ export function DashboardBookings() {
       <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-3">
         <Card
           className={cn(
-            "relative overflow-hidden border-2 transition-all duration-300",
+            "relative border-2 transition-all duration-300",
             "hover:shadow-soft-lg hover:scale-[1.02] hover:-translate-y-0.5",
             "border-primary-200/60 hover:border-primary-300",
           )}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-primary-100/80 via-primary-50/50 to-transparent opacity-60" />
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 space-y-1">
+          <div className="relative p-4 md:p-6">
+            <div className="flex items-start justify-between gap-2 md:gap-3">
+              <div className="flex-1 min-w-0 space-y-1">
                 <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   Reservas Hoje
                 </p>
                 <TodayBookingsValue />
               </div>
-              <div className="rounded-xl p-2.5 md:p-3 shadow-sm bg-primary-100 ring-2 ring-primary-200/50">
+              <div className="flex-shrink-0 rounded-xl p-2 md:p-2.5 shadow-sm bg-primary-100 ring-2 ring-primary-200/50">
                 <Calendar className="h-5 w-5 md:h-6 md:w-6 text-primary-600" />
               </div>
             </div>
