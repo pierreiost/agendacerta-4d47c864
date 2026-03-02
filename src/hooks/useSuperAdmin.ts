@@ -128,6 +128,7 @@ export function useSuperAdmin() {
       return venuesWithMembers;
     },
     enabled: isSuperAdmin === true,
+    refetchOnWindowFocus: false,
   });
 
   const updateSubscriptionStatus = useMutation({

@@ -36,5 +36,6 @@ export function useSaasMetrics() {
       if (error) throw error;
       return data as unknown as SaasGlobalMetrics;
     },
+    refetchOnWindowFocus: false,
   });
 }
