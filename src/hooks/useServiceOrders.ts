@@ -108,6 +108,7 @@ export function useServiceOrders() {
       return data as unknown as ServiceOrder[];
     },
     enabled: !!currentVenue?.id,
+    refetchOnWindowFocus: true,
     staleTime: 30000, // 30 segundos
     refetchInterval: 60000, // Refetch a cada minuto
   });
