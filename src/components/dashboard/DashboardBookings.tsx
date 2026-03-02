@@ -56,22 +56,20 @@ export function DashboardBookings() {
       return bookingDate.getTime() === today.getTime();
     });
 
-    const confirmedToday = todayBookings.filter(b => b.status === "CONFIRMED").length;
-    const pendingToday = todayBookings.filter(b => b.status === "PENDING").length;
+    const confirmedToday = todayBookings.filter((b) => b.status === "CONFIRMED").length;
+    const pendingToday = todayBookings.filter((b) => b.status === "PENDING").length;
 
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     const monthBookings = bookings.filter((b) => {
       const bookingDate = new Date(b.start_time);
       return (
-        bookingDate.getMonth() === currentMonth && 
-        bookingDate.getFullYear() === currentYear && 
-        b.status !== "CANCELLED"
+        bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear && b.status !== "CANCELLED"
       );
     });
 
     const monthRevenue = monthBookings.reduce((sum, b) => {
-      if (b.status === 'FINALIZED') {
+      if (b.status === "FINALIZED") {
         return sum + (Number(b.grand_total) || 0);
       }
       return sum;
@@ -100,8 +98,8 @@ export function DashboardBookings() {
         const startTime = new Date(b.start_time);
         const inDateRange = startTime >= targetDate && startTime < nextDate;
         const notCancelled = b.status !== "CANCELLED";
-        const statusFilter = showPending 
-          ? (b.status === "CONFIRMED" || b.status === "PENDING")
+        const statusFilter = showPending
+          ? b.status === "CONFIRMED" || b.status === "PENDING"
           : b.status === "CONFIRMED";
         return inDateRange && notCancelled && statusFilter;
       })
@@ -146,9 +144,7 @@ export function DashboardBookings() {
   // Custom value display for today's bookings
   const TodayBookingsValue = () => (
     <div className="flex flex-col">
-      <span className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-        {metrics.totalToday}
-      </span>
+      <span className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">{metrics.totalToday}</span>
       <div className="flex items-center gap-2 text-xs mt-1">
         <span className="text-success-600 font-medium">{metrics.confirmedToday} confirmadas</span>
         <span className="text-muted-foreground">/</span>
@@ -161,11 +157,13 @@ export function DashboardBookings() {
     <div className="space-y-8">
       {/* Métricas */}
       <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-3">
-        <Card className={cn(
-          "relative overflow-hidden border-2 transition-all duration-300",
-          "hover:shadow-soft-lg hover:scale-[1.02] hover:-translate-y-0.5",
-          "border-primary-200/60 hover:border-primary-300"
-        )}>
+        <Card
+          className={cn(
+            "relative overflow-hidden border-2 transition-all duration-300",
+            "hover:shadow-soft-lg hover:scale-[1.02] hover:-translate-y-0.5",
+            "border-primary-200/60 hover:border-primary-300",
+          )}
+        >
           <div className="absolute inset-0 bg-gradient-to-br from-primary-100/80 via-primary-50/50 to-transparent opacity-60" />
           <div className="relative p-5 md:p-6">
             <div className="flex items-start justify-between gap-3">
@@ -213,20 +211,20 @@ export function DashboardBookings() {
               >
                 {showPending ? "Ocultar Pendentes" : "Mostrar Pendentes"}
               </Button>
-              <ToggleGroup 
-                type="single" 
-                value={dateFilter} 
+              <ToggleGroup
+                type="single"
+                value={dateFilter}
                 onValueChange={(value) => value && setDateFilter(value as DateFilter)}
                 className="bg-muted/50 rounded-lg p-1"
               >
-                <ToggleGroupItem 
-                  value="today" 
+                <ToggleGroupItem
+                  value="today"
                   className="text-xs px-3 py-1.5 data-[state=on]:bg-background data-[state=on]:shadow-sm"
                 >
                   Hoje
                 </ToggleGroupItem>
-                <ToggleGroupItem 
-                  value="tomorrow" 
+                <ToggleGroupItem
+                  value="tomorrow"
                   className="text-xs px-3 py-1.5 data-[state=on]:bg-background data-[state=on]:shadow-sm"
                 >
                   Amanhã
@@ -257,10 +255,10 @@ export function DashboardBookings() {
               </Button>
             </div>
           ) : (
-            <div 
+            <div
               className={cn(
                 "flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent",
-                filteredBookings.length <= 3 ? "justify-center" : "justify-start"
+                filteredBookings.length <= 3 ? "justify-center" : "justify-start",
               )}
             >
               {filteredBookings.map((booking) => (
@@ -270,7 +268,7 @@ export function DashboardBookings() {
                     "min-w-[200px] sm:min-w-[250px] max-w-[280px] flex-shrink-0",
                     "p-4 rounded-xl border-2 border-border bg-card",
                     "hover:border-primary-300 hover:shadow-soft transition-all duration-200 cursor-pointer",
-                    "group"
+                    "group",
                   )}
                   onClick={() => navigate("/agenda")}
                 >
@@ -284,8 +282,8 @@ export function DashboardBookings() {
                         {booking.customer_name || "Cliente"}
                       </h4>
                     </div>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={cn("text-[10px] px-1.5 py-0.5", getStatusColor(booking.status || "PENDING"))}
                     >
                       {getStatusLabel(booking.status || "PENDING")}
