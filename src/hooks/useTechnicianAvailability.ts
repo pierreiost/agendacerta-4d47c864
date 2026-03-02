@@ -136,5 +136,7 @@ export function useTechnicianAvailability(
       return result;
     },
     enabled: !!currentVenue?.id && !!date && durationMinutes > 0,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
   });
 }

@@ -58,6 +58,7 @@ export function useDashboardMetrics() {
       };
     },
     enabled: !!currentVenue?.id,
+    refetchOnWindowFocus: true,
     staleTime: 30000, // 30 segundos - métricas não mudam frequentemente
     refetchInterval: 60000, // Refetch a cada minuto
   });

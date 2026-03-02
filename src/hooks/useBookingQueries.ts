@@ -45,6 +45,8 @@ export function useBookingQueries(startDate?: Date, endDate?: Date) {
     },
     enabled: !!currentVenue?.id && !!user,
     retry: shouldRetry,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
   });
 
   return {
