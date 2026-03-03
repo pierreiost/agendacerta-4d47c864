@@ -233,8 +233,9 @@ export function DashboardServiceOrders() {
     return colors[status] || colors.draft;
   };
 
-  // Mostra skeleton apenas se as métricas ainda estão carregando pela primeira vez
-  if (metricsLoading && !serverMetrics) {
+  // Mostra skeleton apenas se os dados ainda estão carregando pela primeira vez (cache vazio)
+  const hasData = (orders && orders.length > 0) || serverMetrics;
+  if ((metricsLoading || ordersLoading) && !hasData) {
     return <DashboardServiceOrdersSkeleton />;
   }
 
