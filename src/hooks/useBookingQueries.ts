@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useVenue } from '@/contexts/VenueContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +14,33 @@ export function useBookingQueries(startDate?: Date, endDate?: Date) {
   const { currentVenue } = useVenue();
   const { user } = useAuth();
   const { handleAuthError, shouldRetry } = useBookingErrors();
+  const queryClient = useQueryClient();
+
+  // Realtime: atualiza automaticamente quando novas reservas chegam
+  useEffect(() => {
+    if (!currentVenue?.id || !user) return;
+
+    const channel = supabase
+      .channel(`bookings-realtime-${currentVenue.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `venue_id=eq.${currentVenue.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['bookings'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentVenue?.id, user, queryClient]);
 
   const bookingsQuery = useQuery({
     queryKey: ['bookings', currentVenue?.id, startDate?.toISOString(), endDate?.toISOString()],
