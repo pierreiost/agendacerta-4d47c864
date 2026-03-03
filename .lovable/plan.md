@@ -1,93 +1,68 @@
 
-# Otimizacao de Performance: AuthContext e Carregamento Silencioso
+# Reservas em tempo real no Dashboard
 
 ## Problema
+Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
 
-Dois problemas relacionados causam flashes visuais indesejados:
+## Solucao
 
-1. **AuthContext**: A cada TOKEN_REFRESH do Supabase, `setUser(session?.user)` cria uma nova referencia de objeto mesmo quando o user ID nao mudou. Isso causa re-render em cascata em toda a arvore de componentes (VenueContext, queries, etc.), potencialmente desmontando e remontando componentes.
+Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
 
-2. **Dashboard Spinners**: Alguns componentes do Dashboard usam `isLoading` para exibir spinners de tela cheia. Embora `isLoading` do React Query v5 ja seja "primeiro carregamento apenas", o re-render do AuthContext pode forcar um ciclo de remontagem que reseta o cache, causando o flash.
+## Mudancas
 
-## Mudancas Planejadas
+### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
 
-### Tarefa 1: Blindar AuthContext contra re-renders (1 ficheiro)
-
-**Ficheiro**: `src/contexts/AuthContext.tsx`
-
-Substituir as chamadas cegas de `setUser` e `setSession` por funcoes de atualizacao condicional que preservam a referencia anterior quando o ID nao mudou:
-
-```typescript
-// ANTES (linhas 22-24)
-setSession(session);
-setUser(session?.user ?? null);
-
-// DEPOIS
-setSession(prev => prev?.access_token === session?.access_token ? prev : session);
-setUser(prev => prev?.id === session?.user?.id ? prev : (session?.user ?? null));
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
 ```
 
-Aplicar em dois locais:
-- `onAuthStateChange` callback (linha 22-24)
-- `getSession().then()` callback (linha 31-33)
+### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
 
-Tambem adicionar `useCallback` ao `signOut` para estabilizar a referencia e `useMemo` no value do Provider para evitar re-renders quando nenhum valor mudou.
+Adicionar um `useEffect` no hook `useBookingQueries` que:
+- Cria um canal Supabase Realtime filtrado por `venue_id`
+- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
+- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
+- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
+- Faz cleanup do canal no return do useEffect
 
-### Tarefa 2: Carregamento Silencioso nos Dashboards (3 ficheiros)
-
-Estes componentes exibem spinners de tela cheia. Vamos garantir que so mostrem loading na primeira visita (cache vazio):
-
-**2a. `src/components/dashboard/DashboardBookings.tsx`** (linha 136)
 ```typescript
-// ANTES
-if (bookingsLoading || metricsLoading) {
-  return (<div>...spinner...</div>);
-}
+// Realtime: atualiza automaticamente quando novas reservas chegam
+useEffect(() => {
+  if (!currentVenue?.id || !user) return;
 
-// DEPOIS - so mostra spinner se nao tem dados em cache
-const hasData = bookings?.length > 0 || serverMetrics;
-if ((bookingsLoading || metricsLoading) && !hasData) {
-  return (<div>...spinner...</div>);
-}
+  const channel = supabase
+    .channel(`bookings-realtime-${currentVenue.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `venue_id=eq.${currentVenue.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentVenue?.id, user, queryClient]);
 ```
 
-**2b. `src/components/dashboard/DashboardAppointments.tsx`** (linha 164)
-```typescript
-// ANTES
-if (isLoading) {
-  return (<div>...spinner...</div>);
-}
+### Resumo
 
-// DEPOIS
-if (isLoading && (!bookings || bookings.length === 0)) {
-  return (<div>...spinner...</div>);
-}
-```
-
-**2c. `src/components/dashboard/DashboardServiceOrders.tsx`** (linha 237)
-- Ja esta parcialmente correto (`metricsLoading && !serverMetrics`), mas falta proteger o `ordersLoading`. Adicionar verificacao similar para orders.
-
-### Resumo de ficheiros
-
-| Ficheiro | Tipo de mudanca |
+| Acao | Ficheiro |
 |---|---|
-| `src/contexts/AuthContext.tsx` | Comparacao condicional em setUser/setSession + useMemo no value |
-| `src/components/dashboard/DashboardBookings.tsx` | Spinner condicional com fallback para dados em cache |
-| `src/components/dashboard/DashboardAppointments.tsx` | Spinner condicional com fallback para dados em cache |
-| `src/components/dashboard/DashboardServiceOrders.tsx` | Proteger loading de orders (metricas ja estao protegidas) |
+| Habilitar Realtime na tabela bookings | Migracao SQL |
+| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
 
-### O que NAO sera tocado
+### Resultado
 
-| Item | Motivo |
-|---|---|
-| `src/pages/Agenda.tsx` | Ja usa `isLoading` do React Query v5 que e "primeiro load apenas". Os skeletons so aparecem quando o cache esta vazio. |
-| Hooks de mutacao | Fora do escopo - nao afetam rendering |
-| `App.tsx` | Config global preservada |
-| `useBookingQueries.ts` | Return ja expoe `isLoading` (correto) |
-
-### Resultado esperado
-
-- TOKEN_REFRESH do Supabase nao causa mais re-render em cascata
-- Ao voltar para a aba, os dados atualizam silenciosamente no background
-- Spinners/Skeletons so aparecem na primeira visita (cache vazio)
-- Dados existentes permanecem visiveis durante o refetch
+- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
+- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
+- As metricas do dashboard (contadores) tambem se atualizam
+- Nenhum polling manual ou intervalo necessario
