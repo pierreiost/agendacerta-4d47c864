@@ -133,7 +133,8 @@ export function DashboardBookings() {
     return labels[status as keyof typeof labels] || status;
   };
 
-  if (bookingsLoading || metricsLoading) {
+  const hasData = (bookings && bookings.length > 0) || serverMetrics;
+  if ((bookingsLoading || metricsLoading) && !hasData) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
