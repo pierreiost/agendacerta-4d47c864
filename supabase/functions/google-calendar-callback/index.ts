@@ -148,23 +148,27 @@ serve(async (req) => {
 
     console.log("Tokens encrypted successfully");
 
-    // Upsert with user_id for per-member connections
-    const { error: upsertError } = await supabase
+    // Delete any existing token for this venue (supports both legacy venue-wide and per-user)
+    // This ensures clean state before inserting the new connection
+    await supabase
       .from("google_calendar_tokens")
-      .upsert(
-        {
-          venue_id,
-          user_id, // Now storing the user_id for per-member connection
-          access_token: encryptedAccessToken,
-          refresh_token: encryptedRefreshToken,
-          token_expires_at: expiresAt,
-          calendar_id: calendarId,
-        },
-        { onConflict: "venue_id,user_id" } // Updated constraint
-      );
+      .delete()
+      .eq("venue_id", venue_id);
 
-    if (upsertError) {
-      console.error("Error saving tokens:", upsertError);
+    // Insert fresh token for this user
+    const { error: insertError } = await supabase
+      .from("google_calendar_tokens")
+      .insert({
+        venue_id,
+        user_id,
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
+        token_expires_at: expiresAt,
+        calendar_id: calendarId,
+      });
+
+    if (insertError) {
+      console.error("Error saving tokens:", insertError);
       return new Response(null, {
         status: 302,
         headers: {

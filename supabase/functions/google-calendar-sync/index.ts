@@ -131,11 +131,12 @@ async function refreshAccessToken(
     updateData.refresh_token = encryptedRefreshToken;
   }
 
-  // Update tokens in database
+  // Update tokens in database - match by venue_id (unique constraint)
   await supabase
     .from("google_calendar_tokens")
     .update(updateData)
-    .eq("venue_id", token.venue_id);
+    .eq("venue_id", token.venue_id)
+    .eq("user_id", token.user_id || user_id);
 
   return newTokens.access_token;
 }

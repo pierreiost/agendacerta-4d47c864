@@ -77,7 +77,7 @@ function InvoiceModal({ venue, isOpen, onClose }: { venue: VenueWithSubscription
     const message = `Olá ${venue.name}, identificamos que a sua assinatura do Agenda Certa expirou. Para evitar bloqueios, regularize em https://pay.agendacerta.com/invoice. Dados: ${venue.cnpj_cpf || 'Não informado'}`;
     try { await navigator.clipboard.writeText(message); toast({ title: 'Mensagem copiada!' }); } catch { toast({ title: 'Erro ao copiar', variant: 'destructive' }); }
   };
-  const planPrice = venue.plan_type === 'max' ? 'R$ 199,00' : 'R$ 99,00';
+  const planPrice = venue.plan_type === 'max' ? 'R$ 89,90' : 'R$ 59,90';
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Enviar Fatura</DialogTitle><DialogDescription>Dados do cliente para cobrança</DialogDescription></DialogHeader>
@@ -183,8 +183,8 @@ function VenueTable({ venues, onStatusChange, onSegmentChange, onPlanChange, onE
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger><Crown className="mr-2 h-4 w-4" />Alterar Plano</DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => onPlanChange(venue.id, 'basic')} disabled={venue.plan_type === 'basic'}><Star className="mr-2 h-4 w-4" />Basic (R$ 99/mês)</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onPlanChange(venue.id, 'max')} disabled={venue.plan_type === 'max'}><Crown className="mr-2 h-4 w-4 text-yellow-500" />Max (R$ 199/mês)</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onPlanChange(venue.id, 'basic')} disabled={venue.plan_type === 'basic'}><Star className="mr-2 h-4 w-4" />Basic (R$ 59,90/mês)</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onPlanChange(venue.id, 'max')} disabled={venue.plan_type === 'max'}><Crown className="mr-2 h-4 w-4 text-yellow-500" />Max (R$ 89,90/mês)</DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
                         <DropdownMenuSub>
