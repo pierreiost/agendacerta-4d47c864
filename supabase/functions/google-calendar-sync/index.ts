@@ -29,6 +29,7 @@ interface CalendarToken {
   token_expires_at: string;
   calendar_id: string;
   venue_id: string;
+  user_id: string | null;
 }
 
 // Utility function to mask sensitive data for logs (LGPD compliance)
