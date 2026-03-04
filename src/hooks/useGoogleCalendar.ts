@@ -144,37 +144,30 @@ export function useSyncBooking() {
   const { currentVenue } = useVenue();
 
   const syncToCalendar = async (bookingId: string, action: 'create' | 'update' | 'delete') => {
-    if (!currentVenue?.id) return;
+    if (!currentVenue?.id) {
+      console.warn('[CalendarSync] No venue selected, skipping sync');
+      return;
+    }
 
     try {
-      // Get the current session for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error('Calendar sync failed: Not authenticated');
+      console.log(`[CalendarSync] Syncing booking ${bookingId} action=${action} venue=${currentVenue.id}`);
+      
+      const { data, error } = await supabase.functions.invoke('google-calendar-sync', {
+        body: {
+          action,
+          booking_id: bookingId,
+          venue_id: currentVenue.id,
+        },
+      });
+
+      if (error) {
+        console.error('[CalendarSync] Sync failed:', error.message);
         return;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action,
-            booking_id: bookingId,
-            venue_id: currentVenue.id,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        console.error('Calendar sync failed:', await response.text());
-      }
+      console.log('[CalendarSync] Sync result:', data);
     } catch (error) {
-      console.error('Calendar sync error:', error);
+      console.error('[CalendarSync] Sync error:', error);
     }
   };
 
