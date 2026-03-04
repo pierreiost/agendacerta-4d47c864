@@ -29,6 +29,7 @@ interface CalendarToken {
   token_expires_at: string;
   calendar_id: string;
   venue_id: string;
+  user_id: string | null;
 }
 
 // Utility function to mask sensitive data for logs (LGPD compliance)
@@ -132,10 +133,18 @@ async function refreshAccessToken(
   }
 
   // Update tokens in database
-  await supabase
+  const updateQuery = supabase
     .from("google_calendar_tokens")
     .update(updateData)
     .eq("venue_id", token.venue_id);
+  
+  if (token.user_id) {
+    updateQuery.eq("user_id", token.user_id);
+  } else {
+    updateQuery.is("user_id", null);
+  }
+  
+  await updateQuery;
 
   return newTokens.access_token;
 }

@@ -1,6 +1,7 @@
-import { AlertTriangle, Clock, X } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface SubscriptionBannerProps {
   daysRemaining: number;
@@ -26,46 +27,39 @@ export function SubscriptionBanner({ daysRemaining, status }: SubscriptionBanner
     if (status === 'trialing') {
       if (isUrgent) {
         return daysRemaining === 1 
-          ? 'ATENÇÃO: Seu período de teste expira amanhã. Regularize agora!'
-          : 'ATENÇÃO: Seu período de teste expira hoje. Regularize agora!';
+          ? 'Período de teste expira amanhã'
+          : 'Período de teste expira hoje';
       }
-      return `Seu período de teste termina em ${daysRemaining} dias.`;
+      return `Período de teste termina em ${daysRemaining} dias`;
     }
     
     if (isUrgent) {
       return daysRemaining === 1 
-        ? 'ATENÇÃO: Sua assinatura expira amanhã. Regularize agora!'
-        : 'ATENÇÃO: Sua assinatura expira hoje. Regularize agora!';
+        ? 'Assinatura expira amanhã'
+        : 'Assinatura expira hoje';
     }
-    return `Sua assinatura expira em ${daysRemaining} dias.`;
+    return `Assinatura expira em ${daysRemaining} dias`;
   };
 
   return (
     <div
-      className={`
-        relative flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
-        ${isUrgent 
-          ? 'bg-destructive text-destructive-foreground animate-pulse' 
-          : 'bg-yellow-500/90 text-yellow-950'
-        }
-      `}
+      className={cn(
+        "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg mx-3 mt-2",
+        isUrgent 
+          ? "bg-destructive/10 text-destructive border border-destructive/20" 
+          : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20"
+      )}
     >
-      {isUrgent ? (
-        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-      ) : (
-        <Clock className="h-4 w-4 flex-shrink-0" />
-      )}
-      <span className="text-center">{getMessage()}</span>
-      {!isUrgent && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute right-2 h-6 w-6 p-0 hover:bg-yellow-600/20"
-          onClick={() => setDismissed(true)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      )}
+      <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+      <span className="flex-1">{getMessage()}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-5 w-5 p-0 hover:bg-transparent opacity-60 hover:opacity-100"
+        onClick={() => setDismissed(true)}
+      >
+        <X className="h-3 w-3" />
+      </Button>
     </div>
   );
 }
