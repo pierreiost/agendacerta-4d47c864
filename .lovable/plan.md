@@ -1,68 +1,27 @@
 
-# Reservas em tempo real no Dashboard
 
-## Problema
-Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
+# Fix Google Calendar Auth CORS
 
-## Solucao
+## Problem
+The `google-calendar-auth` function still uses a **restrictive origin whitelist** (`ALLOWED_ORIGINS` array + `getCorsHeaders()` function) instead of the simple wildcard CORS pattern. If the browser's origin doesn't exactly match one of the hardcoded URLs, the preflight `OPTIONS` request fails and the browser blocks the call entirely — resulting in "Failed to send a request to the Edge Function."
 
-Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
+The `disconnect` and `sync` functions were already fixed to use `"Access-Control-Allow-Origin": "*"`, but `auth` was missed.
 
-## Mudancas
-
-### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
-
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-```
-
-### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
-
-Adicionar um `useEffect` no hook `useBookingQueries` que:
-- Cria um canal Supabase Realtime filtrado por `venue_id`
-- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
-- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
-- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
-- Faz cleanup do canal no return do useEffect
+## Fix
+Replace the `ALLOWED_ORIGINS` array and `getCorsHeaders()` function in `google-calendar-auth/index.ts` with the same simple CORS constant used by the other functions:
 
 ```typescript
-// Realtime: atualiza automaticamente quando novas reservas chegam
-useEffect(() => {
-  if (!currentVenue?.id || !user) return;
-
-  const channel = supabase
-    .channel(`bookings-realtime-${currentVenue.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `venue_id=eq.${currentVenue.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentVenue?.id, user, queryClient]);
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 ```
 
-### Resumo
+Then replace all `getCorsHeaders(origin)` / `getCorsHeaders(req.headers.get("Origin"))` calls with just `corsHeaders`.
 
-| Acao | Ficheiro |
+| File | Change |
 |---|---|
-| Habilitar Realtime na tabela bookings | Migracao SQL |
-| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
+| `supabase/functions/google-calendar-auth/index.ts` | Remove `ALLOWED_ORIGINS` + `getCorsHeaders()`, use simple wildcard `corsHeaders` constant |
 
-### Resultado
+This is a single-file change. The hook and all other functions are already correct.
 
-- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
-- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
-- As metricas do dashboard (contadores) tambem se atualizam
-- Nenhum polling manual ou intervalo necessario
