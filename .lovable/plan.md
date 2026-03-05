@@ -1,68 +1,38 @@
 
-# Reservas em tempo real no Dashboard
 
-## Problema
-Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
+# Fix Google Calendar Integration
 
-## Solucao
+## Root Causes
 
-Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
+1. **CORS headers too restrictive**: All four edge functions allow only `"authorization, x-client-info, apikey, content-type"` but `supabase.functions.invoke()` sends additional headers (`x-supabase-client-platform`, `x-supabase-client-platform-version`, `x-supabase-client-runtime`, `x-supabase-client-runtime-version`) that get blocked by the preflight check, causing silent failures.
 
-## Mudancas
+2. **Disconnect does not decrypt token before revoking**: `google-calendar-disconnect` sends the encrypted token string to Google's revoke endpoint (line 82), which always fails silently.
 
-### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
+3. **Hook uses raw `fetch()` for connect/disconnect**: The `connectMutation` and `disconnectMutation` in `useGoogleCalendar.ts` use manual `fetch()` calls instead of `supabase.functions.invoke()`, making them more fragile (manual URL construction, manual auth headers).
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+## Changes
+
+### 1. Update CORS headers in all 4 edge functions
+
+In `google-calendar-auth`, `google-calendar-callback`, `google-calendar-sync`, and `google-calendar-disconnect`, change the `Access-Control-Allow-Headers` to:
+
+```
+"authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version"
 ```
 
-### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+### 2. Fix token decryption in `google-calendar-disconnect`
 
-Adicionar um `useEffect` no hook `useBookingQueries` que:
-- Cria um canal Supabase Realtime filtrado por `venue_id`
-- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
-- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
-- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
-- Faz cleanup do canal no return do useEffect
+Import `decrypt`, `isEncrypted`, `decryptLegacy`, `isLegacyEncrypted` from `_shared/encryption.ts` and decrypt the access token before sending it to Google's revoke endpoint.
 
-```typescript
-// Realtime: atualiza automaticamente quando novas reservas chegam
-useEffect(() => {
-  if (!currentVenue?.id || !user) return;
+### 3. Migrate hook to `supabase.functions.invoke()`
 
-  const channel = supabase
-    .channel(`bookings-realtime-${currentVenue.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `venue_id=eq.${currentVenue.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
-      }
-    )
-    .subscribe();
+Update `connectMutation` and `disconnectMutation` in `useGoogleCalendar.ts` to use `supabase.functions.invoke()` instead of raw `fetch()`, matching the pattern already used by `useSyncBooking`.
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentVenue?.id, user, queryClient]);
-```
-
-### Resumo
-
-| Acao | Ficheiro |
+| File | Change |
 |---|---|
-| Habilitar Realtime na tabela bookings | Migracao SQL |
-| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
+| `supabase/functions/google-calendar-auth/index.ts` | Fix CORS headers |
+| `supabase/functions/google-calendar-callback/index.ts` | Fix CORS headers |
+| `supabase/functions/google-calendar-sync/index.ts` | Fix CORS headers |
+| `supabase/functions/google-calendar-disconnect/index.ts` | Fix CORS headers + decrypt token before revoke |
+| `src/hooks/useGoogleCalendar.ts` | Use `supabase.functions.invoke()` for connect/disconnect |
 
-### Resultado
-
-- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
-- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
-- As metricas do dashboard (contadores) tambem se atualizam
-- Nenhum polling manual ou intervalo necessario
