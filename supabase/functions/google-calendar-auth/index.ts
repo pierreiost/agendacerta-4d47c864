@@ -17,8 +17,6 @@ const SCOPES = [
 ].join(" ");
 
 serve(async (req) => {
-  const origin = req.headers.get("Origin");
-  const corsHeaders = getCorsHeaders(origin);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -114,7 +112,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in google-calendar-auth:", error);
-    const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
