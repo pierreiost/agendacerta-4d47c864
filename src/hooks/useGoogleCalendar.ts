@@ -25,10 +25,7 @@ export function useGoogleCalendar() {
 
       if (userError) throw userError;
       
-      // If user has their own connection, return it
-      if (userConnection) {
-        return userConnection;
-      }
+      if (userConnection) return userConnection;
 
       // Fallback: check for venue-wide connection (user_id is null) - only for admins
       const isAdmin = currentVenue.role === 'admin' || currentVenue.role === 'superadmin';
@@ -53,34 +50,20 @@ export function useGoogleCalendar() {
     mutationFn: async () => {
       if (!currentVenue?.id) throw new Error('Venue not selected');
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const { data, error } = await supabase.functions.invoke('google-calendar-auth', {
+        body: { venue_id: currentVenue.id },
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-auth`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ venue_id: currentVenue.id }),
-        }
-      );
+      if (error) throw new Error(error.message || 'Failed to start OAuth');
+      if (data?.error) throw new Error(data.error);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to start OAuth');
-      }
-
-      const { auth_url } = await response.json();
-      return auth_url;
+      return data.auth_url as string;
     },
     onSuccess: (authUrl) => {
-      // Redirect to Google OAuth
       window.location.href = authUrl;
     },
     onError: (error) => {
+      console.error('[GoogleCalendar] Connect error:', error);
       toast({
         title: 'Erro ao conectar',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -93,25 +76,12 @@ export function useGoogleCalendar() {
     mutationFn: async () => {
       if (!currentVenue?.id) throw new Error('Venue not selected');
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const { data, error } = await supabase.functions.invoke('google-calendar-disconnect', {
+        body: { venue_id: currentVenue.id },
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-disconnect`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ venue_id: currentVenue.id }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to disconnect');
-      }
+      if (error) throw new Error(error.message || 'Failed to disconnect');
+      if (data?.error) throw new Error(data.error);
 
       return true;
     },
@@ -120,6 +90,7 @@ export function useGoogleCalendar() {
       toast({ title: 'Google Calendar desconectado!' });
     },
     onError: (error) => {
+      console.error('[GoogleCalendar] Disconnect error:', error);
       toast({
         title: 'Erro ao desconectar',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -162,6 +133,11 @@ export function useSyncBooking() {
 
       if (error) {
         console.error('[CalendarSync] Sync failed:', error.message);
+        return;
+      }
+
+      if (data?.error) {
+        console.error('[CalendarSync] Sync error from function:', data.error);
         return;
       }
 
