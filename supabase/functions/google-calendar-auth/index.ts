@@ -1,21 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Allowed origins for CORS - includes preview and published URLs
-const ALLOWED_ORIGINS = [
-  "https://id-preview--7fded635-bc6f-4133-b6f3-38281cefc754.lovable.app",
-  "https://agendacertaa.lovable.app",
-  Deno.env.get("FRONTEND_URL"),
-].filter(Boolean) as string[];
-
-function getCorsHeaders(origin: string | null) {
-  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    "Access-Control-Allow-Credentials": "true",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -28,8 +17,6 @@ const SCOPES = [
 ].join(" ");
 
 serve(async (req) => {
-  const origin = req.headers.get("Origin");
-  const corsHeaders = getCorsHeaders(origin);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -125,7 +112,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in google-calendar-auth:", error);
-    const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
