@@ -878,6 +878,152 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          quote_id: string
+          service_code: string | null
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          quantity?: number
+          quote_id: string
+          service_code?: string | null
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          quote_id?: string
+          service_code?: string | null
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_address: string | null
+          customer_city: string | null
+          customer_document: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          customer_state: string | null
+          customer_zip_code: string | null
+          description: string
+          device_model: string | null
+          discount: number | null
+          id: string
+          inquiry_id: string | null
+          notes: string | null
+          photo_urls: string[] | null
+          quote_number: number
+          service_order_id: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          total: number
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          customer_state?: string | null
+          customer_zip_code?: string | null
+          description?: string
+          device_model?: string | null
+          discount?: number | null
+          id?: string
+          inquiry_id?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          quote_number: number
+          service_order_id?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          customer_state?: string | null
+          customer_zip_code?: string | null
+          description?: string
+          device_model?: string | null
+          discount?: number | null
+          id?: string
+          inquiry_id?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          quote_number?: number
+          service_order_id?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           can_create: boolean
@@ -1566,16 +1712,19 @@ export type Database = {
       venue_sequences: {
         Row: {
           current_order_number: number
+          current_quote_number: number
           updated_at: string
           venue_id: string
         }
         Insert: {
           current_order_number?: number
+          current_quote_number?: number
           updated_at?: string
           venue_id: string
         }
         Update: {
           current_order_number?: number
+          current_quote_number?: number
           updated_at?: string
           venue_id?: string
         }
@@ -2284,6 +2433,7 @@ export type Database = {
         | "other"
       payment_method: "CASH" | "CREDIT" | "DEBIT" | "PIX" | "TRANSFER"
       plan_type: "basic" | "max"
+      quote_status: "pending" | "approved" | "rejected"
       service_order_status_complete:
         | "draft"
         | "approved"
@@ -2435,6 +2585,7 @@ export const Constants = {
       ],
       payment_method: ["CASH", "CREDIT", "DEBIT", "PIX", "TRANSFER"],
       plan_type: ["basic", "max"],
+      quote_status: ["pending", "approved", "rejected"],
       service_order_status_complete: [
         "draft",
         "approved",
