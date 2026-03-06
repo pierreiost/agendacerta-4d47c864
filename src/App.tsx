@@ -32,6 +32,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PublicPageVenue from "./pages/public/PublicPageVenue";
 import Marketplace from "./pages/Marketplace";
 import MinhasReservas from "./pages/MinhasReservas";
+import Orcamentos from "./pages/Orcamentos";
+import OrcamentoForm from "./pages/OrcamentoForm";
 import { Loader2 } from "lucide-react";
 import { AppErrorBoundary } from "@/components/shared/AppErrorBoundary";
 
@@ -151,6 +153,9 @@ function AppRoutesWithPersist() {
         <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
         <Route path="/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
         <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+        <Route path="/orcamentos" element={<ProtectedRoute><Orcamentos /></ProtectedRoute>} />
+        <Route path="/orcamentos/novo" element={<ProtectedRoute><OrcamentoForm /></ProtectedRoute>} />
+        <Route path="/orcamentos/:id" element={<ProtectedRoute><OrcamentoForm /></ProtectedRoute>} />
         
         <Route path="/pagina-publica" element={<ProtectedRoute><PublicPageConfig /></ProtectedRoute>} />
         <Route path="/ajuda" element={<ProtectedRoute><Ajuda /></ProtectedRoute>} />
