@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Plus, Trash2, FileDown, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, FileDown, Check, Loader2, Paperclip, X as XIcon } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useQuotes, type Quote, type QuoteItem } from "@/hooks/useQuotes";
 import { useQuotePdf } from "@/hooks/useQuotePdf";
@@ -248,7 +249,7 @@ export default function OrcamentoForm() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <button onClick={() => navigate("/orcamentos")} className={btnGhost} style={S}>
