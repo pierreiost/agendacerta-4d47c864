@@ -20,6 +20,7 @@ import {
   DollarSign,
   HelpCircle,
   Heart,
+  ClipboardCheck,
   LucideIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -167,7 +168,10 @@ export function AppSidebar() {
         },
         {
           label: "OPERACIONAL",
-          items: [{ title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText, module: "ordens_servico" as Module }],
+          items: [
+            { title: "Ordens de Serviço", href: "/ordens-servico", icon: FileText, module: "ordens_servico" as Module },
+            { title: "Orçamentos", href: "/orcamentos", icon: ClipboardCheck, module: "orcamentos" as Module },
+          ],
         },
         {
           label: "CADASTROS",
