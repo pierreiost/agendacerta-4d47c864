@@ -40,6 +40,7 @@ export default function OrcamentoForm() {
   const { generatePdf } = useQuotePdf();
   const { customers } = useCustomers();
   const { lookupCep, isLoading: isLoadingCep } = useCepLookup();
+  const isMobile = useIsMobile();
 
   const isEditing = !!id;
   const existingQuote = useMemo(() => quotes.find((q) => q.id === id), [quotes, id]);
@@ -68,7 +69,8 @@ export default function OrcamentoForm() {
   const [isApproving, setIsApproving] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-
+  const [showPhotos, setShowPhotos] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   // New item form
   const [newDesc, setNewDesc] = useState("");
   const [newCode, setNewCode] = useState("");
