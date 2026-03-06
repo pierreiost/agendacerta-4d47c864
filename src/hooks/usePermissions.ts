@@ -11,6 +11,7 @@ export type Module =
   | "servicos"
   | "produtos"
   | "ordens_servico"
+  | "orcamentos"
   | "financeiro"
   | "relatorios"
   | "equipe"
@@ -38,6 +39,7 @@ const DEFAULT_PERMISSIONS: Record<AppRole, Record<Module, Permission>> = {
     servicos: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     produtos: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     ordens_servico: { canView: true, canCreate: true, canEdit: true, canDelete: true },
+    orcamentos: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     financeiro: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     relatorios: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     equipe: { canView: true, canCreate: true, canEdit: true, canDelete: true },
@@ -52,6 +54,7 @@ const DEFAULT_PERMISSIONS: Record<AppRole, Record<Module, Permission>> = {
     servicos: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     produtos: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     ordens_servico: { canView: true, canCreate: true, canEdit: true, canDelete: true },
+    orcamentos: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     financeiro: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     relatorios: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     equipe: { canView: true, canCreate: true, canEdit: true, canDelete: true },
@@ -66,6 +69,7 @@ const DEFAULT_PERMISSIONS: Record<AppRole, Record<Module, Permission>> = {
     servicos: { canView: true, canCreate: true, canEdit: true, canDelete: false },
     produtos: { canView: true, canCreate: true, canEdit: true, canDelete: false },
     ordens_servico: { canView: true, canCreate: true, canEdit: true, canDelete: true },
+    orcamentos: { canView: true, canCreate: true, canEdit: true, canDelete: true },
     financeiro: { canView: true, canCreate: false, canEdit: false, canDelete: false },
     relatorios: { canView: true, canCreate: false, canEdit: false, canDelete: false },
     equipe: { canView: true, canCreate: false, canEdit: false, canDelete: false },
@@ -80,6 +84,7 @@ const DEFAULT_PERMISSIONS: Record<AppRole, Record<Module, Permission>> = {
     servicos: { canView: true, canCreate: false, canEdit: false, canDelete: false },
     produtos: { canView: true, canCreate: false, canEdit: false, canDelete: false },
     ordens_servico: { canView: true, canCreate: true, canEdit: true, canDelete: false },
+    orcamentos: { canView: true, canCreate: true, canEdit: true, canDelete: false },
     financeiro: { canView: false, canCreate: false, canEdit: false, canDelete: false },
     relatorios: { canView: false, canCreate: false, canEdit: false, canDelete: false },
     equipe: { canView: false, canCreate: false, canEdit: false, canDelete: false },
@@ -164,9 +169,16 @@ export function usePermissions(module?: Module) {
 
   // Get permission for a specific module
   const getPermission = (mod: Module): Permission => {
+    const noPermission: Permission = {
+      canView: false,
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+    };
+
     // Superadmin and admin always have full access
     if (role === "superadmin" || role === "admin") {
-      return DEFAULT_PERMISSIONS[role][mod];
+      return DEFAULT_PERMISSIONS[role]?.[mod] || noPermission;
     }
 
     // Check custom permissions first, then fall back to defaults
@@ -174,12 +186,7 @@ export function usePermissions(module?: Module) {
       return customPermissions[mod];
     }
 
-    return DEFAULT_PERMISSIONS[role]?.[mod] || {
-      canView: false,
-      canCreate: false,
-      canEdit: false,
-      canDelete: false,
-    };
+    return DEFAULT_PERMISSIONS[role]?.[mod] || noPermission;
   };
 
   // If module is specified, return permission for that module
