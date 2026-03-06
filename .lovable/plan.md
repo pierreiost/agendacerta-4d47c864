@@ -1,68 +1,35 @@
 
-# Reservas em tempo real no Dashboard
 
-## Problema
-Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
+# Melhorias no Módulo de Orçamentos
 
-## Solucao
+## 1. Listagem (Orcamentos.tsx) — Mobile scroll horizontal nas ações
 
-Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
+**Problema**: No mobile, os ícones de ação na coluna direita ficam cortados.
 
-## Mudancas
+**Fix**: Envolver a linha de ações num container com `overflow-x-auto` e `min-width` para garantir scroll horizontal. Também usar `whitespace-nowrap` na row de ações para que não quebrem linha.
 
-### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
+## 2. Formulário (OrcamentoForm.tsx) — Centralizar e preencher tela
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-```
+**Problema**: `max-w-4xl` sem `mx-auto` faz o conteúdo colar à esquerda.
 
-### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+**Fix**: Trocar `max-w-4xl` por `max-w-5xl mx-auto` no container principal. Isso centraliza e dá mais largura.
 
-Adicionar um `useEffect` no hook `useBookingQueries` que:
-- Cria um canal Supabase Realtime filtrado por `venue_id`
-- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
-- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
-- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
-- Faz cleanup do canal no return do useEffect
+## 3. Galeria de Fotos (photo_urls)
 
-```typescript
-// Realtime: atualiza automaticamente quando novas reservas chegam
-useEffect(() => {
-  if (!currentVenue?.id || !user) return;
+**Problema**: O campo `photo_urls` existe na tabela `quotes` mas não é renderizado no formulário.
 
-  const channel = supabase
-    .channel(`bookings-realtime-${currentVenue.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `venue_id=eq.${currentVenue.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
-      }
-    )
-    .subscribe();
+### Mobile
+- Botão "Ver Anexos (N)" que abre um modal/overlay fullscreen com as fotos em grid.
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentVenue?.id, user, queryClient]);
-```
+### Desktop
+- Nova seção "Anexos" após "Detalhes", com mini galeria adaptativa (grid de thumbnails clicáveis que abrem em lightbox/overlay).
+- As fotos são read-only (vêm da página pública via inquiry). Não precisam de upload aqui.
+- Persistem no orçamento independente do status (aprovado/rejeitado).
 
-### Resumo
+## Arquivos modificados
 
-| Acao | Ficheiro |
+| Arquivo | Mudança |
 |---|---|
-| Habilitar Realtime na tabela bookings | Migracao SQL |
-| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
+| `src/pages/Orcamentos.tsx` | Mobile: ações com scroll horizontal |
+| `src/pages/OrcamentoForm.tsx` | Centralizar layout (`mx-auto`), adicionar seção de fotos com galeria desktop / botão mobile |
 
-### Resultado
-
-- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
-- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
-- As metricas do dashboard (contadores) tambem se atualizam
-- Nenhum polling manual ou intervalo necessario
