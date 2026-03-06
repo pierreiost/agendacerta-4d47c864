@@ -106,8 +106,8 @@ export default function Orcamentos() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="border border-foreground/10 overflow-hidden" style={{ borderRadius: 0 }}>
-            <div className="overflow-x-auto">
+         <div className="border border-foreground/10 overflow-hidden" style={{ borderRadius: 0 }}>
+            <div className="overflow-x-auto -mx-0">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-foreground/10 bg-muted/50">
@@ -158,7 +158,7 @@ export default function Orcamentos() {
                             {format(new Date(q.created_at), "dd/MM/yyyy", { locale: ptBR })}
                           </td>
                           <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1">
+                            <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                               {q.status === "pending" && (
                                 <>
                                   <button
