@@ -403,6 +403,93 @@ export default function OrcamentoForm() {
           </div>
         </section>
 
+        {/* Anexos / Fotos */}
+        {existingQuote?.photo_urls && existingQuote.photo_urls.length > 0 && (
+          <>
+            {/* Mobile: botão que abre modal */}
+            {isMobile ? (
+              <>
+                <button
+                  onClick={() => setShowPhotos(true)}
+                  className={`${btnOutline} w-full justify-center`}
+                  style={S}
+                >
+                  <Paperclip className="w-4 h-4" />
+                  Ver Anexos ({existingQuote.photo_urls.length})
+                </button>
+
+                {showPhotos && (
+                  <div className="fixed inset-0 z-50 bg-black/80 flex flex-col">
+                    <div className="flex items-center justify-between p-4">
+                      <span className="text-white text-sm font-bold uppercase tracking-wider">
+                        Anexos ({existingQuote.photo_urls.length})
+                      </span>
+                      <button onClick={() => setShowPhotos(false)} className="text-white p-2">
+                        <XIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3">
+                      {existingQuote.photo_urls.map((url, i) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`Anexo ${i + 1}`}
+                          className="w-full aspect-square object-cover border border-white/10 cursor-pointer"
+                          style={S}
+                          onClick={() => setLightboxUrl(url)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Desktop: mini galeria inline */
+              <section className="border border-foreground/10 p-4 md:p-6 space-y-4" style={S}>
+                <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-foreground/10 pb-2">
+                  Anexos ({existingQuote.photo_urls.length})
+                </h2>
+                <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {existingQuote.photo_urls.map((url, i) => (
+                    <div
+                      key={i}
+                      className="group relative aspect-square border border-foreground/10 overflow-hidden cursor-pointer hover:border-foreground/30 transition-colors"
+                      style={S}
+                      onClick={() => setLightboxUrl(url)}
+                    >
+                      <img
+                        src={url}
+                        alt={`Anexo ${i + 1}`}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Lightbox */}
+            {lightboxUrl && (
+              <div
+                className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+                onClick={() => setLightboxUrl(null)}
+              >
+                <button className="absolute top-4 right-4 text-white p-2" onClick={() => setLightboxUrl(null)}>
+                  <XIcon className="w-6 h-6" />
+                </button>
+                <img
+                  src={lightboxUrl}
+                  alt="Anexo ampliado"
+                  className="max-w-full max-h-[90vh] object-contain"
+                  style={S}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
+          </>
+        )
+
         {/* Items */}
         <section className="border border-foreground/10 p-4 md:p-6 space-y-4" style={S}>
           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-foreground/10 pb-2">
