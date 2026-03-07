@@ -61,7 +61,7 @@ export function useSubscriptionStatus(venue: Venue | null): SubscriptionStatus {
     // 'active' is never blocked
 
     // Show banner if expiring soon
-    const showBanner = daysRemaining <= 3 && daysRemaining >= 0 && !isBlocked;
+    const showBanner = daysRemaining <= 5 && daysRemaining >= 0 && !isBlocked;
 
     return {
       isBlocked,

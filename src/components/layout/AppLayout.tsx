@@ -24,10 +24,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      {/* Subscription expiration banner */}
-      {showBanner && (
-        <SubscriptionBanner daysRemaining={daysRemaining} status={status} />
-      )}
       
         <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
