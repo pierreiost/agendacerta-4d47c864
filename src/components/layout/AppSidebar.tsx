@@ -28,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVenue } from "@/contexts/VenueContext";
 import { usePermissions, type Module } from "@/hooks/usePermissions";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
@@ -68,6 +69,7 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { currentVenue, venues, setCurrentVenue } = useVenue();
   const { getPermission, isSuperAdmin: permIsSuperAdmin } = usePermissions();
+  const { daysRemaining, status } = useSubscriptionStatus(currentVenue);
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -282,6 +284,14 @@ export function AppSidebar() {
 
       {/* Navigation - Compacto com scroll invisível */}
       <SidebarContent className="p-2 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+        {/* Subscription expiration warning inside sidebar */}
+        {!isSuperAdmin && daysRemaining <= 5 && daysRemaining >= 0 && (
+          <div className="mx-2 mb-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-1.5 text-[11px] font-medium text-destructive">
+            {daysRemaining === 0
+              ? 'Sua assinatura expira hoje'
+              : `Expira em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}`}
+          </div>
+        )}
         {menuGroups.map((group, groupIdx) => (
           <SidebarGroup key={groupIdx} className="mb-1">
             <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 px-2 mb-0.5">
