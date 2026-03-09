@@ -46,7 +46,7 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
   const [problemDescription, setProblemDescription] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
