@@ -305,9 +305,9 @@ export default function OrdemServicoForm() {
       description: data.description,
       notes: data.orderType === "complete" ? data.notes || null : null,
       subtotal,
-      discount: data.discount,
+      discount: Number(data.discount) || 0,
       // Convert percentage (5) to decimal (0.05) for DB
-      tax_rate: data.orderType === "complete" ? data.taxRate / 100 : null,
+      tax_rate: data.orderType === "complete" ? (Number(data.taxRate) || 0) / 100 : null,
       tax_amount: taxAmount,
       total,
       status_simple: data.orderType === "simple" ? ("open" as const) : null,
