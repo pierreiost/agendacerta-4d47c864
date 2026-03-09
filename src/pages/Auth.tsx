@@ -17,10 +17,21 @@ import {
   Users,
   FileText,
   ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ForgotPasswordFlow } from "@/components/auth/ForgotPasswordFlow";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface RateLimitResponse {
   allowed: boolean;
