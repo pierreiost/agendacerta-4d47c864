@@ -62,8 +62,8 @@ export default function OrcamentoForm() {
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [deviceModel, setDeviceModel] = useState("");
-  const [discount, setDiscount] = useState(0);
-  const [taxRate, setTaxRate] = useState(0);
+  const [discount, setDiscount] = useState<number | ''>(0);
+  const [taxRate, setTaxRate] = useState<number | ''>(0);
   const [items, setItems] = useState<FormItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -115,8 +115,10 @@ export default function OrcamentoForm() {
   // Totals
   const totals = useMemo(() => {
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
-    const taxAmount = subtotal * (taxRate / 100);
-    const total = subtotal - discount + taxAmount;
+    const d = Number(discount) || 0;
+    const t = Number(taxRate) || 0;
+    const taxAmount = subtotal * (t / 100);
+    const total = subtotal - d + taxAmount;
     return { subtotal, taxAmount, total };
   }, [items, discount, taxRate]);
 
@@ -184,8 +186,8 @@ export default function OrcamentoForm() {
         description,
         notes: notes || null,
         device_model: deviceModel || null,
-        discount,
-        tax_rate: taxRate / 100,
+        discount: Number(discount) || 0,
+        tax_rate: (Number(taxRate) || 0) / 100,
       };
 
       if (isEditing && id) {
@@ -558,11 +560,11 @@ export default function OrcamentoForm() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className={label}>Desconto (R$)</label>
-              <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} onBlur={(e) => { if (!e.target.value) setDiscount(0); }} min={0} step="0.01" className={input} style={S} disabled={readOnly} />
+              <input type="number" value={discount} onChange={(e) => { const v = e.target.value; setDiscount(v === '' ? '' : Number(v)); }} min={0} step="0.01" className={input} style={S} disabled={readOnly} />
             </div>
             <div>
               <label className={label}>ISS (%)</label>
-              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} onBlur={(e) => { if (!e.target.value) setTaxRate(0); }} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
+              <input type="number" value={taxRate} onChange={(e) => { const v = e.target.value; setTaxRate(v === '' ? '' : Number(v)); }} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
             </div>
           </div>
           <div className="space-y-2 text-sm border-t border-foreground/10 pt-4">
@@ -570,13 +572,13 @@ export default function OrcamentoForm() {
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-mono">{formatCurrency(totals.subtotal)}</span>
             </div>
-            {discount > 0 && (
+            {Number(discount) > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Desconto</span>
-                <span className="font-mono text-red-500">- {formatCurrency(discount)}</span>
+                <span className="font-mono text-red-500">- {formatCurrency(Number(discount))}</span>
               </div>
             )}
-            {taxRate > 0 && (
+            {Number(taxRate) > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">ISS ({taxRate}%)</span>
                 <span className="font-mono">{formatCurrency(totals.taxAmount)}</span>

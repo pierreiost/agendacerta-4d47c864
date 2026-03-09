@@ -305,9 +305,9 @@ export default function OrdemServicoForm() {
       description: data.description,
       notes: data.orderType === "complete" ? data.notes || null : null,
       subtotal,
-      discount: data.discount,
+      discount: Number(data.discount) || 0,
       // Convert percentage (5) to decimal (0.05) for DB
-      tax_rate: data.orderType === "complete" ? data.taxRate / 100 : null,
+      tax_rate: data.orderType === "complete" ? (Number(data.taxRate) || 0) / 100 : null,
       tax_amount: taxAmount,
       total,
       status_simple: data.orderType === "simple" ? ("open" as const) : null,
@@ -815,10 +815,10 @@ export default function OrdemServicoForm() {
                         step="0.01"
                         min={0}
                         disabled={isFinalized()}
-                        value={field.value ?? 0}
+                        value={field.value ?? ''}
                         onChange={(e) => {
                           const val = e.target.value;
-                          field.onChange(val === "" ? 0 : parseFloat(val));
+                          field.onChange(val === "" ? "" : parseFloat(val));
                         }}
                         onBlur={(e) => {
                           if (!e.target.value) field.onChange(0);
@@ -845,10 +845,10 @@ export default function OrdemServicoForm() {
                             min={0}
                             max={100}
                             disabled={isFinalized()}
-                            value={field.value ?? 0}
+                            value={field.value ?? ''}
                             onChange={(e) => {
                               const val = e.target.value;
-                              field.onChange(val === "" ? 0 : parseFloat(val));
+                              field.onChange(val === "" ? "" : parseFloat(val));
                             }}
                             onBlur={(e) => {
                               if (!e.target.value) field.onChange(0);
