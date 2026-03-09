@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { VenueProvider, useVenue } from "./contexts/VenueContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigationPersist, NavigationPersistContext } from "@/hooks/useNavigationPersist";
+import { useEffect, useRef } from "react";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
