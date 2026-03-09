@@ -83,7 +83,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  
   const [customerPhone, setCustomerPhone] = useState('');
   const [servicePage, setServicePage] = useState(0);
 
