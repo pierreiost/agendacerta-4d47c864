@@ -62,8 +62,8 @@ export default function OrcamentoForm() {
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [deviceModel, setDeviceModel] = useState("");
-  const [discount, setDiscount] = useState(0);
-  const [taxRate, setTaxRate] = useState(0);
+  const [discount, setDiscount] = useState<number | ''>(0);
+  const [taxRate, setTaxRate] = useState<number | ''>(0);
   const [items, setItems] = useState<FormItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
