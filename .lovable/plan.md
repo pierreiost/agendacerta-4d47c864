@@ -1,55 +1,68 @@
 
+# Reservas em tempo real no Dashboard
 
-# Plano: Alerta de Pendências + Notificações Push/Vibração em Tempo Real
+## Problema
+Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
 
-## 1. Alerta de Pendências ao Abrir o Dashboard (Exibição Única)
+## Solucao
 
-**Componente**: `src/components/notifications/PendingNotificationsAlert.tsx`
+Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
 
-- Dialog/banner que aparece no Dashboard quando `unreadCount > 0`
-- Controle via `sessionStorage` (chave `pending_alert_shown`) — garante exibição **uma única vez por sessão** do navegador
-- Botão "Ver" → abre o popover do sino (ou navega para agenda)
-- Botão "Fechar" → dismiss, marca no sessionStorage
-- Usado apenas dentro de `Dashboard.tsx`
+## Mudancas
 
-## 2. Sistema de Notificações Nativas (Push + Vibração + Toast)
+### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
 
-### 2A. Solicitar Permissão de Notificações
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+```
 
-**Componente**: `src/components/notifications/NotificationPermissionPrompt.tsx`
+### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
 
-- Banner amigável exibido no AppLayout (uma vez por sessão) caso `Notification.permission === 'default'`
-- Texto: "Ative as notificações para não perder nenhum agendamento"
-- Botões: "Ativar" (chama `Notification.requestPermission()`) e "Agora não" (dismiss)
-- Controle via `localStorage` (`notification_permission_asked`) para não mostrar novamente se o usuário recusou
+Adicionar um `useEffect` no hook `useBookingQueries` que:
+- Cria um canal Supabase Realtime filtrado por `venue_id`
+- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
+- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
+- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
+- Faz cleanup do canal no return do useEffect
 
-### 2B. Disparo Multicanal no Evento Realtime
+```typescript
+// Realtime: atualiza automaticamente quando novas reservas chegam
+useEffect(() => {
+  if (!currentVenue?.id || !user) return;
 
-**Modificação**: `src/hooks/useNotifications.ts`
+  const channel = supabase
+    .channel(`bookings-realtime-${currentVenue.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `venue_id=eq.${currentVenue.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      }
+    )
+    .subscribe();
 
-No callback do realtime `INSERT`, além do `invalidateQueries`, disparar:
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentVenue?.id, user, queryClient]);
+```
 
-1. **Toast interno** (Sonner) — já temos a infra
-2. **Vibração** — `navigator.vibrate?.(200)` (API padrão, funciona em Android/Chrome)
-3. **Notificação nativa do SO** — `new Notification('Nova Reserva no AgendaCerta', { body: '...', icon: '/favicon.ico' })` se permissão concedida
+### Resumo
 
-Para obter os dados da notificação no callback realtime, usaremos o payload `new` do postgres_changes (que já retorna a row inserida).
-
-## Arquivos
-
-| Arquivo | Alteração |
+| Acao | Ficheiro |
 |---|---|
-| `src/components/notifications/PendingNotificationsAlert.tsx` | **Novo** — Dialog de pendências |
-| `src/components/notifications/NotificationPermissionPrompt.tsx` | **Novo** — Banner de permissão |
-| `src/hooks/useNotifications.ts` | Adicionar toast + vibração + push nativa no callback realtime |
-| `src/pages/Dashboard.tsx` | Importar e renderizar `PendingNotificationsAlert` |
-| `src/components/layout/AppLayout.tsx` | Importar e renderizar `NotificationPermissionPrompt` |
+| Habilitar Realtime na tabela bookings | Migracao SQL |
+| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
 
-## Detalhes Técnicos
+### Resultado
 
-- `sessionStorage` para alerta de pendências (limpa ao fechar aba → mostra de novo na próxima sessão)
-- `localStorage` para permissão de notificações (pergunta só uma vez)
-- Vibração é best-effort (Safari iOS não suporta, falha silenciosamente)
-- Push nativa usa a API `Notification` do browser (funciona em desktop e Android, limitada no iOS Safari)
-- Nenhuma alteração no banco de dados necessária
-
+- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
+- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
+- As metricas do dashboard (contadores) tambem se atualizam
+- Nenhum polling manual ou intervalo necessario

@@ -6,6 +6,7 @@ import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 import { useVenue } from '@/contexts/VenueContext';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { SubscriptionBlockScreen, SubscriptionBanner } from '@/components/subscription';
+import { NotificationPermissionPrompt } from '@/components/notifications/NotificationPermissionPrompt';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -37,6 +38,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
               <NotificationBell />
             </div>
           </header>
+          <NotificationPermissionPrompt />
           <main className="flex-1 p-2 md:p-4 overflow-y-auto overflow-x-hidden scrollbar-hide">
             {children}
           </main>

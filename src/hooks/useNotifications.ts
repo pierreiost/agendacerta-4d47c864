@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useVenue } from '@/contexts/VenueContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export interface VenueNotification {
   id: string;
@@ -53,8 +54,26 @@ export function useNotifications() {
           table: 'venue_notifications',
           filter: `venue_id=eq.${venueId}`,
         },
-        () => {
+        (payload) => {
           queryClient.invalidateQueries({ queryKey: ['venue-notifications', venueId] });
+
+          // Multichannel alerts
+          const row = payload.new as VenueNotification | undefined;
+          const title = row?.title || 'Nova notificação';
+          const body = row?.message || '';
+
+          // 1. Internal toast
+          toast(title, { description: body });
+
+          // 2. Vibration (best-effort, Android/Chrome)
+          try { navigator.vibrate?.(200); } catch {}
+
+          // 3. Native OS push notification
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            try {
+              new Notification(title, { body, icon: '/favicon.ico' });
+            } catch {}
+          }
         }
       )
       .subscribe();

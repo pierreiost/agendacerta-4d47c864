@@ -5,6 +5,7 @@ import { useVenue } from "@/contexts/VenueContext";
 import { Calendar, MapPin, TrendingUp, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardBookings, DashboardAppointments, DashboardServiceOrders } from "@/components/dashboard";
+import { PendingNotificationsAlert } from "@/components/notifications/PendingNotificationsAlert";
 
 type DashboardMode = 'bookings' | 'appointments' | 'service_orders';
 
@@ -69,6 +70,7 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
+      <PendingNotificationsAlert />
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
