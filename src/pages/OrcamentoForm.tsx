@@ -150,11 +150,15 @@ export default function OrcamentoForm() {
     }
   };
 
-  const addNewItem = () => {
-    if (!newDesc.trim()) return;
-    const subtotal = newQty * newPrice;
-    setItems([...items, { description: newDesc, service_code: newCode, quantity: newQty, unit_price: newPrice, subtotal }]);
-    setNewDesc(""); setNewCode(""); setNewQty(1); setNewPrice(0);
+  const handleAddItemFromForm = async (newItem: any) => {
+    setItems([...items, {
+      description: newItem.description,
+      service_code: newItem.service_code || "",
+      quantity: newItem.quantity,
+      unit_price: newItem.unit_price,
+      subtotal: newItem.subtotal,
+    }]);
+    setShowAddItemForm(false);
   };
 
   const removeItemAt = (idx: number) => setItems(items.filter((_, i) => i !== idx));
