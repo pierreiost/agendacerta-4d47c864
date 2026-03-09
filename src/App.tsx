@@ -114,7 +114,18 @@ function SuperAdminRoute({ children }: { children: React.ReactNode }) {
 function AppRoutesWithPersist() {
   const { user, loading: authLoading } = useAuth();
   const { venues, loading: venueLoading } = useVenue();
-  const navigationPersist = useNavigationPersist();
+  // One-shot cleanup of legacy persistence keys
+  const cleanedRef = useRef(false);
+  useEffect(() => {
+    if (cleanedRef.current) return;
+    cleanedRef.current = true;
+    try {
+      localStorage.removeItem('navigation_state');
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('tab_'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {}
+  }, []);
 
   if (authLoading || venueLoading) {
     return (
@@ -125,7 +136,7 @@ function AppRoutesWithPersist() {
   }
 
   return (
-    <NavigationPersistContext.Provider value={navigationPersist}>
+    <>
       <Routes>
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
