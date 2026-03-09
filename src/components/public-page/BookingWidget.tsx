@@ -22,6 +22,7 @@ import {
 import { format, startOfDay, isToday, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { maskPhonePublic } from '@/lib/masks';
 
 interface PublicVenue {
   id: string;
