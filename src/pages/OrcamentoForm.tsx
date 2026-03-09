@@ -532,32 +532,21 @@ export default function OrcamentoForm() {
             </div>
           )}
 
-          {/* Add item row */}
-          {!readOnly && (
-            <div className="grid grid-cols-12 gap-2 items-end border-t border-foreground/10 pt-4">
-              <div className="col-span-12 md:col-span-4">
-                <label className={label}>Descrição</label>
-                <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className={input} style={S} placeholder="Ex: Troca de tela" />
-              </div>
-              <div className="col-span-4 md:col-span-2">
-                <label className={label}>Código</label>
-                <input value={newCode} onChange={(e) => setNewCode(e.target.value)} className={input} style={S} />
-              </div>
-              <div className="col-span-3 md:col-span-1">
-                <label className={label}>Qtd</label>
-                <input type="number" value={newQty} onChange={(e) => setNewQty(Number(e.target.value) || 1)} min={1} className={input} style={S} />
-              </div>
-              <div className="col-span-5 md:col-span-2">
-                <label className={label}>Valor Unit.</label>
-                <input type="number" value={newPrice} onChange={(e) => setNewPrice(Number(e.target.value) || 0)} min={0} step="0.01" className={input} style={S} />
-              </div>
-              <div className="col-span-12 md:col-span-3 flex justify-end">
-                <button onClick={addNewItem} className={btnOutline} style={S}>
-                  <Plus className="w-4 h-4" />
-                  Adicionar
-                </button>
-              </div>
+          {/* Add item form */}
+          {!readOnly && !showAddItemForm && (
+            <div className="border-t border-foreground/10 pt-4">
+              <button onClick={() => setShowAddItemForm(true)} className={btnOutline} style={S}>
+                <Plus className="w-4 h-4" />
+                Adicionar Item
+              </button>
             </div>
+          )}
+          {!readOnly && showAddItemForm && (
+            <ServiceOrderItemForm
+              orderType="complete"
+              onAddItem={handleAddItemFromForm}
+              onCancel={() => setShowAddItemForm(false)}
+            />
           )}
         </section>
 
