@@ -104,8 +104,7 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      // Use email if provided, otherwise use a placeholder with phone
-      const email = customerEmail.trim() || `${customerPhone.replace(/\D/g, '')}@sem-email.com`;
+      const email = 'sem-email@agendamento.local';
 
       const { data, error } = await supabase.rpc('create_service_inquiry', {
         p_venue_id: venue.id,
