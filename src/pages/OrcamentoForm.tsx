@@ -186,8 +186,8 @@ export default function OrcamentoForm() {
         description,
         notes: notes || null,
         device_model: deviceModel || null,
-        discount,
-        tax_rate: taxRate / 100,
+        discount: Number(discount) || 0,
+        tax_rate: (Number(taxRate) || 0) / 100,
       };
 
       if (isEditing && id) {
