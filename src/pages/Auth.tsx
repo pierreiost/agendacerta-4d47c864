@@ -257,7 +257,7 @@ export default function Auth() {
   };
 
 
-    if (mode === "forgot") return "RECUPERAR SENHA";
+    const getHeading = () => {
     if (mode === "login") return "BEM-VINDO";
     return "CRIAR CONTA";
   };
