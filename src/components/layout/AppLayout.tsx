@@ -6,6 +6,7 @@ import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 import { useVenue } from '@/contexts/VenueContext';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { SubscriptionBlockScreen, SubscriptionBanner } from '@/components/subscription';
+import { NotificationPermissionPrompt } from '@/components/notifications/NotificationPermissionPrompt';
 
 interface AppLayoutProps {
   children: ReactNode;
