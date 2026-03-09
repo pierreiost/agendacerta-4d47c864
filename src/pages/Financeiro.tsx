@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTabPersist } from "@/hooks/useTabPersist";
+
 import { Plus, DollarSign } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
