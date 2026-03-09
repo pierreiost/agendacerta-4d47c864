@@ -17,10 +17,21 @@ import {
   Users,
   FileText,
   ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
 import logo from "@/assets/logo.svg";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ForgotPasswordFlow } from "@/components/auth/ForgotPasswordFlow";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface RateLimitResponse {
   allowed: boolean;
@@ -82,6 +93,8 @@ export default function Auth() {
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitResponse | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showWeakPasswordDialog, setShowWeakPasswordDialog] = useState(false);
+  const [weakPasswordLoading, setWeakPasswordLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -192,7 +205,10 @@ export default function Auth() {
       } else if (error.message?.includes("Password should be at least")) {
         message = "A senha deve ter pelo menos 6 caracteres.";
       } else if (error.message?.includes("weak") || error.message?.includes("pwned") || error.code === "weak_password") {
-        message = "Esta senha é muito comum e fácil de adivinhar. Por favor, escolha uma senha mais forte.";
+        // Show confirmation dialog instead of blocking
+        setShowWeakPasswordDialog(true);
+        setLoading(false);
+        return;
       } else if (error.message?.includes("rate limit") || error.message?.includes("too many requests")) {
         message = "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
       } else if (error.message) {
@@ -209,8 +225,39 @@ export default function Auth() {
     }
   };
 
-  const getHeading = () => {
-    if (mode === "forgot") return "RECUPERAR SENHA";
+  const handleConfirmWeakPassword = async () => {
+    setWeakPasswordLoading(true);
+    try {
+      const { data: response, error } = await supabase.functions.invoke("signup-weak-password", {
+        body: { email, password, fullName },
+      });
+
+      if (error) throw error;
+      if (!response.success) throw new Error(response.error);
+
+      // Auto-login after signup
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) throw loginError;
+
+      toast({
+        title: "Conta criada!",
+        description: "Você já pode acessar o sistema.",
+      });
+      setShowWeakPasswordDialog(false);
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar conta",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setWeakPasswordLoading(false);
+    }
+  };
+
+
+    const getHeading = () => {
     if (mode === "login") return "BEM-VINDO";
     return "CRIAR CONTA";
   };
@@ -517,6 +564,55 @@ export default function Auth() {
           )}
         </div>
       </div>
+
+      {/* Weak Password Confirmation Dialog */}
+      <AlertDialog open={showWeakPasswordDialog} onOpenChange={setShowWeakPasswordDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center justify-center mb-2">
+              <div className="rounded-full bg-destructive/10 p-3">
+                <ShieldAlert className="h-8 w-8 text-destructive" />
+              </div>
+            </div>
+            <AlertDialogTitle className="text-center text-lg">
+              Senha encontrada em vazamentos
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-2">
+              <p>
+                A senha que você escolheu foi encontrada em <strong>bancos de dados de vazamentos conhecidos</strong>. 
+                Isso significa que hackers podem já conhecê-la.
+              </p>
+              <p className="text-destructive font-medium">
+                Recomendamos fortemente que escolha outra senha para proteger sua conta.
+              </p>
+              <p>Deseja continuar com esta senha mesmo assim?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel 
+              className="w-full sm:w-auto order-1 sm:order-2"
+              disabled={weakPasswordLoading}
+            >
+              Escolher outra senha
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmWeakPassword();
+              }}
+              className="w-full sm:w-auto bg-destructive hover:bg-destructive/90 order-2 sm:order-1"
+              disabled={weakPasswordLoading}
+            >
+              {weakPasswordLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <AlertTriangle className="mr-2 h-4 w-4" />
+              )}
+              Continuar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
