@@ -176,7 +176,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
         p_service_ids: selectedServiceIds,
         p_start_time: selectedSlot,
         p_customer_name: customerName,
-        p_customer_email: customerEmail || 'sem-email@agendamento.local',
+        p_customer_email: 'sem-email@agendamento.local',
         p_customer_phone: customerPhone || undefined,
         p_status: 'PENDING',
         p_notes: 'Agendamento via página pública',
