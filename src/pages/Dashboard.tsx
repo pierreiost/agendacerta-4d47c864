@@ -5,6 +5,7 @@ import { useVenue } from "@/contexts/VenueContext";
 import { Calendar, MapPin, TrendingUp, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardBookings, DashboardAppointments, DashboardServiceOrders } from "@/components/dashboard";
+import { PendingNotificationsAlert } from "@/components/notifications/PendingNotificationsAlert";
 
 type DashboardMode = 'bookings' | 'appointments' | 'service_orders';
 
