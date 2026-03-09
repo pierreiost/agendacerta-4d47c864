@@ -815,10 +815,10 @@ export default function OrdemServicoForm() {
                         step="0.01"
                         min={0}
                         disabled={isFinalized()}
-                        value={field.value ?? 0}
+                        value={field.value ?? ''}
                         onChange={(e) => {
                           const val = e.target.value;
-                          field.onChange(val === "" ? 0 : parseFloat(val));
+                          field.onChange(val === "" ? "" : parseFloat(val));
                         }}
                         onBlur={(e) => {
                           if (!e.target.value) field.onChange(0);
