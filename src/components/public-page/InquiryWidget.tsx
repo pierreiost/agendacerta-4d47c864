@@ -16,6 +16,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { maskPhonePublic } from '@/lib/masks';
 
 interface PublicVenue {
   id: string;
