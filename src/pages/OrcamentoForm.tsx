@@ -115,8 +115,10 @@ export default function OrcamentoForm() {
   // Totals
   const totals = useMemo(() => {
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
-    const taxAmount = subtotal * (taxRate / 100);
-    const total = subtotal - discount + taxAmount;
+    const d = Number(discount) || 0;
+    const t = Number(taxRate) || 0;
+    const taxAmount = subtotal * (t / 100);
+    const total = subtotal - d + taxAmount;
     return { subtotal, taxAmount, total };
   }, [items, discount, taxRate]);
 
