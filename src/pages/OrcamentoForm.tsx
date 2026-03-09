@@ -96,7 +96,7 @@ export default function OrcamentoForm() {
       setNotes(existingQuote.notes || "");
       setDeviceModel(existingQuote.device_model || "");
       setDiscount(Number(existingQuote.discount) || 0);
-      setTaxRate(existingQuote.tax_rate != null ? Number(existingQuote.tax_rate) * 100 : 5);
+      setTaxRate(existingQuote.tax_rate != null ? Number(existingQuote.tax_rate) * 100 : 0);
 
       const dbItems = await getQuoteItems(id);
       setItems(dbItems.map((i) => ({
