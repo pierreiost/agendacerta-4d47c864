@@ -1,68 +1,34 @@
 
-# Reservas em tempo real no Dashboard
+# Remover Persistência de Navegação e Abas
 
-## Problema
-Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
+## Alterações
 
-## Solucao
+### 1. `src/App.tsx`
+- Remover import de `useNavigationPersist` e `NavigationPersistContext` (linha 10)
+- Remover `const navigationPersist = useNavigationPersist()` (linha 117)
+- Trocar `<NavigationPersistContext.Provider value={navigationPersist}>` por fragment `<>` (linha 128)
+- Trocar `</NavigationPersistContext.Provider>` por `</>` (linha 165)
+- Adicionar `useEffect` one-shot para limpar chaves legadas do localStorage (`navigation_state` e todas que começam com `tab_`)
 
-Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
+### 2. `src/pages/Financeiro.tsx`
+- Remover import `useTabPersist` (linha 2)
+- Trocar `const { activeTab, onTabChange } = useTabPersist(...)` por `const [activeTab, onTabChange] = useState('overview')` (linha 29)
 
-## Mudancas
+### 3. `src/pages/Configuracoes.tsx`
+- Remover import `useTabPersist` (linha 5)
+- Trocar `const { activeTab, onTabChange } = useTabPersist(...)` por `const [activeTab, onTabChange] = useState('venue')` (linha 85)
 
-### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
+### 4. `src/pages/Relatorios.tsx`
+- Remover import `useTabPersist` (linha 2)
+- Trocar `const { activeTab, onTabChange } = useTabPersist(...)` por `const [activeTab, onTabChange] = useState('revenue')` (linha 56)
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-```
+### 5. `src/pages/PublicPageConfig.tsx`
+- Remover import `useTabPersist` (linha 19)
+- Trocar `const { activeTab, onTabChange } = useTabPersist(...)` por `const [activeTab, onTabChange] = useState('branding')` (linha 82)
 
-### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+### 6. Deletar arquivos
+- `src/hooks/useNavigationPersist.ts`
+- `src/hooks/useTabPersist.ts`
 
-Adicionar um `useEffect` no hook `useBookingQueries` que:
-- Cria um canal Supabase Realtime filtrado por `venue_id`
-- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
-- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
-- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
-- Faz cleanup do canal no return do useEffect
-
-```typescript
-// Realtime: atualiza automaticamente quando novas reservas chegam
-useEffect(() => {
-  if (!currentVenue?.id || !user) return;
-
-  const channel = supabase
-    .channel(`bookings-realtime-${currentVenue.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `venue_id=eq.${currentVenue.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentVenue?.id, user, queryClient]);
-```
-
-### Resumo
-
-| Acao | Ficheiro |
-|---|---|
-| Habilitar Realtime na tabela bookings | Migracao SQL |
-| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
-
-### Resultado
-
-- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
-- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
-- As metricas do dashboard (contadores) tambem se atualizam
-- Nenhum polling manual ou intervalo necessario
+### Não afetado
+- `useFormPersist` permanece intacto para rascunhos de formulários
