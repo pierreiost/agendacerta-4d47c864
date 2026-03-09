@@ -562,7 +562,7 @@ export default function OrcamentoForm() {
             </div>
             <div>
               <label className={label}>ISS (%)</label>
-              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} onBlur={(e) => { if (!e.target.value) setTaxRate(0); }} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
+              <input type="number" value={taxRate} onChange={(e) => { const v = e.target.value; setTaxRate(v === '' ? '' : Number(v)); }} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
             </div>
           </div>
           <div className="space-y-2 text-sm border-t border-foreground/10 pt-4">
