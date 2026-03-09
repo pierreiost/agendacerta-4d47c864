@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useFileUpload } from '@/hooks/useFileUpload';
 
-import { useTabPersist } from '@/hooks/useTabPersist';
+
 import {
   Loader2, Globe, Image, MessageSquare, BarChart3, HelpCircle,
   MapPin, Clock, Share2, Plus, Trash2, Upload, X, ExternalLink, 
