@@ -72,11 +72,7 @@ export default function OrcamentoForm() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  // New item form
-  const [newDesc, setNewDesc] = useState("");
-  const [newCode, setNewCode] = useState("");
-  const [newQty, setNewQty] = useState(1);
-  const [newPrice, setNewPrice] = useState(0);
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
 
   const loadedRef = useRef(false);
   const lastIdRef = useRef<string | undefined>(undefined);
