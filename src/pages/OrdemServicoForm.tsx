@@ -820,7 +820,10 @@ export default function OrdemServicoForm() {
                           const val = e.target.value;
                           field.onChange(val === "" ? 0 : parseFloat(val));
                         }}
-                        onBlur={field.onBlur}
+                        onBlur={(e) => {
+                          if (!e.target.value) field.onChange(0);
+                          field.onBlur();
+                        }}
                       />
                     )}
                   />
@@ -847,7 +850,10 @@ export default function OrdemServicoForm() {
                               const val = e.target.value;
                               field.onChange(val === "" ? 0 : parseFloat(val));
                             }}
-                            onBlur={field.onBlur}
+                            onBlur={(e) => {
+                              if (!e.target.value) field.onChange(0);
+                              field.onBlur();
+                            }}
                           />
                         )}
                       />

@@ -9,6 +9,7 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useVenue } from "@/contexts/VenueContext";
 import { useToast } from "@/hooks/use-toast";
 import { maskCPFCNPJ, maskPhone, maskCEP } from "@/lib/masks";
+import { ServiceOrderItemForm } from "@/components/service-orders/ServiceOrderItemForm";
 import { useCepLookup } from "@/hooks/useCepLookup";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -62,7 +63,7 @@ export default function OrcamentoForm() {
   const [notes, setNotes] = useState("");
   const [deviceModel, setDeviceModel] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [taxRate, setTaxRate] = useState(5);
+  const [taxRate, setTaxRate] = useState(0);
   const [items, setItems] = useState<FormItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -71,11 +72,7 @@ export default function OrcamentoForm() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  // New item form
-  const [newDesc, setNewDesc] = useState("");
-  const [newCode, setNewCode] = useState("");
-  const [newQty, setNewQty] = useState(1);
-  const [newPrice, setNewPrice] = useState(0);
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
 
   const loadedRef = useRef(false);
   const lastIdRef = useRef<string | undefined>(undefined);
@@ -99,7 +96,7 @@ export default function OrcamentoForm() {
       setNotes(existingQuote.notes || "");
       setDeviceModel(existingQuote.device_model || "");
       setDiscount(Number(existingQuote.discount) || 0);
-      setTaxRate(existingQuote.tax_rate != null ? Number(existingQuote.tax_rate) * 100 : 5);
+      setTaxRate(existingQuote.tax_rate != null ? Number(existingQuote.tax_rate) * 100 : 0);
 
       const dbItems = await getQuoteItems(id);
       setItems(dbItems.map((i) => ({
@@ -153,11 +150,15 @@ export default function OrcamentoForm() {
     }
   };
 
-  const addNewItem = () => {
-    if (!newDesc.trim()) return;
-    const subtotal = newQty * newPrice;
-    setItems([...items, { description: newDesc, service_code: newCode, quantity: newQty, unit_price: newPrice, subtotal }]);
-    setNewDesc(""); setNewCode(""); setNewQty(1); setNewPrice(0);
+  const handleAddItemFromForm = async (newItem: any) => {
+    setItems([...items, {
+      description: newItem.description,
+      service_code: newItem.service_code || "",
+      quantity: newItem.quantity,
+      unit_price: newItem.unit_price,
+      subtotal: newItem.subtotal,
+    }]);
+    setShowAddItemForm(false);
   };
 
   const removeItemAt = (idx: number) => setItems(items.filter((_, i) => i !== idx));
@@ -531,32 +532,21 @@ export default function OrcamentoForm() {
             </div>
           )}
 
-          {/* Add item row */}
-          {!readOnly && (
-            <div className="grid grid-cols-12 gap-2 items-end border-t border-foreground/10 pt-4">
-              <div className="col-span-12 md:col-span-4">
-                <label className={label}>Descrição</label>
-                <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className={input} style={S} placeholder="Ex: Troca de tela" />
-              </div>
-              <div className="col-span-4 md:col-span-2">
-                <label className={label}>Código</label>
-                <input value={newCode} onChange={(e) => setNewCode(e.target.value)} className={input} style={S} />
-              </div>
-              <div className="col-span-3 md:col-span-1">
-                <label className={label}>Qtd</label>
-                <input type="number" value={newQty} onChange={(e) => setNewQty(Number(e.target.value) || 1)} min={1} className={input} style={S} />
-              </div>
-              <div className="col-span-5 md:col-span-2">
-                <label className={label}>Valor Unit.</label>
-                <input type="number" value={newPrice} onChange={(e) => setNewPrice(Number(e.target.value) || 0)} min={0} step="0.01" className={input} style={S} />
-              </div>
-              <div className="col-span-12 md:col-span-3 flex justify-end">
-                <button onClick={addNewItem} className={btnOutline} style={S}>
-                  <Plus className="w-4 h-4" />
-                  Adicionar
-                </button>
-              </div>
+          {/* Add item form */}
+          {!readOnly && !showAddItemForm && (
+            <div className="border-t border-foreground/10 pt-4">
+              <button onClick={() => setShowAddItemForm(true)} className={btnOutline} style={S}>
+                <Plus className="w-4 h-4" />
+                Adicionar Item
+              </button>
             </div>
+          )}
+          {!readOnly && showAddItemForm && (
+            <ServiceOrderItemForm
+              orderType="complete"
+              onAddItem={handleAddItemFromForm}
+              onCancel={() => setShowAddItemForm(false)}
+            />
           )}
         </section>
 
@@ -568,11 +558,11 @@ export default function OrcamentoForm() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className={label}>Desconto (R$)</label>
-              <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} min={0} step="0.01" className={input} style={S} disabled={readOnly} />
+              <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} onBlur={(e) => { if (!e.target.value) setDiscount(0); }} min={0} step="0.01" className={input} style={S} disabled={readOnly} />
             </div>
             <div>
               <label className={label}>ISS (%)</label>
-              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
+              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} onBlur={(e) => { if (!e.target.value) setTaxRate(0); }} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
             </div>
           </div>
           <div className="space-y-2 text-sm border-t border-foreground/10 pt-4">

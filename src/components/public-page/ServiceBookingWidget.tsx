@@ -12,6 +12,7 @@ import { format, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { maskPhonePublic } from '@/lib/masks';
 
 interface ServiceBookingWidgetProps {
   venue: {
@@ -82,7 +83,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  
   const [customerPhone, setCustomerPhone] = useState('');
   const [servicePage, setServicePage] = useState(0);
 
@@ -175,7 +176,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
         p_service_ids: selectedServiceIds,
         p_start_time: selectedSlot,
         p_customer_name: customerName,
-        p_customer_email: customerEmail || 'sem-email@agendamento.local',
+        p_customer_email: 'sem-email@agendamento.local',
         p_customer_phone: customerPhone || undefined,
         p_status: 'PENDING',
         p_notes: 'Agendamento via página pública',
@@ -549,7 +550,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
             setSelectedSlot(null);
             setSelectedProfessionalId(null);
             setCustomerName('');
-            setCustomerEmail('');
+            
             setCustomerPhone('');
           }}
         >
@@ -596,21 +597,12 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-foreground">Telefone *</label>
+          <label className="text-sm font-medium text-foreground">Telefone / WhatsApp *</label>
           <Input
             value={customerPhone}
-            onChange={e => setCustomerPhone(e.target.value)}
+            onChange={e => setCustomerPhone(maskPhonePublic(e.target.value))}
             placeholder="(99) 99999-9999"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-foreground">E-mail</label>
-          <Input
-            type="email"
-            value={customerEmail}
-            onChange={e => setCustomerEmail(e.target.value)}
-            placeholder="seu@email.com (opcional)"
+            maxLength={22}
             className="mt-1"
           />
         </div>

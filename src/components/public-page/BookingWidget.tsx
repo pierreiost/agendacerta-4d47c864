@@ -22,6 +22,7 @@ import {
 import { format, startOfDay, isToday, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { maskPhonePublic } from '@/lib/masks';
 
 interface PublicVenue {
   id: string;
@@ -629,25 +630,15 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phone" className="text-sm">Telefone *</Label>
+                    <Label htmlFor="phone" className="text-sm">Telefone / WhatsApp *</Label>
                     <Input
                       id="phone"
                       value={formData.customer_phone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: maskPhonePublic(e.target.value) }))}
                       required
-                      maxLength={20}
+                      maxLength={22}
                       className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email" className="text-sm">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.customer_email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customer_email: e.target.value }))}
-                      maxLength={254}
-                      className="mt-1"
+                      placeholder="(99) 99999-9999"
                     />
                   </div>
                   <div>
@@ -692,25 +683,15 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="phone" className="text-sm">Telefone *</Label>
+                <Label htmlFor="phone" className="text-sm">Telefone / WhatsApp *</Label>
                 <Input
                   id="phone"
                   value={formData.customer_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: maskPhonePublic(e.target.value) }))}
                   required
-                  maxLength={20}
+                  maxLength={22}
                   className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email" className="text-sm">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.customer_email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customer_email: e.target.value }))}
-                  maxLength={254}
-                  className="mt-1"
+                  placeholder="(99) 99999-9999"
                 />
               </div>
               <div>

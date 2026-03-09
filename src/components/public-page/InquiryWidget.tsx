@@ -16,6 +16,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { maskPhonePublic } from '@/lib/masks';
 
 interface PublicVenue {
   id: string;
@@ -45,7 +46,7 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
   const [problemDescription, setProblemDescription] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -103,8 +104,7 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      // Use email if provided, otherwise use a placeholder with phone
-      const email = customerEmail.trim() || `${customerPhone.replace(/\D/g, '')}@sem-email.com`;
+      const email = 'sem-email@agendamento.local';
 
       const { data, error } = await supabase.rpc('create_service_inquiry', {
         p_venue_id: venue.id,
@@ -160,7 +160,6 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
     setProblemDescription('');
     setCustomerName('');
     setCustomerPhone('');
-    setCustomerEmail('');
     setPhotos([]);
     photoPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     setPhotoPreviewUrls([]);
@@ -330,19 +329,9 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
             id="inquiry-whatsapp"
             placeholder="(51) 99999-9999"
             value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
+            onChange={(e) => setCustomerPhone(maskPhonePublic(e.target.value))}
+            maxLength={22}
             required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="inquiry-email">E-mail (opcional)</Label>
-          <Input
-            id="inquiry-email"
-            type="email"
-            placeholder="seu@email.com"
-            value={customerEmail}
-            onChange={(e) => setCustomerEmail(e.target.value)}
           />
         </div>
       </div>
