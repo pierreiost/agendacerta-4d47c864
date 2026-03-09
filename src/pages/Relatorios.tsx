@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useTabPersist } from '@/hooks/useTabPersist';
+
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
