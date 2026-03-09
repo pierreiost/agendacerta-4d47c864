@@ -160,7 +160,6 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
     setProblemDescription('');
     setCustomerName('');
     setCustomerPhone('');
-    setCustomerEmail('');
     setPhotos([]);
     photoPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     setPhotoPreviewUrls([]);
