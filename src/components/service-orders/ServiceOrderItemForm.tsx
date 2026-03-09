@@ -282,7 +282,7 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
                   <FormItem>
                     <FormLabel>Valor da Mão de Obra (R$)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" min="0" placeholder="0,00" {...field} />
+                      <Input type="number" step="0.01" min="0" placeholder="0,00" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(0); field.onBlur(); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
