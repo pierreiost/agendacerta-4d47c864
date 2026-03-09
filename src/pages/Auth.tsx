@@ -564,6 +564,55 @@ export default function Auth() {
           )}
         </div>
       </div>
+
+      {/* Weak Password Confirmation Dialog */}
+      <AlertDialog open={showWeakPasswordDialog} onOpenChange={setShowWeakPasswordDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center justify-center mb-2">
+              <div className="rounded-full bg-destructive/10 p-3">
+                <ShieldAlert className="h-8 w-8 text-destructive" />
+              </div>
+            </div>
+            <AlertDialogTitle className="text-center text-lg">
+              Senha encontrada em vazamentos
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-2">
+              <p>
+                A senha que você escolheu foi encontrada em <strong>bancos de dados de vazamentos conhecidos</strong>. 
+                Isso significa que hackers podem já conhecê-la.
+              </p>
+              <p className="text-destructive font-medium">
+                Recomendamos fortemente que escolha outra senha para proteger sua conta.
+              </p>
+              <p>Deseja continuar com esta senha mesmo assim?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel 
+              className="w-full sm:w-auto order-1 sm:order-2"
+              disabled={weakPasswordLoading}
+            >
+              Escolher outra senha
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmWeakPassword();
+              }}
+              className="w-full sm:w-auto bg-destructive hover:bg-destructive/90 order-2 sm:order-1"
+              disabled={weakPasswordLoading}
+            >
+              {weakPasswordLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <AlertTriangle className="mr-2 h-4 w-4" />
+              )}
+              Continuar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
