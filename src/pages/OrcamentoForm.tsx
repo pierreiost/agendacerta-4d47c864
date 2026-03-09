@@ -558,11 +558,11 @@ export default function OrcamentoForm() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className={label}>Desconto (R$)</label>
-              <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} min={0} step="0.01" className={input} style={S} disabled={readOnly} />
+              <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} onBlur={(e) => { if (!e.target.value) setDiscount(0); }} min={0} step="0.01" className={input} style={S} disabled={readOnly} />
             </div>
             <div>
               <label className={label}>ISS (%)</label>
-              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
+              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value) || 0)} onBlur={(e) => { if (!e.target.value) setTaxRate(0); }} min={0} max={100} step="0.5" className={input} style={S} disabled={readOnly} />
             </div>
           </div>
           <div className="space-y-2 text-sm border-t border-foreground/10 pt-4">

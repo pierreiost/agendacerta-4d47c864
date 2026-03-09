@@ -683,14 +683,15 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="phone" className="text-sm">Telefone *</Label>
+                <Label htmlFor="phone" className="text-sm">Telefone / WhatsApp *</Label>
                 <Input
                   id="phone"
                   value={formData.customer_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: maskPhonePublic(e.target.value) }))}
                   required
-                  maxLength={20}
+                  maxLength={22}
                   className="mt-1"
+                  placeholder="(99) 99999-9999"
                 />
               </div>
               <div>

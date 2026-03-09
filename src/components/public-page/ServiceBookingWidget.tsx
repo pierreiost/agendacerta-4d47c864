@@ -597,21 +597,12 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-foreground">Telefone *</label>
+          <label className="text-sm font-medium text-foreground">Telefone / WhatsApp *</label>
           <Input
             value={customerPhone}
-            onChange={e => setCustomerPhone(e.target.value)}
+            onChange={e => setCustomerPhone(maskPhonePublic(e.target.value))}
             placeholder="(99) 99999-9999"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-foreground">E-mail</label>
-          <Input
-            type="email"
-            value={customerEmail}
-            onChange={e => setCustomerEmail(e.target.value)}
-            placeholder="seu@email.com (opcional)"
+            maxLength={22}
             className="mt-1"
           />
         </div>

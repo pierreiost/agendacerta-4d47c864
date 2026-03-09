@@ -376,7 +376,7 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
                     <FormItem>
                       <FormLabel>Preço Unitário *</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" min="0" {...field} />
+                        <Input type="number" step="0.01" min="0" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(0); field.onBlur(); }} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

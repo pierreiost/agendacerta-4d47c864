@@ -132,8 +132,48 @@ export function isValidCPFCNPJ(value: string): boolean {
 }
 
 /**
+ * Format phone for public pages with progressive mask (up to 13 digits)
+ * - Up to 9 digits: 98125-9200
+ * - 10-11 digits: (53) 98125-9200
+ * - 12-13 digits: +55 (53) 98125-9200
+ */
+export function maskPhonePublic(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 13);
+
+  if (digits.length === 0) return '';
+
+  // 12-13 digits: DDI + DDD + number
+  if (digits.length >= 12) {
+    const ddi = digits.slice(0, 2);
+    const ddd = digits.slice(2, 4);
+    const rest = digits.slice(4);
+    if (rest.length <= 4) return `+${ddi} (${ddd}) ${rest}`;
+    if (rest.length <= 8) return `+${ddi} (${ddd}) ${rest.slice(0, rest.length - 4)}-${rest.slice(rest.length - 4)}`;
+    return `+${ddi} (${ddd}) ${rest.slice(0, rest.length - 4)}-${rest.slice(rest.length - 4)}`;
+  }
+
+  // 10-11 digits: DDD + number
+  if (digits.length >= 10) {
+    const ddd = digits.slice(0, 2);
+    const rest = digits.slice(2);
+    if (rest.length <= 4) return `(${ddd}) ${rest}`;
+    return `(${ddd}) ${rest.slice(0, rest.length - 4)}-${rest.slice(rest.length - 4)}`;
+  }
+
+  // Up to 9 digits: just number
+  if (digits.length <= 4) return digits;
+  return `${digits.slice(0, digits.length - 4)}-${digits.slice(digits.length - 4)}`;
+}
+
+/**
  * Format CEP: 00000-000
  */
+export function maskCEP(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
 export function maskCEP(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 8);
   
