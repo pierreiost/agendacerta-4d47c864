@@ -93,6 +93,8 @@ export default function Auth() {
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitResponse | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showWeakPasswordDialog, setShowWeakPasswordDialog] = useState(false);
+  const [weakPasswordLoading, setWeakPasswordLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
