@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useTabPersist } from '@/hooks/useTabPersist';
+
 import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,7 +82,7 @@ export default function Configuracoes() {
   const [professionalDialogOpen, setProfessionalDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
-  const { activeTab, onTabChange } = useTabPersist({ key: 'configuracoes', defaultValue: 'venue' });
+  const [activeTab, onTabChange] = useState('venue');
   
   const { professionals, isLoading: loadingProfessionals } = useProfessionals();
   const {

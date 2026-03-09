@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useFileUpload } from '@/hooks/useFileUpload';
 
-import { useTabPersist } from '@/hooks/useTabPersist';
+
 import {
   Loader2, Globe, Image, MessageSquare, BarChart3, HelpCircle,
   MapPin, Clock, Share2, Plus, Trash2, Upload, X, ExternalLink, 
@@ -79,7 +79,7 @@ export default function PublicPageConfig() {
   });
   
   
-  const { activeTab, onTabChange } = useTabPersist({ key: 'public_page_config', defaultValue: 'branding' });
+  const [activeTab, onTabChange] = useState('branding');
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
 

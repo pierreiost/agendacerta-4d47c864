@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useTabPersist } from '@/hooks/useTabPersist';
+
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,7 @@ export default function Relatorios() {
   const { exportCustomers, exportServiceOrders, exportServiceOrdersDetailed } = useExcelExport();
   const [period, setPeriod] = useState('current');
   
-  const { activeTab, onTabChange } = useTabPersist({ key: 'relatorios', defaultValue: 'revenue' });
+  const [activeTab, onTabChange] = useState('revenue');
 
   const dateRange = useMemo(() => {
     const now = new Date();

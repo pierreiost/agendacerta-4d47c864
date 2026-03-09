@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { VenueProvider, useVenue } from "./contexts/VenueContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigationPersist, NavigationPersistContext } from "@/hooks/useNavigationPersist";
+import { useEffect, useRef } from "react";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -114,7 +114,18 @@ function SuperAdminRoute({ children }: { children: React.ReactNode }) {
 function AppRoutesWithPersist() {
   const { user, loading: authLoading } = useAuth();
   const { venues, loading: venueLoading } = useVenue();
-  const navigationPersist = useNavigationPersist();
+  // One-shot cleanup of legacy persistence keys
+  const cleanedRef = useRef(false);
+  useEffect(() => {
+    if (cleanedRef.current) return;
+    cleanedRef.current = true;
+    try {
+      localStorage.removeItem('navigation_state');
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('tab_'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {}
+  }, []);
 
   if (authLoading || venueLoading) {
     return (
@@ -125,7 +136,7 @@ function AppRoutesWithPersist() {
   }
 
   return (
-    <NavigationPersistContext.Provider value={navigationPersist}>
+    <>
       <Routes>
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -162,7 +173,7 @@ function AppRoutesWithPersist() {
         <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </NavigationPersistContext.Provider>
+    </>
   );
 }
 
