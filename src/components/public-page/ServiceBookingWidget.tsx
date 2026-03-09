@@ -550,7 +550,7 @@ export function ServiceBookingWidget({ venue, whatsappPhone }: ServiceBookingWid
             setSelectedSlot(null);
             setSelectedProfessionalId(null);
             setCustomerName('');
-            setCustomerEmail('');
+            
             setCustomerPhone('');
           }}
         >
