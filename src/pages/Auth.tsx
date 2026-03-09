@@ -191,6 +191,12 @@ export default function Auth() {
         message = "Este email já está cadastrado.";
       } else if (error.message?.includes("Password should be at least")) {
         message = "A senha deve ter pelo menos 6 caracteres.";
+      } else if (error.message?.includes("weak") || error.message?.includes("pwned") || error.code === "weak_password") {
+        message = "Esta senha é muito comum e fácil de adivinhar. Por favor, escolha uma senha mais forte.";
+      } else if (error.message?.includes("rate limit") || error.message?.includes("too many requests")) {
+        message = "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+      } else if (error.message) {
+        message = error.message;
       }
 
       toast({
