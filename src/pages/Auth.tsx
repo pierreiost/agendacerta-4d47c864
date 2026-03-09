@@ -225,7 +225,38 @@ export default function Auth() {
     }
   };
 
-  const getHeading = () => {
+  const handleConfirmWeakPassword = async () => {
+    setWeakPasswordLoading(true);
+    try {
+      const { data: response, error } = await supabase.functions.invoke("signup-weak-password", {
+        body: { email, password, fullName },
+      });
+
+      if (error) throw error;
+      if (!response.success) throw new Error(response.error);
+
+      // Auto-login after signup
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) throw loginError;
+
+      toast({
+        title: "Conta criada!",
+        description: "Você já pode acessar o sistema.",
+      });
+      setShowWeakPasswordDialog(false);
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar conta",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setWeakPasswordLoading(false);
+    }
+  };
+
+
     if (mode === "forgot") return "RECUPERAR SENHA";
     if (mode === "login") return "BEM-VINDO";
     return "CRIAR CONTA";
