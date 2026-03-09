@@ -205,7 +205,10 @@ export default function Auth() {
       } else if (error.message?.includes("Password should be at least")) {
         message = "A senha deve ter pelo menos 6 caracteres.";
       } else if (error.message?.includes("weak") || error.message?.includes("pwned") || error.code === "weak_password") {
-        message = "Esta senha é muito comum e fácil de adivinhar. Por favor, escolha uma senha mais forte.";
+        // Show confirmation dialog instead of blocking
+        setShowWeakPasswordDialog(true);
+        setLoading(false);
+        return;
       } else if (error.message?.includes("rate limit") || error.message?.includes("too many requests")) {
         message = "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
       } else if (error.message) {
