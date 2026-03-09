@@ -692,17 +692,6 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="email" className="text-sm">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.customer_email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customer_email: e.target.value }))}
-                  maxLength={254}
-                  className="mt-1"
-                />
-              </div>
-              <div>
                 <Label htmlFor="problem" className="text-sm">Descrição do problema/serviço</Label>
                 <Textarea
                   id="problem"
