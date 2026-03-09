@@ -572,13 +572,13 @@ export default function OrcamentoForm() {
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-mono">{formatCurrency(totals.subtotal)}</span>
             </div>
-            {discount > 0 && (
+            {Number(discount) > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Desconto</span>
-                <span className="font-mono text-red-500">- {formatCurrency(discount)}</span>
+                <span className="font-mono text-red-500">- {formatCurrency(Number(discount))}</span>
               </div>
             )}
-            {taxRate > 0 && (
+            {Number(taxRate) > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">ISS ({taxRate}%)</span>
                 <span className="font-mono">{formatCurrency(totals.taxAmount)}</span>
