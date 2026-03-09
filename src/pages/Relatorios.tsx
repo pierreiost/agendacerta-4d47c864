@@ -53,7 +53,7 @@ export default function Relatorios() {
   const { exportCustomers, exportServiceOrders, exportServiceOrdersDetailed } = useExcelExport();
   const [period, setPeriod] = useState('current');
   
-  const { activeTab, onTabChange } = useTabPersist({ key: 'relatorios', defaultValue: 'revenue' });
+  const [activeTab, onTabChange] = useState('revenue');
 
   const dateRange = useMemo(() => {
     const now = new Date();

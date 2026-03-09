@@ -26,7 +26,7 @@ export default function Financeiro() {
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
   const [showExpenseDialog, setShowExpenseDialog] = useState(false);
   
-  const { activeTab, onTabChange } = useTabPersist({ key: 'financeiro', defaultValue: 'overview' });
+  const [activeTab, onTabChange] = useState('overview');
 
   const { canCreate } = usePermissions("financeiro");
 

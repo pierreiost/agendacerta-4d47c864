@@ -82,7 +82,7 @@ export default function Configuracoes() {
   const [professionalDialogOpen, setProfessionalDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   
-  const { activeTab, onTabChange } = useTabPersist({ key: 'configuracoes', defaultValue: 'venue' });
+  const [activeTab, onTabChange] = useState('venue');
   
   const { professionals, isLoading: loadingProfessionals } = useProfessionals();
   const {

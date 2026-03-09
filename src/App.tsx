@@ -173,7 +173,7 @@ function AppRoutesWithPersist() {
         <Route path="/superadmin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </NavigationPersistContext.Provider>
+    </>
   );
 }
 

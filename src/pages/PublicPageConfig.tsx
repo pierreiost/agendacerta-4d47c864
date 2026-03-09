@@ -79,7 +79,7 @@ export default function PublicPageConfig() {
   });
   
   
-  const { activeTab, onTabChange } = useTabPersist({ key: 'public_page_config', defaultValue: 'branding' });
+  const [activeTab, onTabChange] = useState('branding');
 
   const isAdmin = currentVenue?.role === 'admin' || currentVenue?.role === 'superadmin';
 
