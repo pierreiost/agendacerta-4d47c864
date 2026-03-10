@@ -19,8 +19,9 @@ export interface RevenueProfessional {
   cost: number;
 }
 
-export interface DelinquencyWeek {
-  week_label: string;
+export interface DelinquencyDay {
+  day_label: string;
+  day_name: string;
   count: number;
   total_value: number;
 }
