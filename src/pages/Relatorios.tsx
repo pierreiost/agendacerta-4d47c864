@@ -25,7 +25,7 @@ const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 
 export default function Relatorios() {
   const { currentVenue } = useVenue();
-  const { exportCustomers, exportServiceOrders, exportServiceOrdersDetailed } = useExcelExport();
+  const { exportCustomers, exportServiceOrders, exportServiceOrdersDetailed, exportToExcel } = useExcelExport();
   const [period, setPeriod] = useState('current');
   const [activeTab, setActiveTab] = useState('revenue');
 
