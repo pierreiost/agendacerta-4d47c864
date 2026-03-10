@@ -20,12 +20,12 @@ const formatCurrency = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 function getIntensity(value: number, max: number): string {
-  if (max === 0 || value === 0) return "bg-muted/30";
+  if (max === 0 || value === 0) return "bg-muted/40";
   const ratio = value / max;
-  if (ratio > 0.75) return "bg-destructive/80";
-  if (ratio > 0.5) return "bg-destructive/55";
-  if (ratio > 0.25) return "bg-destructive/35";
-  return "bg-destructive/15";
+  if (ratio > 0.75) return "bg-destructive/90";
+  if (ratio > 0.5) return "bg-destructive/70";
+  if (ratio > 0.25) return "bg-destructive/50";
+  return "bg-destructive/30";
 }
 
 export function DelinquencyHeatmap({ data, segment, isLoading }: Props) {
