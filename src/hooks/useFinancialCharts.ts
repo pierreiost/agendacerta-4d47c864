@@ -56,10 +56,10 @@ export function useFinancialCharts() {
       }
 
       return {
-        waterfall: (data.waterfall_data as WaterfallItem[]) || [],
-        cashProjection: (data.cash_projection as CashProjectionPoint[]) || [],
-        revenueByProfessional: data.revenue_by_professional as RevenueProfessional[] | null,
-        delinquency: (data.delinquency_data as DelinquencyWeek[]) || [],
+        waterfall: (data.waterfall_data as unknown as WaterfallItem[]) || [],
+        cashProjection: (data.cash_projection as unknown as CashProjectionPoint[]) || [],
+        revenueByProfessional: data.revenue_by_professional as unknown as RevenueProfessional[] | null,
+        delinquency: (data.delinquency_data as unknown as DelinquencyWeek[]) || [],
       };
     },
     enabled: !!currentVenue?.id,
