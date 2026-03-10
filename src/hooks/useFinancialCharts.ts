@@ -30,7 +30,7 @@ export interface FinancialChartsData {
   waterfall: WaterfallItem[];
   cashProjection: CashProjectionPoint[];
   revenueByProfessional: RevenueProfessional[] | null;
-  delinquency: DelinquencyWeek[];
+  delinquency: DelinquencyDay[];
 }
 
 export function useFinancialCharts() {
