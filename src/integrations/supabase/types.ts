@@ -2275,6 +2275,15 @@ export type Database = {
           total_today: number
         }[]
       }
+      get_financial_charts: {
+        Args: { p_segment?: string; p_venue_id: string }
+        Returns: {
+          cash_projection: Json
+          delinquency_data: Json
+          revenue_by_professional: Json
+          waterfall_data: Json
+        }[]
+      }
       get_financial_metrics: {
         Args: { p_period?: string; p_venue_id: string }
         Returns: {
