@@ -72,7 +72,7 @@ export function CashProjectionChart({ data, segment, isLoading }: Props) {
               <Area
                 type="monotone"
                 dataKey="projected_balance"
-                stroke="hsl(var(--chart-2))"
+                stroke="hsl(var(--muted-foreground))"
                 fill="url(#projGradient)"
                 strokeWidth={2}
               />
