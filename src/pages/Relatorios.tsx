@@ -95,7 +95,6 @@ export default function Relatorios() {
   const handleExportCustomers = async () => await exportCustomers(data.customers);
 
   const handleExportBookings = async () => {
-    const { exportToExcel } = useExcelExport();
     const rows = data.bookings.filter(b => b.status !== 'CANCELLED').map(b => ({
       customer_name: b.customer_name,
       customer_phone: b.customer_phone || '-',
