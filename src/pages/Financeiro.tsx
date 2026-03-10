@@ -16,6 +16,7 @@ import { CashFlowChart } from "@/components/financeiro/CashFlowChart";
 import { ExpenseList } from "@/components/financeiro/ExpenseList";
 import { RevenueList } from "@/components/financeiro/RevenueList";
 import { ExpenseFormDialog } from "@/components/financeiro/ExpenseFormDialog";
+import { FinancialChartsGrid } from "@/components/financeiro/FinancialChartsGrid";
 import { useExpenses, EXPENSE_CATEGORIES, type ExpenseCategory } from "@/hooks/useExpenses";
 import { useFinancialMetrics } from "@/hooks/useFinancialMetrics";
 import { usePermissions } from "@/hooks/usePermissions";
