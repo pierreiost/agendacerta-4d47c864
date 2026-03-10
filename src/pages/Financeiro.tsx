@@ -145,6 +145,9 @@ export default function Financeiro() {
             <ExpenseList expenses={expenses} isLoading={expensesLoading} />
           </TabsContent>
         </Tabs>
+
+        {/* Advanced Financial Analysis */}
+        <FinancialChartsGrid />
       </div>
 
       {/* Expense Form Dialog */}
