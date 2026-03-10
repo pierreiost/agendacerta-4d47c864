@@ -1,53 +1,68 @@
 
+# Reservas em tempo real no Dashboard
 
-## Plan: Two Changes
+## Problema
+Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
 
-### 1. Fix day abbreviations to pt-BR in Delinquency Heatmap
+## Solucao
 
-**Problem**: The SQL `to_char(date, 'Dy')` outputs English abbreviations (Mon, Tue, Wed) because the database locale is en_US.
+Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
 
-**Solution**: Replace `to_char(dy.day_date, 'Dy')` with a `CASE` expression that maps `EXTRACT(DOW FROM dy.day_date)` to pt-BR abbreviations: Dom, Seg, Ter, Qua, Qui, Sex, Sáb.
+## Mudancas
 
-**Change**: New SQL migration updating `get_financial_charts` RPC.
+### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
 
----
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+```
 
-### 2. Segment-specific Reports page
+### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
 
-**Problem**: The current Relatórios page is a one-size-fits-all layout with tabs (Faturamento, Ocupação, Clientes, OS, Exportações) that don't adapt to the venue segment. Sports venues see irrelevant OS tabs, beauty/health venues see space-based metrics, and custom venues miss relevant data.
+Adicionar um `useEffect` no hook `useBookingQueries` que:
+- Cria um canal Supabase Realtime filtrado por `venue_id`
+- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
+- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
+- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
+- Faz cleanup do canal no return do useEffect
 
-**Solution**: Rebuild the Relatórios page with segment-aware tabs, stats cards, and charts. Each segment gets its own relevant reports.
+```typescript
+// Realtime: atualiza automaticamente quando novas reservas chegam
+useEffect(() => {
+  if (!currentVenue?.id || !user) return;
 
-#### Segment-specific tabs and content:
+  const channel = supabase
+    .channel(`bookings-realtime-${currentVenue.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `venue_id=eq.${currentVenue.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      }
+    )
+    .subscribe();
 
-**Sports (Quadras)**:
-- **Stats**: Faturamento, Reservas, Horas Ocupadas, Clientes Únicos
-- **Tabs**: Faturamento por Espaço (pie chart) | Ocupação por Horário (bar chart) | Taxa de Ocupação por Espaço | Top Clientes | Exportações (Clientes, Reservas)
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentVenue?.id, user, queryClient]);
+```
 
-**Beauty (Salões)**:
-- **Stats**: Faturamento, Atendimentos, Ticket Médio, Clientes Únicos
-- **Tabs**: Faturamento por Serviço (pie chart) | Faturamento por Profissional (bar chart) | Serviços Mais Populares | Top Clientes | Exportações (Clientes, Atendimentos)
+### Resumo
 
-**Health (Clínicas)**:
-- **Stats**: Faturamento, Consultas, Ticket Médio, Pacientes Únicos
-- **Tabs**: Faturamento por Serviço | Faturamento por Profissional | Consultas por Horário | Top Pacientes | Exportações (Pacientes, Consultas)
+| Acao | Ficheiro |
+|---|---|
+| Habilitar Realtime na tabela bookings | Migracao SQL |
+| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
 
-**Custom (Assistência Técnica)**:
-- **Stats**: Faturamento OS, Total OS, Abertas/Finalizadas, Ticket Médio
-- **Tabs**: Peças vs Mão de Obra (pie chart) | OS por Status (bar chart) | Tempo Médio de Conclusão | Top Clientes | Exportações (Clientes, OS Resumo, OS Detalhada)
+### Resultado
 
-#### Technical approach:
-- Refactor `Relatorios.tsx` to read `currentVenue.segment` and conditionally render:
-  - Segment-specific stats cards (top row)
-  - Segment-specific tab set with appropriate charts
-  - Segment-specific terminology (paciente vs cliente, reserva vs atendimento vs consulta vs OS)
-- Add new data computations using existing hooks (`useBookings`, `useServices`, `useServiceOrders`, `useCustomers`, `useProfessionals`)
-- For beauty/health: compute revenue by service (from `booking_services`) and revenue by professional (from `booking_services.professional_id`)
-- Add Excel export functions for bookings/atendimentos in `useExcelExport.ts`
-- The PDF export will also adapt terminology per segment
-
-#### Files to modify:
-- `supabase/migrations/` — new migration for pt-BR day names
-- `src/pages/Relatorios.tsx` — full refactor with segment-aware rendering
-- `src/hooks/useExcelExport.ts` — add `exportBookings` function for sports/beauty/health segments
-
+- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
+- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
+- As metricas do dashboard (contadores) tambem se atualizam
+- Nenhum polling manual ou intervalo necessario
