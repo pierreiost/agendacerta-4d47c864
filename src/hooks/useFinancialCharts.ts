@@ -60,7 +60,7 @@ export function useFinancialCharts() {
         waterfall: (data.waterfall_data as unknown as WaterfallItem[]) || [],
         cashProjection: (data.cash_projection as unknown as CashProjectionPoint[]) || [],
         revenueByProfessional: data.revenue_by_professional as unknown as RevenueProfessional[] | null,
-        delinquency: (data.delinquency_data as unknown as DelinquencyWeek[]) || [],
+        delinquency: (data.delinquency_data as unknown as DelinquencyDay[]) || [],
       };
     },
     enabled: !!currentVenue?.id,
