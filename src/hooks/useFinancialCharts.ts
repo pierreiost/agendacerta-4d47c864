@@ -19,8 +19,9 @@ export interface RevenueProfessional {
   cost: number;
 }
 
-export interface DelinquencyWeek {
-  week_label: string;
+export interface DelinquencyDay {
+  day_label: string;
+  day_name: string;
   count: number;
   total_value: number;
 }
@@ -29,7 +30,7 @@ export interface FinancialChartsData {
   waterfall: WaterfallItem[];
   cashProjection: CashProjectionPoint[];
   revenueByProfessional: RevenueProfessional[] | null;
-  delinquency: DelinquencyWeek[];
+  delinquency: DelinquencyDay[];
 }
 
 export function useFinancialCharts() {
@@ -59,7 +60,7 @@ export function useFinancialCharts() {
         waterfall: (data.waterfall_data as unknown as WaterfallItem[]) || [],
         cashProjection: (data.cash_projection as unknown as CashProjectionPoint[]) || [],
         revenueByProfessional: data.revenue_by_professional as unknown as RevenueProfessional[] | null,
-        delinquency: (data.delinquency_data as unknown as DelinquencyWeek[]) || [],
+        delinquency: (data.delinquency_data as unknown as DelinquencyDay[]) || [],
       };
     },
     enabled: !!currentVenue?.id,
