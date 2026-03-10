@@ -2276,7 +2276,7 @@ export type Database = {
         }[]
       }
       get_financial_charts: {
-        Args: { p_segment?: string; p_venue_id: string }
+        Args: { p_segment: string; p_venue_id: string }
         Returns: {
           cash_projection: Json
           delinquency_data: Json
