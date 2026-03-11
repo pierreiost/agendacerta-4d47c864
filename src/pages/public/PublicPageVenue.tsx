@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ExternalLink } from 'lucide-react';
+import { SEOHead } from '@/components/shared/SEOHead';
 import { PublicPageSections, DEFAULT_SECTIONS } from '@/types/public-page';
 import {
   GallerySection,
@@ -185,7 +186,19 @@ export default function PublicPageVenue() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header fixo */}
+      <SEOHead
+        title={venue.name}
+        description={`Agende online com ${venue.name}. Veja horários disponíveis e faça sua reserva.`}
+        canonical={`/v/${slug}`}
+        ogImage={venue.logo_url || undefined}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": venue.name,
+          "url": `https://agendacertaa.lovable.app/v/${slug}`,
+          ...(venue.logo_url && { "image": venue.logo_url }),
+        }}
+      />
       <PageHeader
         venueName={venue.name}
         logoUrl={venue.logo_url}

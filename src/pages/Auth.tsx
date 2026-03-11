@@ -1,3 +1,4 @@
+import { SEOHead } from '@/components/shared/SEOHead';
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -270,6 +271,11 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex">
+      <SEOHead
+        title="Entrar ou Criar Conta"
+        description="Acesse sua conta AgendaCerta ou crie uma nova conta para gerenciar suas reservas e agendamentos."
+        canonical="/auth"
+      />
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 gradient-primary flex-col items-center justify-center p-12 relative overflow-hidden">
         {/* Decorative circles */}

@@ -1,6 +1,14 @@
+import { SEOHead } from '@/components/shared/SEOHead';
+
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <SEOHead
+        title="Política de Privacidade"
+        description="Política de Privacidade do AgendaCerta. Saiba como coletamos, usamos e protegemos suas informações pessoais."
+        canonical="/privacy"
+        noindex
+      />
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-foreground mb-8">Política de Privacidade</h1>
         
