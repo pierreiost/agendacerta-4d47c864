@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ExternalLink } from 'lucide-react';
+import { SEOHead } from '@/components/shared/SEOHead';
 import { PublicPageSections, DEFAULT_SECTIONS } from '@/types/public-page';
 import {
   GallerySection,
