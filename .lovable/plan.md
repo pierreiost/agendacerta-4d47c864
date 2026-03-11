@@ -1,68 +1,46 @@
 
-# Reservas em tempo real no Dashboard
 
-## Problema
-Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
+## Plano: 4 Correções UX/Mobile
 
-## Solucao
+### Tarefa 1: Default `booking_mode` ao habilitar página pública
 
-Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
+**Arquivo**: `src/pages/PublicPageConfig.tsx`
 
-## Mudancas
+Na função `handleSave` (linha 119), antes do `.update()`, adicionar lógica:
+- Se `publicPageEnabled === true`, verificar se `currentVenue.booking_mode` é nulo
+- Se nulo, incluir no payload: `booking_mode: currentVenue.segment === 'custom' ? 'inquiry' : 'calendar'`
+- Também carregar `booking_mode` no `loadData` (linha 95, adicionar ao `.select()`)
 
-### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
+### Tarefa 2: Scroll horizontal nas tabelas (mobile)
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+Adicionar `overflow-x-auto` nos containers de tabela:
+
+| Arquivo | Linha | Alteração |
+|---------|-------|-----------|
+| `src/pages/OrdensServico.tsx` | 148 | `"rounded-md border bg-card"` → `"rounded-md border bg-card overflow-x-auto"` |
+| `src/pages/Espacos.tsx` | 170 | Envolver `<Table>` em `<div className="overflow-x-auto">` |
+| `src/pages/Produtos.tsx` | 192 | `"hidden md:block"` → `"hidden md:block overflow-x-auto"` |
+| `src/components/financeiro/ExpenseList.tsx` | 90 | `"rounded-md border"` → `"rounded-md border overflow-x-auto"` |
+| `src/components/financeiro/RevenueList.tsx` | 136 | `"rounded-md border"` → `"rounded-md border overflow-x-auto"` |
+
+### Tarefa 3: Viewport meta tag (iOS)
+
+**Arquivo**: `index.html` (linha 5)
+
+Alterar de:
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+```
+Para:
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
 ```
 
-### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+### Tarefa 4: Verificação dos slot clicks na Agenda
 
-Adicionar um `useEffect` no hook `useBookingQueries` que:
-- Cria um canal Supabase Realtime filtrado por `venue_id`
-- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
-- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
-- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
-- Faz cleanup do canal no return do useEffect
+Já verificado na análise anterior: `handleSlotClick` em `Agenda.tsx` já abre o `BookingWizard` (mesma chamada do botão "Nova Reserva"). Nenhuma alteração necessária — comportamento já está correto.
 
-```typescript
-// Realtime: atualiza automaticamente quando novas reservas chegam
-useEffect(() => {
-  if (!currentVenue?.id || !user) return;
+---
 
-  const channel = supabase
-    .channel(`bookings-realtime-${currentVenue.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `venue_id=eq.${currentVenue.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
-      }
-    )
-    .subscribe();
+**Resumo**: 3 tarefas com alterações de código (booking_mode, scroll, viewport) + 1 confirmação (slots já corretos). Total ~7 arquivos modificados.
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentVenue?.id, user, queryClient]);
-```
-
-### Resumo
-
-| Acao | Ficheiro |
-|---|---|
-| Habilitar Realtime na tabela bookings | Migracao SQL |
-| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
-
-### Resultado
-
-- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
-- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
-- As metricas do dashboard (contadores) tambem se atualizam
-- Nenhum polling manual ou intervalo necessario
