@@ -207,14 +207,14 @@ export default function PublicPageVenue() {
               ...(sections.location.address_line2 && { "addressLocality": sections.location.address_line2 }),
             },
           }),
-          ...(sections.hours?.enabled && sections.hours?.items?.length > 0 && {
-            "openingHoursSpecification": sections.hours.items
-              .filter((h: any) => h.days && h.hours)
-              .map((h: any) => ({
+          ...(sections.hours?.enabled && sections.hours?.schedule && {
+            "openingHoursSpecification": Object.entries(sections.hours.schedule)
+              .filter(([, day]) => !(day as any).closed && (day as any).open)
+              .map(([dayName, day]) => ({
                 "@type": "OpeningHoursSpecification",
-                "dayOfWeek": h.days,
-                "opens": h.hours.split(' - ')[0] || h.hours,
-                "closes": h.hours.split(' - ')[1] || h.hours,
+                "dayOfWeek": dayName.charAt(0).toUpperCase() + dayName.slice(1),
+                "opens": (day as any).open,
+                "closes": (day as any).close,
               })),
           }),
           ...(whatsappPhone && { "contactPoint": { "@type": "ContactPoint", "telephone": whatsappPhone, "contactType": "customer service" } }),
