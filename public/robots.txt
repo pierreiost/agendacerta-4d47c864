@@ -14,3 +14,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://agendacerta.online/sitemap.xml
+Sitemap: https://uhfpgqdlsjfmkrsjowih.supabase.co/functions/v1/generate-sitemap

@@ -1,51 +1,68 @@
 
-
-# Plano de SEO — Melhorar Descoberta das Páginas Públicas pelo Google
-
-## Situacao Atual
-
-- O **sitemap estático** (`public/sitemap.xml`) tem apenas 4 páginas fixas (inicio, marketplace, auth, privacy)
-- A **edge function** `generate-sitemap` já gera um sitemap dinâmico com todos os venues ativos, mas está hospedada num domínio diferente (backend), então o Google Search Console não aceita como sitemap do `agendacertaa.lovable.app`
-- As páginas públicas dos venues (`/v/{slug}`) já têm meta tags SEO e JSON-LD via `SEOHead`
-- O `robots.txt` aponta para `agendacerta.online/sitemap.xml`
+# Reservas em tempo real no Dashboard
 
 ## Problema
-
-As páginas dos venues (ex: `/v/bola-na-rede-pelotas`) não estão no sitemap que o Google conhece. Sem sitemap, o Google depende de descobrir por links internos (marketplace), o que é mais lento.
+Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
 
 ## Solucao
 
-Criar uma **rota `/sitemap.xml`** que redireciona para a edge function, ou melhor ainda: criar uma **página React que gera o sitemap dinamicamente** no client — mas isso não funciona para crawlers.
+Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
 
-A abordagem mais eficaz: **criar uma edge function que serve como proxy** e pode ser chamada diretamente, **e adicionar os venues ao sitemap estático** consultando o banco no momento do build. Como não temos build hooks, a melhor solução prática é:
+## Mudancas
 
-### 1. Atualizar o sitemap estático com os venues atuais (manual/periódico)
-Criar uma **nova edge function `update-sitemap`** que gera o XML completo e pode ser chamada para obter o conteúdo atualizado. Mas como não podemos escrever ficheiros no deploy...
+### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
 
-**Solução real:** Adicionar um **link para o sitemap dinâmico no robots.txt do domínio Lovable**, e submeter a URL da edge function diretamente no Google Search Console como sitemap adicional.
-
-### Mudanças Concretas
-
-#### 1. Atualizar `robots.txt` — adicionar o sitemap dinâmico como segundo sitemap
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
 ```
-Sitemap: https://agendacerta.online/sitemap.xml
-Sitemap: https://uhfpgqdlsjfmkrsjowih.supabase.co/functions/v1/generate-sitemap
+
+### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+
+Adicionar um `useEffect` no hook `useBookingQueries` que:
+- Cria um canal Supabase Realtime filtrado por `venue_id`
+- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
+- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
+- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
+- Faz cleanup do canal no return do useEffect
+
+```typescript
+// Realtime: atualiza automaticamente quando novas reservas chegam
+useEffect(() => {
+  if (!currentVenue?.id || !user) return;
+
+  const channel = supabase
+    .channel(`bookings-realtime-${currentVenue.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `venue_id=eq.${currentVenue.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentVenue?.id, user, queryClient]);
 ```
-O Google aceita múltiplos sitemaps no robots.txt.
 
-#### 2. Melhorar SEO das páginas públicas — adicionar meta tags faltantes
-No `PublicPageVenue.tsx`, melhorar o JSON-LD com mais dados estruturados (telefone, endereço, horários) que já estão disponíveis nas sections do venue.
+### Resumo
 
-#### 3. Adicionar `<link rel="alternate">` e meta tags para Marketplace
-Garantir que o Marketplace tenha links para todas as páginas dos venues, servindo como "hub de descoberta" para o Google.
+| Acao | Ficheiro |
+|---|---|
+| Habilitar Realtime na tabela bookings | Migracao SQL |
+| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
 
-#### 4. Submeter sitemap dinâmico no Search Console
-Instrução para o utilizador: no Google Search Console, adicionar a URL da edge function como sitemap adicional.
+### Resultado
 
-### Resultado Esperado
-
-- Google descobre todas as páginas `/v/{slug}` via sitemap dinâmico
-- Páginas de venues têm dados estruturados ricos (LocalBusiness, horários, endereço)
-- Marketplace serve como página hub com links internos para todos os venues
-- Dupla cobertura: sitemap estático (4 páginas core) + sitemap dinâmico (todos os venues)
-
+- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
+- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
+- As metricas do dashboard (contadores) tambem se atualizam
+- Nenhum polling manual ou intervalo necessario

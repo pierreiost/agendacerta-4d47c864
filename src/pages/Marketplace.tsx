@@ -47,7 +47,7 @@ export default function Marketplace() {
           "applicationCategory": "BusinessApplication",
           "operatingSystem": "Web",
           "description": "Sistema de agendamento online para quadras, salões e serviços profissionais.",
-          "url": "https://agendacertaa.lovable.app/marketplace",
+          "url": "https://agendacerta.online/marketplace",
           "offers": {
             "@type": "Offer",
             "price": "0",
