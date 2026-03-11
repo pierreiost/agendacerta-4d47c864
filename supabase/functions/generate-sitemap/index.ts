@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const BASE_URL = "https://agendacertaa.lovable.app";
+const BASE_URL = "https://agendacerta.online";
 
 const STATIC_ROUTES = [
   { path: "/inicio", priority: "1.0", changefreq: "weekly" },
