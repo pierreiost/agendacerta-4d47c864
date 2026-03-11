@@ -145,7 +145,7 @@ export default function OrdensServico() {
         {isLoading ? (
           <p className="text-center py-8 text-muted-foreground">Carregando...</p>
         ) : (
-          <div className="rounded-md border bg-card">
+          <div className="rounded-md border bg-card overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

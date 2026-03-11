@@ -168,6 +168,7 @@ export default function Espacos() {
                 </Button>
               </div>
             ) : (
+              <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -232,6 +233,7 @@ export default function Espacos() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

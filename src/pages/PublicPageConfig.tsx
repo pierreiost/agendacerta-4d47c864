@@ -92,7 +92,7 @@ export default function PublicPageConfig() {
       // Always load from database first to ensure we have the latest data
       const { data } = await supabase
         .from('venues')
-        .select('public_page_sections, primary_color, logo_url, public_page_enabled, is_marketplace_visible, niche_id, city, state')
+        .select('public_page_sections, primary_color, logo_url, public_page_enabled, is_marketplace_visible, niche_id, city, state, booking_mode')
         .eq('id', currentVenue.id)
         .single();
       
@@ -120,18 +120,25 @@ export default function PublicPageConfig() {
     if (!currentVenue?.id) return;
     setIsLoading(true);
 
+    // Se habilitando a página pública e booking_mode está nulo, definir padrão
+    const updatePayload: Record<string, unknown> = {
+      public_page_sections: JSON.parse(JSON.stringify(sections)),
+      primary_color: primaryColor || null,
+      logo_url: publicLogoUrl || null,
+      public_page_enabled: publicPageEnabled,
+      is_marketplace_visible: isMarketplaceVisible,
+      niche_id: nicheId || null,
+      city: venueCity || null,
+      state: venueState || null,
+    };
+
+    if (publicPageEnabled && !currentVenue.booking_mode) {
+      updatePayload.booking_mode = currentVenue.segment === 'custom' ? 'inquiry' : 'calendar';
+    }
+
     const { error } = await supabase
       .from('venues')
-      .update({ 
-        public_page_sections: JSON.parse(JSON.stringify(sections)),
-        primary_color: primaryColor || null,
-        logo_url: publicLogoUrl || null,
-        public_page_enabled: publicPageEnabled,
-        is_marketplace_visible: isMarketplaceVisible,
-        niche_id: nicheId || null,
-        city: venueCity || null,
-        state: venueState || null,
-      })
+      .update(updatePayload)
       .eq('id', currentVenue.id);
 
     setIsLoading(false);
