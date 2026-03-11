@@ -197,7 +197,7 @@ export default function PublicPageVenue() {
             : (venue.segment === 'beauty' || venue.segment === 'health') ? 'HealthAndBeautyBusiness'
             : 'LocalBusiness',
           "name": venue.name,
-          "url": `https://agendacertaa.lovable.app/v/${slug}`,
+          "url": `https://agendacerta.online/v/${slug}`,
           ...(venue.logo_url && { "image": venue.logo_url }),
           ...(venue.phone && { "telephone": venue.phone }),
           ...(sections.location?.address_line1 && {
@@ -207,6 +207,18 @@ export default function PublicPageVenue() {
               ...(sections.location.address_line2 && { "addressLocality": sections.location.address_line2 }),
             },
           }),
+          ...(sections.hours?.enabled && sections.hours?.items?.length > 0 && {
+            "openingHoursSpecification": sections.hours.items
+              .filter((h: any) => h.days && h.hours)
+              .map((h: any) => ({
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": h.days,
+                "opens": h.hours.split(' - ')[0] || h.hours,
+                "closes": h.hours.split(' - ')[1] || h.hours,
+              })),
+          }),
+          ...(whatsappPhone && { "contactPoint": { "@type": "ContactPoint", "telephone": whatsappPhone, "contactType": "customer service" } }),
+          ...(sections.social?.instagram && { "sameAs": [`https://instagram.com/${sections.social.instagram.replace('@', '')}`] }),
         }}
       />
       <PageHeader
