@@ -92,7 +92,7 @@ export default function PublicPageConfig() {
       // Always load from database first to ensure we have the latest data
       const { data } = await supabase
         .from('venues')
-        .select('public_page_sections, primary_color, logo_url, public_page_enabled, is_marketplace_visible, niche_id, city, state')
+        .select('public_page_sections, primary_color, logo_url, public_page_enabled, is_marketplace_visible, niche_id, city, state, booking_mode')
         .eq('id', currentVenue.id)
         .single();
       
