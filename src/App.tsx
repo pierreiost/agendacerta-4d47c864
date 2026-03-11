@@ -196,19 +196,21 @@ function AppWithProviders() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <VenueProvider>
-          <Toaster />
-          <Sonner />
-          <AppErrorBoundary>
-            <AppWithProviders />
-          </AppErrorBoundary>
-        </VenueProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <VenueProvider>
+            <Toaster />
+            <Sonner />
+            <AppErrorBoundary>
+              <AppWithProviders />
+            </AppErrorBoundary>
+          </VenueProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;
