@@ -193,10 +193,20 @@ export default function PublicPageVenue() {
         ogImage={venue.logo_url || undefined}
         jsonLd={{
           "@context": "https://schema.org",
-          "@type": "LocalBusiness",
+          "@type": venue.segment === 'sports' ? 'SportsActivityLocation'
+            : (venue.segment === 'beauty' || venue.segment === 'health') ? 'HealthAndBeautyBusiness'
+            : 'LocalBusiness',
           "name": venue.name,
           "url": `https://agendacertaa.lovable.app/v/${slug}`,
           ...(venue.logo_url && { "image": venue.logo_url }),
+          ...(venue.phone && { "telephone": venue.phone }),
+          ...(sections.location?.address_line1 && {
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": sections.location.address_line1,
+              ...(sections.location.address_line2 && { "addressLocality": sections.location.address_line2 }),
+            },
+          }),
         }}
       />
       <PageHeader

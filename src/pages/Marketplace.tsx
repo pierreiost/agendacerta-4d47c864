@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMarketplaceVenues, useMarketplaceFilters } from '@/hooks/useMarketplace';
+import { SEOHead } from '@/components/shared/SEOHead';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,25 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero */}
+      <SEOHead
+        title="Agendamento Online de Quadras e Serviços"
+        description="Encontre e agende online quadras esportivas, salões de beleza e serviços profissionais. Busque por categoria e cidade no AgendaCerta."
+        canonical="/marketplace"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "AgendaCerta",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "description": "Sistema de agendamento online para quadras, salões e serviços profissionais.",
+          "url": "https://agendacertaa.lovable.app/marketplace",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "BRL",
+          },
+        }}
+      />
       <div className="bg-gradient-to-br from-primary/10 via-background to-primary/5 border-b">
         <div className="container mx-auto px-4 py-12 md:py-20 text-center">
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground mb-3">

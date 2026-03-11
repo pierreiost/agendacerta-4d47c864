@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.rate-limit-login]
 verify_jwt = false
+
+[functions.generate-sitemap]
+verify_jwt = false

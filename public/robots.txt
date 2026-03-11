@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://agendacertaa.lovable.app/sitemap.xml
+Sitemap: https://uhfpgqdlsjfmkrsjowih.supabase.co/functions/v1/generate-sitemap
