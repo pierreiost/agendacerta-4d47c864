@@ -233,6 +233,7 @@ export default function Espacos() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
