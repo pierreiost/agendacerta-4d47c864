@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMarketplaceVenues, useMarketplaceFilters } from '@/hooks/useMarketplace';
+import { SEOHead } from '@/components/shared/SEOHead';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
