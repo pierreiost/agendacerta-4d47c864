@@ -157,7 +157,7 @@ export function DashboardBookings() {
   return (
     <div className="space-y-8">
       {/* Métricas */}
-      <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2 md:gap-6 grid-cols-3">
         <Card
           className={cn(
             "relative border-2 transition-all duration-300",
@@ -166,16 +166,23 @@ export function DashboardBookings() {
           )}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-primary-100/80 via-primary-50/50 to-transparent opacity-60" />
-          <div className="relative p-4 md:p-6">
-            <div className="flex items-start justify-between gap-2 md:gap-3">
-              <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="relative p-2 md:p-6">
+            <div className="flex items-start justify-between gap-1 md:gap-3">
+              <div className="flex-1 min-w-0 space-y-0.5 md:space-y-1">
+                <p className="text-[8px] md:text-sm font-semibold uppercase tracking-wide text-muted-foreground truncate">
                   Reservas Hoje
                 </p>
-                <TodayBookingsValue />
+                <div className="flex flex-col">
+                  <span className="text-sm md:text-3xl font-bold tracking-tight text-foreground">{metrics.totalToday}</span>
+                  <div className="hidden md:flex items-center gap-2 text-xs mt-1">
+                    <span className="text-success-600 font-medium">{metrics.confirmedToday} confirmadas</span>
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-warning-600 font-medium">{metrics.pendingToday} pendentes</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex-shrink-0 rounded-xl p-2 md:p-2.5 shadow-sm bg-primary-100 ring-2 ring-primary-200/50">
-                <Calendar className="h-5 w-5 md:h-6 md:w-6 text-primary-600" />
+              <div className="flex-shrink-0 rounded-xl p-1.5 md:p-2.5 shadow-sm bg-primary-100 ring-2 ring-primary-200/50">
+                <Calendar className="h-3.5 w-3.5 md:h-6 md:w-6 text-primary-600" />
               </div>
             </div>
           </div>
@@ -189,12 +196,11 @@ export function DashboardBookings() {
           tooltip="Soma dos valores de reservas finalizadas no mês"
         />
         <MetricCard
-          title="Taxa de Ocupação"
-          value={metrics.occupancyRate}
-          icon={TrendingUp}
+          title="Reservas no Mês"
+          value={serverMetrics?.month_bookings ?? 0}
+          icon={Calendar}
           color="purple"
-          sparklineData={metrics.occupancySparkline}
-          tooltip="Percentual de horários ocupados hoje"
+          tooltip="Total de reservas no mês corrente"
         />
       </div>
 

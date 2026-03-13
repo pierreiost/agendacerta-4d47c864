@@ -151,11 +151,11 @@ export function MetricCard({
           {/* Ícone premium - compacto */}
           <div
             className={cn(
-              'rounded-lg p-2 md:p-2.5 shadow-sm',
+              'rounded-lg p-1.5 md:p-2.5 shadow-sm flex-shrink-0',
               colors.iconBg
             )}
           >
-            <Icon className={cn('h-4 w-4 md:h-5 md:w-5', colors.icon)} />
+            <Icon className={cn('h-3.5 w-3.5 md:h-5 md:w-5', colors.icon)} />
           </div>
         </div>
       </div>
