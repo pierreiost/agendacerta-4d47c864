@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useBookings } from "@/hooks/useBookings";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
-import { Calendar, DollarSign, TrendingUp, Clock, MapPin, User, ArrowRight, Plus } from "lucide-react";
+import { Calendar, DollarSign, Clock, MapPin, User, ArrowRight, Plus } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
