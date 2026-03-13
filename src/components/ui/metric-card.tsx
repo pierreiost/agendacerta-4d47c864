@@ -101,12 +101,12 @@ export function MetricCard({
       />
 
       {/* Conteúdo - Compacto */}
-      <div className="relative p-3 md:p-4">
-        <div className="flex items-start justify-between gap-2">
+      <div className="relative p-2 md:p-4">
+        <div className="flex items-start justify-between gap-1 md:gap-2">
           {/* Texto */}
-          <div className="flex-1 space-y-0.5">
+          <div className="flex-1 min-w-0 space-y-0.5">
             <div className="flex items-center gap-1">
-              <p className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-[8px] md:text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
                 {title}
               </p>
               {tooltip && (
