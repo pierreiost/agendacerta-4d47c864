@@ -1,24 +1,68 @@
 
+# Reservas em tempo real no Dashboard
 
-# Ajuste Dashboard: 3 cards em 1 linha no mobile + Reservas no Mês
+## Problema
+Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
 
-## Mudanças
+## Solucao
 
-### 1. Grid 3 colunas no mobile (`DashboardBookings.tsx`)
-- Linha 160: trocar `grid-cols-2 lg:grid-cols-3` para `grid-cols-3`
-- Reduzir padding/font do card custom "Reservas Hoje" para mobile (p-2.5 md:p-6, textos menores)
-- Substituir o 3º card "Taxa de Ocupação" por "Reservas no Mês" usando `serverMetrics.month_bookings` (ícone `Calendar`, cor `purple`)
+Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
 
-### 2. MetricCard mais compacto no mobile (`metric-card.tsx`)
-- Padding: `p-2 md:p-4`
-- Título: `text-[8px] md:text-xs`
-- Valor: `text-sm md:text-2xl`
-- Ícone container: `p-1.5 md:p-2.5`, ícone: `h-3.5 w-3.5 md:h-5 md:w-5`
+## Mudancas
 
-### 3. Mesma lógica nos outros dashboards
-- `DashboardAppointments.tsx` e `DashboardServiceOrders.tsx`: trocar grid para `grid-cols-3`
+### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+```
+
+### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+
+Adicionar um `useEffect` no hook `useBookingQueries` que:
+- Cria um canal Supabase Realtime filtrado por `venue_id`
+- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
+- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
+- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
+- Faz cleanup do canal no return do useEffect
+
+```typescript
+// Realtime: atualiza automaticamente quando novas reservas chegam
+useEffect(() => {
+  if (!currentVenue?.id || !user) return;
+
+  const channel = supabase
+    .channel(`bookings-realtime-${currentVenue.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `venue_id=eq.${currentVenue.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentVenue?.id, user, queryClient]);
+```
+
+### Resumo
+
+| Acao | Ficheiro |
+|---|---|
+| Habilitar Realtime na tabela bookings | Migracao SQL |
+| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
 
 ### Resultado
-- 3 cards ficam lado a lado mesmo em telas de 360px
-- "Taxa de Ocupação" substituída por "Reservas no Mês" (dado já disponível no servidor)
 
+- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
+- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
+- As metricas do dashboard (contadores) tambem se atualizam
+- Nenhum polling manual ou intervalo necessario

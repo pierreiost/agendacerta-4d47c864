@@ -101,12 +101,12 @@ export function MetricCard({
       />
 
       {/* Conteúdo - Compacto */}
-      <div className="relative p-3 md:p-4">
-        <div className="flex items-start justify-between gap-2">
+      <div className="relative p-2 md:p-4">
+        <div className="flex items-start justify-between gap-1 md:gap-2">
           {/* Texto */}
-          <div className="flex-1 space-y-0.5">
+          <div className="flex-1 min-w-0 space-y-0.5">
             <div className="flex items-center gap-1">
-              <p className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-[8px] md:text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
                 {title}
               </p>
               {tooltip && (
@@ -120,7 +120,7 @@ export function MetricCard({
                 </Tooltip>
               )}
             </div>
-            <p className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+            <p className="text-sm md:text-2xl font-bold tracking-tight text-foreground truncate">
               {value}
             </p>
 
@@ -151,11 +151,11 @@ export function MetricCard({
           {/* Ícone premium - compacto */}
           <div
             className={cn(
-              'rounded-lg p-2 md:p-2.5 shadow-sm',
+              'rounded-lg p-1.5 md:p-2.5 shadow-sm flex-shrink-0',
               colors.iconBg
             )}
           >
-            <Icon className={cn('h-4 w-4 md:h-5 md:w-5', colors.icon)} />
+            <Icon className={cn('h-3.5 w-3.5 md:h-5 md:w-5', colors.icon)} />
           </div>
         </div>
       </div>
