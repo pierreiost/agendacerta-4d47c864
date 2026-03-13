@@ -120,7 +120,7 @@ export function MetricCard({
                 </Tooltip>
               )}
             </div>
-            <p className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+            <p className="text-sm md:text-2xl font-bold tracking-tight text-foreground truncate">
               {value}
             </p>
 
