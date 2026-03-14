@@ -388,6 +388,18 @@ export default function Clientes() {
         customer={historyCustomer}
         venueSegment={currentVenue?.segment}
       />
+
+      {/* Sell Package Dialog */}
+      {sellPackageCustomerId && (
+        <SellPackageDialog
+          open={sellPackageOpen}
+          onOpenChange={(open) => {
+            setSellPackageOpen(open);
+            if (!open) setSellPackageCustomerId(null);
+          }}
+          customerId={sellPackageCustomerId}
+        />
+      )}
     </AppLayout>
   );
 }
