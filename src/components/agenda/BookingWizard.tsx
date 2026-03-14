@@ -924,7 +924,7 @@ export function BookingWizard({
                 <Button
                   type="submit"
                   disabled={createBookingAtomic.isPending || createRecurringBookings.isPending}
-                  className="bg-success-600 hover:bg-success-700"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   {(createBookingAtomic.isPending || createRecurringBookings.isPending) ? 'Criando...' : 'Confirmar Reserva'}
                   <Check className="h-4 w-4 ml-1" />
