@@ -813,9 +813,10 @@ export function ServiceBookingWizard({
                 </div>
               )}
             </div>
+            </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30">
+            <div className="shrink-0 flex items-center justify-between p-4 border-t border-border bg-muted/30">
               <Button
                 type="button"
                 variant="ghost"

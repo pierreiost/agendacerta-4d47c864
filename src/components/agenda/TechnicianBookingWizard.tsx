@@ -707,9 +707,10 @@ export function TechnicianBookingWizard({
                 </div>
               )}
             </div>
+            </div>
 
             {/* Footer navigation */}
-            <div className="flex items-center justify-between p-4 border-t bg-muted/20">
+            <div className="shrink-0 flex items-center justify-between p-4 border-t bg-muted/20">
               <Button
                 type="button"
                 variant="ghost"
