@@ -743,8 +743,8 @@ export function BookingWizard({
                   {/* Booking summary */}
                   <Card className="p-4 space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary-600" />
+                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                         <User className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <div className="font-medium">{customerName}</div>
