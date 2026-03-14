@@ -915,7 +915,7 @@ export function BookingWizard({
                   type="button"
                   onClick={() => setStep(step + 1)}
                   disabled={step === 1 ? !canProceedToStep2 : !canProceedToStep3}
-                  className="bg-primary-500 hover:bg-primary-600"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   Continuar
                   <ChevronRight className="h-4 w-4 ml-1" />
