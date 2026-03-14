@@ -148,7 +148,7 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
       if (!venue?.id) return [];
       const { data, error } = await (supabase as any)
         .from('venue_operating_hours')
-        .select('day_of_week, open_time, close_time, is_open')
+        .select('day_of_week, open_time, close_time, is_open, lunch_start, lunch_end')
         .eq('venue_id', venue.id)
         .order('day_of_week');
       if (error) throw error;
