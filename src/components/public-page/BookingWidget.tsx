@@ -166,12 +166,24 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
 
   const isDayClosed = selectedDayHours ? !selectedDayHours.is_open : false;
 
-  // Generate dynamic time slots based on operating hours
+  // Generate dynamic time slots based on operating hours (respecting lunch break)
   const timeSlots = useMemo(() => {
     if (!selectedDayHours || !selectedDayHours.is_open) return [];
     const openHour = parseInt(selectedDayHours.open_time.split(':')[0], 10);
     const closeHour = parseInt(selectedDayHours.close_time.split(':')[0], 10);
-    return generateTimeSlots(openHour, closeHour);
+    const allSlots = generateTimeSlots(openHour, closeHour);
+
+    // Filter out lunch break slots
+    if (selectedDayHours.lunch_start && selectedDayHours.lunch_end) {
+      const lunchStartHour = parseInt(selectedDayHours.lunch_start.split(':')[0], 10);
+      const lunchEndHour = parseInt(selectedDayHours.lunch_end.split(':')[0], 10);
+      return allSlots.filter(slot => {
+        const slotHour = parseInt(slot.start.split(':')[0], 10);
+        return slotHour < lunchStartHour || slotHour >= lunchEndHour;
+      });
+    }
+
+    return allSlots;
   }, [selectedDayHours]);
   useEffect(() => {
     return () => {

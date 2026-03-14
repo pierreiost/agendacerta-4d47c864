@@ -178,7 +178,7 @@ export function OperatingHoursSection({ venueId }: OperatingHoursSectionProps) {
             type="button"
             variant="outline"
             size="sm"
-            onClick={copyMondayToWeekdays}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyMondayToWeekdays(); }}
           >
             <Copy className="h-4 w-4 mr-2" />
             Copiar Segunda para dias úteis
@@ -186,7 +186,7 @@ export function OperatingHoursSection({ venueId }: OperatingHoursSectionProps) {
           <Button
             type="button"
             size="sm"
-            onClick={handleSave}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }}
             disabled={!isDirty || isSaving}
           >
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
