@@ -134,21 +134,27 @@ export default function Clientes() {
           </Button>
         </div>
 
-        {/* Search + Counter */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, email, telefone ou documento..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Badge variant="secondary" className="text-sm whitespace-nowrap self-start sm:self-auto">
-            {filteredCustomers.length} {filteredCustomers.length === 1 ? 'cliente' : 'clientes'}
-          </Badge>
-        </div>
+        {showPackagesTab ? (
+          <Tabs defaultValue="clientes">
+            <TabsList>
+              <TabsTrigger value="clientes">
+                <Users className="h-4 w-4 mr-1" /> Clientes
+              </TabsTrigger>
+              <TabsTrigger value="pacotes">
+                <Package className="h-4 w-4 mr-1" /> Pacotes Ativos
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="clientes" className="mt-4">
+              {clienteListContent}
+            </TabsContent>
+            <TabsContent value="pacotes" className="mt-4">
+              <AllPackagesTab />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          clienteListContent
+        )}
+      </div>
 
         {/* Table */}
         <Card className="shadow-card">
