@@ -32,6 +32,7 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { CustomerHistorySheet } from '@/components/customers/CustomerHistorySheet';
 import { AllPackagesTab } from '@/components/customers/AllPackagesTab';
+import { SellPackageDialog } from '@/components/customers/SellPackageDialog';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import { useVenue } from '@/contexts/VenueContext';
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History, Package } from 'lucide-react';
@@ -53,6 +54,8 @@ export default function Clientes() {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
+  const [sellPackageOpen, setSellPackageOpen] = useState(false);
+  const [sellPackageCustomerId, setSellPackageCustomerId] = useState<string | null>(null);
 
   // Restore modal state on mount
   useEffect(() => {
@@ -117,6 +120,11 @@ export default function Clientes() {
   const handleViewHistory = (customer: Customer) => {
     setHistoryCustomer(customer);
     setHistoryOpen(true);
+  };
+
+  const handleSellPackage = (customer: Customer) => {
+    setSellPackageCustomerId(customer.id);
+    setSellPackageOpen(true);
   };
 
   const clienteListContent = (
@@ -218,13 +226,19 @@ export default function Clientes() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewHistory(customer)}>
-                                <History className="mr-2 h-4 w-4" />
-                                Histórico
-                              </DropdownMenuItem>
+                              {showPackagesTab && (
+                                <DropdownMenuItem onClick={() => handleSellPackage(customer)}>
+                                  <Package className="mr-2 h-4 w-4" />
+                                  Novo Plano
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => handleEdit(customer)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewHistory(customer)}>
+                                <History className="mr-2 h-4 w-4" />
+                                Histórico
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
@@ -268,13 +282,19 @@ export default function Clientes() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewHistory(customer)}>
-                          <History className="mr-2 h-4 w-4" />
-                          Histórico
-                        </DropdownMenuItem>
+                        {showPackagesTab && (
+                          <DropdownMenuItem onClick={() => handleSellPackage(customer)}>
+                            <Package className="mr-2 h-4 w-4" />
+                            Novo Plano
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleEdit(customer)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewHistory(customer)}>
+                          <History className="mr-2 h-4 w-4" />
+                          Histórico
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
@@ -368,6 +388,18 @@ export default function Clientes() {
         customer={historyCustomer}
         venueSegment={currentVenue?.segment}
       />
+
+      {/* Sell Package Dialog */}
+      {sellPackageCustomerId && (
+        <SellPackageDialog
+          open={sellPackageOpen}
+          onOpenChange={(open) => {
+            setSellPackageOpen(open);
+            if (!open) setSellPackageCustomerId(null);
+          }}
+          customerId={sellPackageCustomerId}
+        />
+      )}
     </AppLayout>
   );
 }
