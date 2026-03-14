@@ -32,6 +32,7 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { CustomerHistorySheet } from '@/components/customers/CustomerHistorySheet';
 import { AllPackagesTab } from '@/components/customers/AllPackagesTab';
+import { MensalistasTab } from '@/components/customers/MensalistasTab';
 import { SellPackageDialog } from '@/components/customers/SellPackageDialog';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import { useVenue } from '@/contexts/VenueContext';
