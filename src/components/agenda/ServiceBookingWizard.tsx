@@ -280,9 +280,10 @@ export function ServiceBookingWizard({
   const canProceedToStep4 = localStartTime;
 
   const onSubmit = async (data: FormData) => {
-    if (step !== 4) return; // Guard: only submit on final step
+    if (step !== 4 || !confirmArmed || submitLockRef.current) return;
     if (!currentVenue?.id) return;
     
+    submitLockRef.current = true;
     setIsSubmitting(true);
     try {
       // Use local state values (already synced to form before handleSubmit validation)
