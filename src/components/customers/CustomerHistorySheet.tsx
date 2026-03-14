@@ -18,6 +18,7 @@ import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecordForm } from './HealthRecordForm';
 import { HealthRecordTimeline } from './HealthRecordTimeline';
 import { HealthEvolutionChart } from './HealthEvolutionChart';
+import { CustomerPackagesTab } from './CustomerPackagesTab';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
