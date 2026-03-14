@@ -313,6 +313,7 @@ export function ServiceBookingWizard({
       });
     } finally {
       setIsSubmitting(false);
+      submitLockRef.current = false;
     }
   };
 
