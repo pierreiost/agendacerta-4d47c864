@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +43,7 @@ import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCustomerPackages } from '@/hooks/useCustomerPackages';
 import { format, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -57,6 +60,7 @@ import {
   Heart,
   Scissors,
   Loader2,
+  PackageCheck,
 } from 'lucide-react';
 import type { Service, ProfessionalAvailability } from '@/types/services';
 import { getServiceIcon } from '@/lib/segment-utils';
@@ -92,7 +96,7 @@ export function ServiceBookingWizard({
   const [newCustomerDialogOpen, setNewCustomerDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [usePackage, setUsePackage] = useState(false);
   // --- Local state for fields that previously caused re-render loops via watch() ---
   const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
   const [localProfessionalId, setLocalProfessionalId] = useState('');
@@ -107,6 +111,8 @@ export function ServiceBookingWizard({
   
   const venueSegment = (currentVenue as { segment?: string })?.segment;
   const ServiceIcon = getServiceIcon(venueSegment);
+
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -126,6 +132,18 @@ export function ServiceBookingWizard({
   // Only watch scalar fields that don't cause reference-instability loops
   const customerName = watch('customerName');
   const selectedDate = watch('date');
+  const customerId = watch('customerId');
+
+  // Package detection
+  const { activePackages } = useCustomerPackages(customerId);
+  const matchedPackage = useMemo(() => {
+    if (!activePackages || localServiceIds.length === 0) return null;
+    return activePackages.find(pkg =>
+      localServiceIds.includes(pkg.service_id) &&
+      pkg.used_sessions < pkg.total_sessions &&
+      (!pkg.expires_at || new Date(pkg.expires_at) > new Date())
+    ) || null;
+  }, [activePackages, localServiceIds]);
 
   // Fetch availability using stable local state (no watch() involved)
   const { data: availability, isLoading: availabilityLoading } = useProfessionalAvailability(
@@ -155,6 +173,7 @@ export function ServiceBookingWizard({
       setLocalServiceIds([]);
       setLocalProfessionalId('');
       setLocalStartTime('');
+      setUsePackage(false);
       initialLoadRef.current = false;
     } else {
       initialLoadRef.current = true;
@@ -274,6 +293,7 @@ export function ServiceBookingWizard({
         p_customer_phone: data.customerPhone || null,
         p_notes: data.notes || null,
         p_status: 'CONFIRMED',
+        p_package_id: usePackage && matchedPackage ? matchedPackage.id : null,
       });
 
       if (error) throw error;
@@ -607,6 +627,23 @@ export function ServiceBookingWizard({
                     </div>
                   )}
 
+                  {/* Package alert */}
+                  {matchedPackage && (
+                    <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
+                      <PackageCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-sm text-green-800 dark:text-green-300">
+                          Pacote ativo: <strong>{matchedPackage.service_title}</strong>. Restam{' '}
+                          {matchedPackage.total_sessions - matchedPackage.used_sessions} de {matchedPackage.total_sessions} sessões.
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Usar pacote?</span>
+                          <Switch checked={usePackage} onCheckedChange={setUsePackage} />
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   {/* Summary */}
                   {selectedServices.length > 0 && (
                     <Card className="p-3 bg-muted/50">
@@ -614,7 +651,14 @@ export function ServiceBookingWizard({
                         <span className="text-muted-foreground">
                           {selectedServices.length} serviço(s) • {totalDuration} min
                         </span>
-                        <span className="font-semibold">{formatCurrency(totalPrice)}</span>
+                        <span className="font-semibold">
+                          {usePackage && matchedPackage ? (
+                            <span className="flex items-center gap-2">
+                              <span className="line-through text-muted-foreground">{formatCurrency(totalPrice)}</span>
+                              <span className="text-green-600 dark:text-green-400">Cortesia</span>
+                            </span>
+                          ) : formatCurrency(totalPrice)}
+                        </span>
                       </div>
                     </Card>
                   )}
@@ -744,9 +788,18 @@ export function ServiceBookingWizard({
                     {/* Total */}
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Total</span>
-                      <span className="text-xl font-bold text-primary">
-                        {formatCurrency(totalPrice)}
-                      </span>
+                      {usePackage && matchedPackage ? (
+                        <div className="text-right">
+                          <span className="line-through text-sm text-muted-foreground mr-2">{formatCurrency(totalPrice)}</span>
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            <PackageCheck className="h-3 w-3 mr-1" /> Pacote
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-xl font-bold text-primary">
+                          {formatCurrency(totalPrice)}
+                        </span>
+                      )}
                     </div>
                   </Card>
 

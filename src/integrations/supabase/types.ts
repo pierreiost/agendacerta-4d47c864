@@ -89,7 +89,9 @@ export type Database = {
           items_total: number | null
           metadata: Json | null
           notes: string | null
+          package_id: string | null
           professional_id: string | null
+          recurrence_group_id: string | null
           reminder_sent: boolean | null
           space_id: string | null
           space_total: number | null
@@ -114,7 +116,9 @@ export type Database = {
           items_total?: number | null
           metadata?: Json | null
           notes?: string | null
+          package_id?: string | null
           professional_id?: string | null
+          recurrence_group_id?: string | null
           reminder_sent?: boolean | null
           space_id?: string | null
           space_total?: number | null
@@ -139,7 +143,9 @@ export type Database = {
           items_total?: number | null
           metadata?: Json | null
           notes?: string | null
+          package_id?: string | null
           professional_id?: string | null
+          recurrence_group_id?: string | null
           reminder_sent?: boolean | null
           space_id?: string | null
           space_total?: number | null
@@ -155,6 +161,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "customer_packages"
             referencedColumns: ["id"]
           },
           {
@@ -205,6 +218,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "categories_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_packages: {
+        Row: {
+          created_at: string
+          customer_id: string
+          expires_at: string | null
+          id: string
+          service_id: string
+          status: string
+          total_sessions: number
+          used_sessions: number
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          expires_at?: string | null
+          id?: string
+          service_id: string
+          status?: string
+          total_sessions: number
+          used_sessions?: number
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          expires_at?: string | null
+          id?: string
+          service_id?: string
+          status?: string
+          total_sessions?: number
+          used_sessions?: number
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_packages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_packages_venue_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
             referencedRelation: "venues"
@@ -2074,20 +2145,36 @@ export type Database = {
               success: boolean
             }[]
           }
-      create_service_booking: {
-        Args: {
-          p_customer_email?: string
-          p_customer_name: string
-          p_customer_phone?: string
-          p_notes?: string
-          p_professional_id: string
-          p_service_ids: string[]
-          p_start_time: string
-          p_status?: string
-          p_venue_id: string
-        }
-        Returns: string
-      }
+      create_service_booking:
+        | {
+            Args: {
+              p_customer_email?: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_notes?: string
+              p_professional_id: string
+              p_service_ids: string[]
+              p_start_time: string
+              p_status?: string
+              p_venue_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_customer_email?: string
+              p_customer_name: string
+              p_customer_phone?: string
+              p_notes?: string
+              p_package_id?: string
+              p_professional_id: string
+              p_service_ids: string[]
+              p_start_time: string
+              p_status?: string
+              p_venue_id: string
+            }
+            Returns: string
+          }
       create_service_inquiry:
         | {
             Args: {
