@@ -286,7 +286,7 @@ export function CustomerFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[550px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Cliente' : 'Novo Cliente'}
