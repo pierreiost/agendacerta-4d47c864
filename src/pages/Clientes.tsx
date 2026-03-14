@@ -282,13 +282,19 @@ export default function Clientes() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewHistory(customer)}>
-                          <History className="mr-2 h-4 w-4" />
-                          Histórico
-                        </DropdownMenuItem>
+                        {showPackagesTab && (
+                          <DropdownMenuItem onClick={() => handleSellPackage(customer)}>
+                            <Package className="mr-2 h-4 w-4" />
+                            Novo Plano
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleEdit(customer)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewHistory(customer)}>
+                          <History className="mr-2 h-4 w-4" />
+                          Histórico
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
