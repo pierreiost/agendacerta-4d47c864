@@ -36,7 +36,7 @@ import { MensalistasTab } from '@/components/customers/MensalistasTab';
 import { SellPackageDialog } from '@/components/customers/SellPackageDialog';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import { useVenue } from '@/contexts/VenueContext';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History, Package } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History, Package, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { maskPhone, maskCPFCNPJ, unmask } from '@/lib/masks';
