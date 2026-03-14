@@ -303,6 +303,7 @@ export function TechnicianBookingWizard({
       });
     } finally {
       setIsSubmitting(false);
+      submitLockRef.current = false;
     }
   };
 
