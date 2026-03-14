@@ -875,14 +875,14 @@ export function BookingWizard({
 
                   {/* Price card */}
                   {pricePreview !== null && (
-                    <Card className="p-4 bg-success-50 border-success-200">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">
-                          {isRecurring && recurrenceCount
-                            ? `Total (${recurrenceCount} reservas)`
-                            : 'Total'}
-                        </span>
-                        <span className="text-xl font-bold text-primary-600">
+                   <Card className="p-4 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                       <div className="flex items-center justify-between">
+                         <span className="font-medium">
+                           {isRecurring && recurrenceCount
+                             ? `Total (${recurrenceCount} reservas)`
+                             : 'Total'}
+                         </span>
+                         <span className="text-xl font-bold text-primary">
                           {formatCurrency(
                             pricePreview * (isRecurring && recurrenceCount ? parseInt(recurrenceCount) : 1)
                           )}
