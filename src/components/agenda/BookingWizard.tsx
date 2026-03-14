@@ -341,9 +341,17 @@ export function BookingWizard({
   const canProceedToStep3 =
     selectedSpaceId && selectedDate && startHour && endHour && parseInt(endHour) > parseInt(startHour);
 
-  const onSubmit = async (data: FormData) => {
-    if (step !== 3) return; // Guard: only submit on final step
-    if (!currentVenue?.id || !data.date) return;
+  const handleFinalConfirm = () => {
+    if (step !== 3 || !confirmArmed || submitLockRef.current) return;
+    submitLockRef.current = true;
+    handleSubmit(doSubmit)();
+  };
+
+  const doSubmit = async (data: FormData) => {
+    if (!currentVenue?.id || !data.date) {
+      submitLockRef.current = false;
+      return;
+    }
 
     const space = spaces.find((s) => s.id === data.spaceId);
     const isRecurringBooking = data.isRecurring && data.recurrenceCount && parseInt(data.recurrenceCount) > 1;
