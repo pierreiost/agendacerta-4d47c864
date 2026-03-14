@@ -255,6 +255,7 @@ export function TechnicianBookingWizard({
   }, [serviceOrderId, serviceOrders]);
 
   const onSubmit = async (data: FormData) => {
+    if (step !== 3) return; // Guard: only submit on final step
     if (!currentVenue?.id) return;
     
     setIsSubmitting(true);

@@ -340,6 +340,7 @@ export function BookingWizard({
     selectedSpaceId && selectedDate && startHour && endHour && parseInt(endHour) > parseInt(startHour);
 
   const onSubmit = async (data: FormData) => {
+    if (step !== 3) return; // Guard: only submit on final step
     if (!currentVenue?.id || !data.date) return;
 
     const space = spaces.find((s) => s.id === data.spaceId);
@@ -417,9 +418,9 @@ export function BookingWizard({
                 <div
                   className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200',
-                    step >= s
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-muted text-muted-foreground'
+                     step >= s
+                       ? 'bg-primary text-primary-foreground'
+                       : 'bg-muted text-muted-foreground'
                   )}
                 >
                   {step > s ? <Check className="h-4 w-4" /> : s}
@@ -428,7 +429,7 @@ export function BookingWizard({
                   <div
                     className={cn(
                       'w-12 h-1 rounded-full transition-all duration-200',
-                      step > s ? 'bg-primary-500' : 'bg-muted'
+                      step > s ? 'bg-primary' : 'bg-muted'
                     )}
                   />
                 )}
@@ -501,8 +502,8 @@ export function BookingWizard({
                                   className="cursor-pointer"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                                      <User className="h-4 w-4 text-primary-600" />
+                                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                       <User className="h-4 w-4 text-primary" />
                                     </div>
                                     <div>
                                       <div className="font-medium">{customer.name}</div>
@@ -583,8 +584,8 @@ export function BookingWizard({
                             className={cn(
                               'p-3 cursor-pointer transition-all duration-200 border-2',
                               isSelected
-                                ? 'border-primary-500 shadow-soft bg-primary-50/50'
-                                : 'border-transparent hover:border-muted hover:shadow-soft'
+                                 ? 'border-primary shadow-sm bg-primary/5'
+                                 : 'border-transparent hover:border-muted hover:shadow-sm'
                             )}
                             onClick={() => setValue('spaceId', space.id)}
                           >
@@ -600,7 +601,7 @@ export function BookingWizard({
                       })}
                     </div>
                     {errors.spaceId && (
-                      <p className="text-sm text-error-500 mt-1">{errors.spaceId.message}</p>
+                      <p className="text-sm text-destructive mt-1">{errors.spaceId.message}</p>
                     )}
                   </div>
 
@@ -742,8 +743,8 @@ export function BookingWizard({
                   {/* Booking summary */}
                   <Card className="p-4 space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary-600" />
+                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                         <User className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <div className="font-medium">{customerName}</div>
@@ -795,8 +796,8 @@ export function BookingWizard({
                   <Card className="p-4 border-dashed">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-accent-100 flex items-center justify-center">
-                          <Repeat className="h-5 w-5 text-accent-600" />
+                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                           <Repeat className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
                           <Label className="text-sm font-medium">Reserva Recorrente</Label>
@@ -874,14 +875,14 @@ export function BookingWizard({
 
                   {/* Price card */}
                   {pricePreview !== null && (
-                    <Card className="p-4 bg-success-50 border-success-200">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">
-                          {isRecurring && recurrenceCount
-                            ? `Total (${recurrenceCount} reservas)`
-                            : 'Total'}
-                        </span>
-                        <span className="text-xl font-bold text-primary-600">
+                   <Card className="p-4 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                       <div className="flex items-center justify-between">
+                         <span className="font-medium">
+                           {isRecurring && recurrenceCount
+                             ? `Total (${recurrenceCount} reservas)`
+                             : 'Total'}
+                         </span>
+                         <span className="text-xl font-bold text-primary">
                           {formatCurrency(
                             pricePreview * (isRecurring && recurrenceCount ? parseInt(recurrenceCount) : 1)
                           )}
@@ -914,7 +915,7 @@ export function BookingWizard({
                   type="button"
                   onClick={() => setStep(step + 1)}
                   disabled={step === 1 ? !canProceedToStep2 : !canProceedToStep3}
-                  className="bg-primary-500 hover:bg-primary-600"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   Continuar
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -923,7 +924,7 @@ export function BookingWizard({
                 <Button
                   type="submit"
                   disabled={createBookingAtomic.isPending || createRecurringBookings.isPending}
-                  className="bg-success-600 hover:bg-success-700"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   {(createBookingAtomic.isPending || createRecurringBookings.isPending) ? 'Criando...' : 'Confirmar Reserva'}
                   <Check className="h-4 w-4 ml-1" />
