@@ -62,6 +62,8 @@ interface OperatingHourPublic {
   open_time: string;
   close_time: string;
   is_open: boolean;
+  lunch_start: string | null;
+  lunch_end: string | null;
 }
 
 function generateTimeSlots(startHour: number, endHour: number) {
