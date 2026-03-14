@@ -145,7 +145,7 @@ export function MensalistasTab() {
         const futureBookings = group.bookings.filter(b =>
           isBefore(now, parseISO(b.start_time)) && b.status !== 'CANCELLED'
         );
-        const completedBookings = group.bookings.filter(b => b.status === 'FINALIZED' || b.status === 'COMPLETED');
+        const completedBookings = group.bookings.filter(b => b.status === 'FINALIZED');
         const cancelledBookings = group.bookings.filter(b => b.status === 'CANCELLED');
         const confirmedFuture = futureBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'PENDING');
 
