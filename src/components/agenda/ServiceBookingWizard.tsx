@@ -60,6 +60,7 @@ import {
   Heart,
   Scissors,
   Loader2,
+  PackageCheck,
 } from 'lucide-react';
 import type { Service, ProfessionalAvailability } from '@/types/services';
 import { getServiceIcon } from '@/lib/segment-utils';
