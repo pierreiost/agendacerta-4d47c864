@@ -32,10 +32,11 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { CustomerHistorySheet } from '@/components/customers/CustomerHistorySheet';
 import { AllPackagesTab } from '@/components/customers/AllPackagesTab';
+import { MensalistasTab } from '@/components/customers/MensalistasTab';
 import { SellPackageDialog } from '@/components/customers/SellPackageDialog';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import { useVenue } from '@/contexts/VenueContext';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History, Package } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History, Package, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { maskPhone, maskCPFCNPJ, unmask } from '@/lib/masks';
@@ -45,6 +46,7 @@ export default function Clientes() {
   const { customers, isLoading, deleteCustomer } = useCustomers();
   const { currentVenue } = useVenue();
   const showPackagesTab = currentVenue?.segment === 'beauty' || currentVenue?.segment === 'health';
+  const showMensalistasTab = currentVenue?.segment === 'sports';
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('clientes');
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -330,22 +332,36 @@ export default function Clientes() {
           </Button>
         </div>
 
-        {showPackagesTab ? (
+        {(showPackagesTab || showMensalistasTab) ? (
           <Tabs defaultValue="clientes">
             <TabsList>
               <TabsTrigger value="clientes">
                 <Users className="h-4 w-4 mr-1" /> Clientes
               </TabsTrigger>
-              <TabsTrigger value="pacotes">
-                <Package className="h-4 w-4 mr-1" /> Pacotes Ativos
-              </TabsTrigger>
+              {showPackagesTab && (
+                <TabsTrigger value="pacotes">
+                  <Package className="h-4 w-4 mr-1" /> Pacotes Ativos
+                </TabsTrigger>
+              )}
+              {showMensalistasTab && (
+                <TabsTrigger value="mensalistas">
+                  <CalendarClock className="h-4 w-4 mr-1" /> Mensalistas
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="clientes" className="mt-4">
               {clienteListContent}
             </TabsContent>
-            <TabsContent value="pacotes" className="mt-4">
-              <AllPackagesTab />
-            </TabsContent>
+            {showPackagesTab && (
+              <TabsContent value="pacotes" className="mt-4">
+                <AllPackagesTab />
+              </TabsContent>
+            )}
+            {showMensalistasTab && (
+              <TabsContent value="mensalistas" className="mt-4">
+                <MensalistasTab />
+              </TabsContent>
+            )}
           </Tabs>
         ) : (
           clienteListContent
