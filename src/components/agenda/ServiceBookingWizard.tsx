@@ -173,6 +173,7 @@ export function ServiceBookingWizard({
       setLocalServiceIds([]);
       setLocalProfessionalId('');
       setLocalStartTime('');
+      setUsePackage(false);
       initialLoadRef.current = false;
     } else {
       initialLoadRef.current = true;
