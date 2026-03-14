@@ -278,6 +278,7 @@ export function ServiceBookingWizard({
   const canProceedToStep4 = localStartTime;
 
   const onSubmit = async (data: FormData) => {
+    if (step !== 4) return; // Guard: only submit on final step
     if (!currentVenue?.id) return;
     
     setIsSubmitting(true);
