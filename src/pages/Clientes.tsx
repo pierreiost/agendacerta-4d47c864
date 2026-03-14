@@ -119,64 +119,45 @@ export default function Clientes() {
     setHistoryOpen(true);
   };
 
-  return (
-    <AppLayout title="Clientes">
-      <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Clientes</h1>
-          </div>
-          <Button onClick={handleNewCustomer}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Cliente
-          </Button>
+  const clienteListContent = (
+    <div className="space-y-4">
+      {/* Search + Counter */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, email, telefone ou documento..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
-
-        {showPackagesTab ? (
-          <Tabs defaultValue="clientes">
-            <TabsList>
-              <TabsTrigger value="clientes">
-                <Users className="h-4 w-4 mr-1" /> Clientes
-              </TabsTrigger>
-              <TabsTrigger value="pacotes">
-                <Package className="h-4 w-4 mr-1" /> Pacotes Ativos
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="clientes" className="mt-4">
-              {clienteListContent}
-            </TabsContent>
-            <TabsContent value="pacotes" className="mt-4">
-              <AllPackagesTab />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          clienteListContent
-        )}
+        <Badge variant="secondary" className="text-sm whitespace-nowrap self-start sm:self-auto">
+          {filteredCustomers.length} {filteredCustomers.length === 1 ? 'cliente' : 'clientes'}
+        </Badge>
       </div>
 
-        {/* Table */}
-        <Card className="shadow-card">
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredCustomers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">
-                  {searchTerm ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'}
-                </p>
-                {!searchTerm && (
-                  <Button variant="link" onClick={handleNewCustomer} className="mt-2">
-                    Cadastrar primeiro cliente
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
+      {/* Table */}
+      <Card className="shadow-card">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground">
+                {searchTerm ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'}
+              </p>
+              {!searchTerm && (
+                <Button variant="link" onClick={handleNewCustomer} className="mt-2">
+                  Cadastrar primeiro cliente
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
               {/* Desktop table */}
               <div className="hidden md:block">
                 <Table>
@@ -307,10 +288,48 @@ export default function Clientes() {
                   </div>
                 ))}
               </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  return (
+    <AppLayout title="Clientes">
+      <div className="space-y-6 animate-fade-in">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold">Clientes</h1>
+          </div>
+          <Button onClick={handleNewCustomer}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Cliente
+          </Button>
+        </div>
+
+        {showPackagesTab ? (
+          <Tabs defaultValue="clientes">
+            <TabsList>
+              <TabsTrigger value="clientes">
+                <Users className="h-4 w-4 mr-1" /> Clientes
+              </TabsTrigger>
+              <TabsTrigger value="pacotes">
+                <Package className="h-4 w-4 mr-1" /> Pacotes Ativos
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="clientes" className="mt-4">
+              {clienteListContent}
+            </TabsContent>
+            <TabsContent value="pacotes" className="mt-4">
+              <AllPackagesTab />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          clienteListContent
+        )}
       </div>
 
       {/* Form Dialog */}
