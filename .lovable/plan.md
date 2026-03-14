@@ -1,38 +1,68 @@
 
+# Reservas em tempo real no Dashboard
 
-## Plano: Mover recorrência para Step 3 + Corrigir scroll definitivo
+## Problema
+Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
 
-### Problema raiz do scroll
-O `DialogContent` base em `dialog.tsx` (linha 39) aplica `max-h-[90vh] overflow-y-auto` por padrão. Os wizards tentam usar `overflow-hidden` para controlar o scroll internamente, mas a regra CSS `[&.overflow-hidden]:overflow-hidden [&.overflow-hidden]:max-h-none` remove o `max-h`, fazendo o modal crescer sem limite e sem scroll nativo funcional. A div interna `overflow-y-auto` não tem altura fixa calculável porque o pai não tem constraint.
+## Solucao
 
-### Correção definitiva
+Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
 
-**1. `dialog.tsx` - Remover `max-h` e `overflow-y-auto` do default**
-- Trocar a classe base para **não** incluir `max-h-[90vh] overflow-y-auto` por padrão
-- Usar apenas `grid` layout base, sem overflow management
-- Cada dialog que precisar de scroll controlará isso via className
-- Remover a regra `[&.overflow-hidden]:overflow-hidden [&.overflow-hidden]:max-h-none`
-- Adicionar apenas `max-h-[90dvh] overflow-y-auto` como fallback quando nenhuma classe `overflow-*` ou `max-h-*` for passada (implementar via string check ou simplesmente deixar sem e cada consumer define)
+## Mudancas
 
-Na prática: a linha base fica sem `max-h` e sem `overflow`, e os wizards controlam via suas classes já aplicadas (`max-h-[92dvh] flex flex-col overflow-hidden`).
+### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
 
-**2. `BookingWizard.tsx` - Reestruturar steps**
-- Step 2: Remover seção de recorrência e card de preço. Manter apenas: Espaço, Data, Horário, Duração, Observações
-- Step 3 (Revisão + Recorrência): Sempre visível com resumo da reserva + toggle "Reserva Recorrente" (por padrão desligado). Ao ativar, mostra frequência e repetições inline. Card de preço total fica aqui, atualizado conforme recorrência
-- O step 3 atual de "Confirmação" incorpora a recorrência, então não há step 4 — continua com 3 steps
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+```
 
-**3. `CustomerFormDialog.tsx`** - Aplicar `max-h-[90dvh] overflow-y-auto` explícito (já funciona, só garantir `dvh`)
+### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
 
-**4. `ServiceBookingWizard.tsx` e `TechnicianBookingWizard.tsx`** - Sem mudança funcional, apenas garantir que o `DialogContent` funcione com a nova base do `dialog.tsx`
+Adicionar um `useEffect` no hook `useBookingQueries` que:
+- Cria um canal Supabase Realtime filtrado por `venue_id`
+- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
+- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
+- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
+- Faz cleanup do canal no return do useEffect
 
-### Arquivos alterados
-- `src/components/ui/dialog.tsx` — remover max-h/overflow default
-- `src/components/agenda/BookingWizard.tsx` — mover recorrência para step 3
-- `src/components/customers/CustomerFormDialog.tsx` — adicionar max-h-[90dvh] explícito
+```typescript
+// Realtime: atualiza automaticamente quando novas reservas chegam
+useEffect(() => {
+  if (!currentVenue?.id || !user) return;
 
-### Resultado esperado
-- Step 2 fica mais curto e scrollável naturalmente
-- Step 3 mostra resumo + toggle recorrência + preço, tudo scrollável
-- Scroll funciona via mouse wheel em todos os modais
-- Footer sempre visível e clicável
+  const channel = supabase
+    .channel(`bookings-realtime-${currentVenue.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `venue_id=eq.${currentVenue.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      }
+    )
+    .subscribe();
 
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentVenue?.id, user, queryClient]);
+```
+
+### Resumo
+
+| Acao | Ficheiro |
+|---|---|
+| Habilitar Realtime na tabela bookings | Migracao SQL |
+| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
+
+### Resultado
+
+- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
+- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
+- As metricas do dashboard (contadores) tambem se atualizam
+- Nenhum polling manual ou intervalo necessario

@@ -733,6 +733,63 @@ export function BookingWizard({
                       rows={2}
                     />
                   </div>
+                </div>
+              )}
+
+              {/* Step 3: Review + Recurrence */}
+              {step === 3 && (
+                <div className="space-y-4 animate-fade-in">
+                  {/* Booking summary */}
+                  <Card className="p-4 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                        <User className="h-5 w-5 text-primary-600" />
+                      </div>
+                      <div>
+                        <div className="font-medium">{customerName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {watch('customerEmail') || watch('customerPhone') || 'Sem contato'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Espaço</span>
+                        <p className="font-medium">{selectedSpace?.name}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Data</span>
+                        <p className="font-medium">
+                          {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Horário</span>
+                        <p className="font-medium">
+                          {startHour?.padStart(2, '0')}:00 - {endHour?.padStart(2, '0')}:00
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Duração</span>
+                        <p className="font-medium">
+                          {parseInt(endHour || '0') - parseInt(startHour || '0')} hora(s)
+                        </p>
+                      </div>
+                    </div>
+
+                    {watch('notes') && (
+                      <>
+                        <Separator />
+                        <div>
+                          <span className="text-sm text-muted-foreground">Observações</span>
+                          <p className="text-sm mt-1">{watch('notes')}</p>
+                        </div>
+                      </>
+                    )}
+                  </Card>
 
                   {/* Recurrence Toggle */}
                   <Card className="p-4 border-dashed">
@@ -815,127 +872,26 @@ export function BookingWizard({
                     )}
                   </Card>
 
-                  {/* Price preview */}
+                  {/* Price card */}
                   {pricePreview !== null && (
                     <Card className="p-4 bg-success-50 border-success-200">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-success-700">
+                        <span className="font-medium">
                           {isRecurring && recurrenceCount
-                            ? `Valor total (${recurrenceCount}x)`
-                            : 'Valor estimado'}
+                            ? `Total (${recurrenceCount} reservas)`
+                            : 'Total'}
                         </span>
-                        <span className="text-lg font-semibold text-success-700">
+                        <span className="text-xl font-bold text-primary-600">
                           {formatCurrency(
                             pricePreview * (isRecurring && recurrenceCount ? parseInt(recurrenceCount) : 1)
                           )}
                         </span>
                       </div>
                       {isRecurring && recurrenceCount && (
-                        <div className="text-xs text-success-600 mt-1">
+                        <div className="text-xs text-muted-foreground text-right mt-1">
                           {formatCurrency(pricePreview)} por reserva
                         </div>
                       )}
-                    </Card>
-                  )}
-                </div>
-              )}
-
-              {/* Step 3: Confirmation */}
-              {step === 3 && (
-                <div className="space-y-4 animate-fade-in">
-                  <Card className="p-4 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary-600" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{customerName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {watch('customerEmail') || watch('customerPhone') || 'Sem contato'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Espaço</span>
-                        <p className="font-medium">{selectedSpace?.name}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Data inicial</span>
-                        <p className="font-medium">
-                          {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Horário</span>
-                        <p className="font-medium">
-                          {startHour?.padStart(2, '0')}:00 - {endHour?.padStart(2, '0')}:00
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Duração</span>
-                        <p className="font-medium">
-                          {parseInt(endHour || '0') - parseInt(startHour || '0')} hora(s)
-                        </p>
-                      </div>
-                    </div>
-
-                    {isRecurring && recurrenceType && recurrenceCount && (
-                      <>
-                        <Separator />
-                        <div className="bg-accent-50 rounded-lg p-3 border border-accent-200">
-                          <div className="flex items-center gap-2 text-accent-700 mb-2">
-                            <Repeat className="h-4 w-4" />
-                            <span className="font-medium text-sm">Reserva Recorrente</span>
-                          </div>
-                          <div className="text-sm text-accent-600">
-                            {recurrenceType === 'weekly' && (
-                              <>
-                                <strong>{recurrenceCount} reservas</strong> semanais
-                                (toda {format(selectedDate || new Date(), 'EEEE', { locale: ptBR })})
-                              </>
-                            )}
-                            {recurrenceType === 'monthly' && (
-                              <>
-                                <strong>{recurrenceCount} reservas</strong> mensais
-                                (todo dia {format(selectedDate || new Date(), 'd', { locale: ptBR })})
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    <Separator />
-
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {isRecurring && recurrenceCount
-                          ? `Total (${recurrenceCount} reservas)`
-                          : 'Total'}
-                      </span>
-                      <span className="text-xl font-bold text-primary-600">
-                        {pricePreview !== null
-                          ? formatCurrency(
-                              pricePreview * (isRecurring && recurrenceCount ? parseInt(recurrenceCount) : 1)
-                            )
-                          : '-'}
-                      </span>
-                    </div>
-                    {isRecurring && recurrenceCount && pricePreview !== null && (
-                      <div className="text-xs text-muted-foreground text-right">
-                        {formatCurrency(pricePreview)} por reserva
-                      </div>
-                    )}
-                  </Card>
-
-                  {watch('notes') && (
-                    <Card className="p-4">
-                      <span className="text-sm text-muted-foreground">Observações</span>
-                      <p className="text-sm mt-1">{watch('notes')}</p>
                     </Card>
                   )}
                 </div>
