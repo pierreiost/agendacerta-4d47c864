@@ -601,7 +601,7 @@ export function BookingWizard({
                       })}
                     </div>
                     {errors.spaceId && (
-                      <p className="text-sm text-error-500 mt-1">{errors.spaceId.message}</p>
+                      <p className="text-sm text-destructive mt-1">{errors.spaceId.message}</p>
                     )}
                   </div>
 
