@@ -319,6 +319,7 @@ export function ServiceBookingWizard({
 
   // Synchronize local state into form right before submit so zod validation passes
   const handleFormSubmit = () => {
+    if (!confirmArmed || submitLockRef.current || isSubmitting) return;
     setValue('serviceIds', localServiceIds);
     setValue('professionalId', localProfessionalId);
     setValue('startTime', localStartTime);
