@@ -62,6 +62,8 @@ interface OperatingHourPublic {
   open_time: string;
   close_time: string;
   is_open: boolean;
+  lunch_start: string | null;
+  lunch_end: string | null;
 }
 
 function generateTimeSlots(startHour: number, endHour: number) {
@@ -146,7 +148,7 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
       if (!venue?.id) return [];
       const { data, error } = await (supabase as any)
         .from('venue_operating_hours')
-        .select('day_of_week, open_time, close_time, is_open')
+        .select('day_of_week, open_time, close_time, is_open, lunch_start, lunch_end')
         .eq('venue_id', venue.id)
         .order('day_of_week');
       if (error) throw error;
@@ -164,12 +166,24 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
 
   const isDayClosed = selectedDayHours ? !selectedDayHours.is_open : false;
 
-  // Generate dynamic time slots based on operating hours
+  // Generate dynamic time slots based on operating hours (respecting lunch break)
   const timeSlots = useMemo(() => {
     if (!selectedDayHours || !selectedDayHours.is_open) return [];
     const openHour = parseInt(selectedDayHours.open_time.split(':')[0], 10);
     const closeHour = parseInt(selectedDayHours.close_time.split(':')[0], 10);
-    return generateTimeSlots(openHour, closeHour);
+    const allSlots = generateTimeSlots(openHour, closeHour);
+
+    // Filter out lunch break slots
+    if (selectedDayHours.lunch_start && selectedDayHours.lunch_end) {
+      const lunchStartHour = parseInt(selectedDayHours.lunch_start.split(':')[0], 10);
+      const lunchEndHour = parseInt(selectedDayHours.lunch_end.split(':')[0], 10);
+      return allSlots.filter(slot => {
+        const slotHour = parseInt(slot.start.split(':')[0], 10);
+        return slotHour < lunchStartHour || slotHour >= lunchEndHour;
+      });
+    }
+
+    return allSlots;
   }, [selectedDayHours]);
   useEffect(() => {
     return () => {
