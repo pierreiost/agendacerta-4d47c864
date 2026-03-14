@@ -336,9 +336,9 @@ export function TechnicianBookingWizard({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[600px] p-0 gap-0 max-h-[92dvh] flex flex-col overflow-hidden" aria-describedby={undefined}>
           {/* Progress indicator - 3 steps now */}
-          <div className="flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
+          <div className="shrink-0 flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div
