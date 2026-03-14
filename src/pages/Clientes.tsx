@@ -27,12 +27,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
 import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { CustomerHistorySheet } from '@/components/customers/CustomerHistorySheet';
+import { AllPackagesTab } from '@/components/customers/AllPackagesTab';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import { useVenue } from '@/contexts/VenueContext';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Users, Mail, Phone, Loader2, History, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { maskPhone, maskCPFCNPJ, unmask } from '@/lib/masks';
