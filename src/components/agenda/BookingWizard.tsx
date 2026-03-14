@@ -429,7 +429,7 @@ export function BookingWizard({
                   <div
                     className={cn(
                       'w-12 h-1 rounded-full transition-all duration-200',
-                      step > s ? 'bg-primary-500' : 'bg-muted'
+                      step > s ? 'bg-primary' : 'bg-muted'
                     )}
                   />
                 )}
