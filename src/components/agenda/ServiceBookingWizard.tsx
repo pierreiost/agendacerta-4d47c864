@@ -362,7 +362,7 @@ export function ServiceBookingWizard({
             ))}
           </div>
 
-          <DialogHeader className="px-6 pt-4">
+          <DialogHeader className="shrink-0 px-6 pt-4">
             <DialogTitle>
               {step === 1 && 'Selecionar Cliente'}
               {step === 2 && 'Selecionar Serviços'}
@@ -372,8 +372,9 @@ export function ServiceBookingWizard({
           </DialogHeader>
 
           {/* Use div instead of form to prevent accidental submit; we call handleFormSubmit manually */}
-          <div>
-            <div className="px-6 py-4 min-h-[350px]">
+          <div className="flex flex-col min-h-0 flex-1">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="px-6 py-4 pb-6 min-h-[250px]">
               {/* Step 1: Customer */}
               {step === 1 && (
                 <div className="space-y-4 animate-fade-in">
