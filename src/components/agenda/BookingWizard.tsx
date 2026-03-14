@@ -418,9 +418,9 @@ export function BookingWizard({
                 <div
                   className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200',
-                    step >= s
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-muted text-muted-foreground'
+                     step >= s
+                       ? 'bg-primary text-primary-foreground'
+                       : 'bg-muted text-muted-foreground'
                   )}
                 >
                   {step > s ? <Check className="h-4 w-4" /> : s}
