@@ -75,6 +75,8 @@ const formatCurrency = (value: number) =>
 export function CustomerHistorySheet({ open, onOpenChange, customer, venueSegment }: CustomerHistorySheetProps) {
   const [showRecordForm, setShowRecordForm] = useState(false);
   const isHealth = venueSegment === 'health';
+  const isBeauty = venueSegment === 'beauty';
+  const showPackages = isHealth || isBeauty;
 
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['customer-history', customer?.id],
