@@ -332,22 +332,36 @@ export default function Clientes() {
           </Button>
         </div>
 
-        {showPackagesTab ? (
+        {(showPackagesTab || showMensalistasTab) ? (
           <Tabs defaultValue="clientes">
             <TabsList>
               <TabsTrigger value="clientes">
                 <Users className="h-4 w-4 mr-1" /> Clientes
               </TabsTrigger>
-              <TabsTrigger value="pacotes">
-                <Package className="h-4 w-4 mr-1" /> Pacotes Ativos
-              </TabsTrigger>
+              {showPackagesTab && (
+                <TabsTrigger value="pacotes">
+                  <Package className="h-4 w-4 mr-1" /> Pacotes Ativos
+                </TabsTrigger>
+              )}
+              {showMensalistasTab && (
+                <TabsTrigger value="mensalistas">
+                  <CalendarClock className="h-4 w-4 mr-1" /> Mensalistas
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="clientes" className="mt-4">
               {clienteListContent}
             </TabsContent>
-            <TabsContent value="pacotes" className="mt-4">
-              <AllPackagesTab />
-            </TabsContent>
+            {showPackagesTab && (
+              <TabsContent value="pacotes" className="mt-4">
+                <AllPackagesTab />
+              </TabsContent>
+            )}
+            {showMensalistasTab && (
+              <TabsContent value="mensalistas" className="mt-4">
+                <MensalistasTab />
+              </TabsContent>
+            )}
           </Tabs>
         ) : (
           clienteListContent
