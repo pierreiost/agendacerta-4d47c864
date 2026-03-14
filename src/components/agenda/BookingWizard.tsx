@@ -36,7 +36,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
@@ -410,9 +409,9 @@ export function BookingWizard({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden" aria-describedby={undefined}>
+        <DialogContent className="sm:max-w-[600px] p-0 gap-0 max-h-[92dvh] flex flex-col overflow-hidden" aria-describedby={undefined}>
           {/* Progress indicator */}
-          <div className="flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
+          <div className="shrink-0 flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div
@@ -437,7 +436,7 @@ export function BookingWizard({
             ))}
           </div>
 
-          <DialogHeader className="px-6 pt-4">
+          <DialogHeader className="shrink-0 px-6 pt-4">
             <DialogTitle>
               {step === 1 && 'Selecionar Cliente'}
               {step === 2 && 'Detalhes da Reserva'}
@@ -445,9 +444,9 @@ export function BookingWizard({
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <ScrollArea className="max-h-[60vh] md:max-h-[65vh] overflow-hidden">
-            <div className="px-4 md:px-6 py-4 min-h-[250px]">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col min-h-0 flex-1">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="px-4 md:px-6 py-4 pb-6 min-h-[250px]">
               {/* Step 1: Customer */}
               {step === 1 && (
                 <div className="space-y-4 animate-fade-in">
@@ -942,10 +941,10 @@ export function BookingWizard({
                 </div>
               )}
             </div>
-            </ScrollArea>
+            </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30">
+            <div className="shrink-0 flex items-center justify-between p-4 border-t border-border bg-muted/30">
               <Button
                 type="button"
                 variant="ghost"

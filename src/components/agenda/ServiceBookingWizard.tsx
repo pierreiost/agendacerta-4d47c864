@@ -335,9 +335,9 @@ export function ServiceBookingWizard({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[600px] p-0 gap-0 max-h-[92dvh] flex flex-col overflow-hidden" aria-describedby={undefined}>
           {/* Progress indicator */}
-          <div className="flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
+          <div className="shrink-0 flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
             {[1, 2, 3, 4].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div
@@ -362,7 +362,7 @@ export function ServiceBookingWizard({
             ))}
           </div>
 
-          <DialogHeader className="px-6 pt-4">
+          <DialogHeader className="shrink-0 px-6 pt-4">
             <DialogTitle>
               {step === 1 && 'Selecionar Cliente'}
               {step === 2 && 'Selecionar Serviços'}
@@ -372,8 +372,9 @@ export function ServiceBookingWizard({
           </DialogHeader>
 
           {/* Use div instead of form to prevent accidental submit; we call handleFormSubmit manually */}
-          <div>
-            <div className="px-6 py-4 min-h-[350px]">
+          <div className="flex flex-col min-h-0 flex-1">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="px-6 py-4 pb-6 min-h-[250px]">
               {/* Step 1: Customer */}
               {step === 1 && (
                 <div className="space-y-4 animate-fade-in">
@@ -812,9 +813,10 @@ export function ServiceBookingWizard({
                 </div>
               )}
             </div>
+            </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30">
+            <div className="shrink-0 flex items-center justify-between p-4 border-t border-border bg-muted/30">
               <Button
                 type="button"
                 variant="ghost"
