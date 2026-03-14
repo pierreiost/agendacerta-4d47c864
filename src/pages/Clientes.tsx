@@ -54,6 +54,8 @@ export default function Clientes() {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
+  const [sellPackageOpen, setSellPackageOpen] = useState(false);
+  const [sellPackageCustomerId, setSellPackageCustomerId] = useState<string | null>(null);
 
   // Restore modal state on mount
   useEffect(() => {
