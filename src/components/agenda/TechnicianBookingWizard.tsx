@@ -256,10 +256,15 @@ export function TechnicianBookingWizard({
     return serviceOrders.find(o => o.id === serviceOrderId);
   }, [serviceOrderId, serviceOrders]);
 
-  const onSubmit = async (data: FormData) => {
-    if (step !== 3) return; // Guard: only submit on final step
+  const handleFinalConfirm = () => {
+    if (step !== 3 || !confirmArmed || submitLockRef.current || isSubmitting) return;
+    handleSubmit(doSubmit)();
+  };
+
+  const doSubmit = async (data: FormData) => {
     if (!currentVenue?.id) return;
     
+    submitLockRef.current = true;
     setIsSubmitting(true);
     try {
       const startDateTime = new Date(data.startTime);
