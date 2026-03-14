@@ -733,7 +733,14 @@ export function TechnicianBookingWizard({
               {step < 3 ? (
                 <Button
                   type="button"
-                  onClick={() => setStep(s => s + 1)}
+                  onClick={() => {
+                    const nextStep = step + 1;
+                    setStep(nextStep);
+                    if (nextStep === 3) {
+                      setConfirmArmed(false);
+                      setTimeout(() => setConfirmArmed(true), 600);
+                    }
+                  }}
                   disabled={
                     (step === 1 && !canProceedToStep2) ||
                     (step === 2 && !canProceedToStep3)
@@ -743,12 +750,18 @@ export function TechnicianBookingWizard({
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting}>
+                <Button
+                  type="button"
+                  onClick={handleFinalConfirm}
+                  disabled={!confirmArmed || isSubmitting || submitLockRef.current}
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Criando...
                     </>
+                  ) : !confirmArmed ? (
+                    'Revise os dados...'
                   ) : (
                     <>
                       <Check className="h-4 w-4 mr-2" />
@@ -758,7 +771,7 @@ export function TechnicianBookingWizard({
                 </Button>
               )}
             </div>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
 

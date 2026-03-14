@@ -834,7 +834,14 @@ export function ServiceBookingWizard({
               {step < 4 ? (
                 <Button
                   type="button"
-                  onClick={() => setStep(step + 1)}
+                  onClick={() => {
+                    const nextStep = step + 1;
+                    setStep(nextStep);
+                    if (nextStep === 4) {
+                      setConfirmArmed(false);
+                      setTimeout(() => setConfirmArmed(true), 600);
+                    }
+                  }}
                   disabled={
                     (step === 1 && !canProceedToStep2) ||
                     (step === 2 && !canProceedToStep3) ||
@@ -848,11 +855,12 @@ export function ServiceBookingWizard({
                 <Button
                   type="button"
                   onClick={handleFormSubmit}
-                  disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
+                  disabled={!confirmArmed || isSubmitting || submitLockRef.current}
                 >
                   {isSubmitting ? (
                     <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Criando...</>
+                  ) : !confirmArmed ? (
+                    'Revise os dados...'
                   ) : (
                     <><Check className="h-4 w-4 mr-1" /> Confirmar</>
                   )}

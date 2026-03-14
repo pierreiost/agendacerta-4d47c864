@@ -925,25 +925,35 @@ export function BookingWizard({
               {step < 3 ? (
                 <Button
                   type="button"
-                  onClick={() => setStep(step + 1)}
+                  onClick={() => {
+                    const nextStep = step + 1;
+                    setStep(nextStep);
+                    if (nextStep === 3) {
+                      setConfirmArmed(false);
+                      setTimeout(() => setConfirmArmed(true), 600);
+                    }
+                  }}
                   disabled={step === 1 ? !canProceedToStep2 : !canProceedToStep3}
-                  className="bg-primary hover:bg-primary/90"
                 >
                   Continuar
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
                 <Button
-                  type="submit"
-                  disabled={createBookingAtomic.isPending || createRecurringBookings.isPending}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  type="button"
+                  onClick={handleFinalConfirm}
+                  disabled={!confirmArmed || createBookingAtomic.isPending || createRecurringBookings.isPending || submitLockRef.current}
                 >
-                  {(createBookingAtomic.isPending || createRecurringBookings.isPending) ? 'Criando...' : 'Confirmar Reserva'}
+                  {(createBookingAtomic.isPending || createRecurringBookings.isPending)
+                    ? 'Criando...'
+                    : !confirmArmed
+                      ? 'Revise os dados...'
+                      : 'Confirmar Reserva'}
                   <Check className="h-4 w-4 ml-1" />
                 </Button>
               )}
             </div>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
 
