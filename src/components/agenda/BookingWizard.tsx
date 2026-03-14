@@ -584,8 +584,8 @@ export function BookingWizard({
                             className={cn(
                               'p-3 cursor-pointer transition-all duration-200 border-2',
                               isSelected
-                                ? 'border-primary-500 shadow-soft bg-primary-50/50'
-                                : 'border-transparent hover:border-muted hover:shadow-soft'
+                                 ? 'border-primary shadow-sm bg-primary/5'
+                                 : 'border-transparent hover:border-muted hover:shadow-sm'
                             )}
                             onClick={() => setValue('spaceId', space.id)}
                           >
