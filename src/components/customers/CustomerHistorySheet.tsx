@@ -289,11 +289,32 @@ export function CustomerHistorySheet({ open, onOpenChange, customer, venueSegmen
                 <TabsTrigger value="prontuario" className="flex-1">
                   <Heart className="h-4 w-4 mr-1" /> Prontuário
                 </TabsTrigger>
+                <TabsTrigger value="pacotes" className="flex-1">
+                  <Package className="h-4 w-4 mr-1" /> Pacotes
+                </TabsTrigger>
                 <TabsTrigger value="historico" className="flex-1">
                   <Calendar className="h-4 w-4 mr-1" /> Histórico
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="prontuario" className="mt-4">{prontuarioContent}</TabsContent>
+              <TabsContent value="pacotes" className="mt-4">
+                <CustomerPackagesTab customerId={customer.id} />
+              </TabsContent>
+              <TabsContent value="historico" className="mt-4">{historyContent}</TabsContent>
+            </Tabs>
+          ) : isBeauty ? (
+            <Tabs defaultValue="pacotes">
+              <TabsList className="w-full">
+                <TabsTrigger value="pacotes" className="flex-1">
+                  <Package className="h-4 w-4 mr-1" /> Pacotes
+                </TabsTrigger>
+                <TabsTrigger value="historico" className="flex-1">
+                  <Calendar className="h-4 w-4 mr-1" /> Histórico
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="pacotes" className="mt-4">
+                <CustomerPackagesTab customerId={customer.id} />
+              </TabsContent>
               <TabsContent value="historico" className="mt-4">{historyContent}</TabsContent>
             </Tabs>
           ) : (
