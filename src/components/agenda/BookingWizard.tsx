@@ -410,7 +410,7 @@ export function BookingWizard({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden" aria-describedby={undefined}>
           {/* Progress indicator */}
           <div className="flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
             {[1, 2, 3].map((s) => (
