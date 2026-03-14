@@ -43,6 +43,7 @@ import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCustomerPackages } from '@/hooks/useCustomerPackages';
 import { format, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
