@@ -122,6 +122,11 @@ export default function Clientes() {
     setHistoryOpen(true);
   };
 
+  const handleSellPackage = (customer: Customer) => {
+    setSellPackageCustomerId(customer.id);
+    setSellPackageOpen(true);
+  };
+
   const clienteListContent = (
     <div className="space-y-4">
       {/* Search + Counter */}
