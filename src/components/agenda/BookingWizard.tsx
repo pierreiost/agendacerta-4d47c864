@@ -410,7 +410,7 @@ export function BookingWizard({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden" aria-describedby={undefined}>
           {/* Progress indicator */}
           <div className="flex items-center justify-center gap-2 p-4 bg-muted/30 border-b border-border">
             {[1, 2, 3].map((s) => (
@@ -446,7 +446,8 @@ export function BookingWizard({
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="px-6 py-4 min-h-[350px]">
+            <ScrollArea className="max-h-[60vh] md:max-h-[65vh]">
+            <div className="px-6 py-4 min-h-[250px]">
               {/* Step 1: Customer */}
               {step === 1 && (
                 <div className="space-y-4 animate-fade-in">
@@ -941,6 +942,7 @@ export function BookingWizard({
                 </div>
               )}
             </div>
+            </ScrollArea>
 
             {/* Footer */}
             <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30">
@@ -979,12 +981,7 @@ export function BookingWizard({
 
       <CustomerFormDialog
         open={newCustomerDialogOpen}
-        onOpenChange={(open) => {
-          setNewCustomerDialogOpen(open);
-          if (!open) {
-            // Refresh customers list when dialog closes
-          }
-        }}
+        onOpenChange={setNewCustomerDialogOpen}
         customer={null}
       />
     </>
