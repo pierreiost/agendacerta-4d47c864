@@ -942,6 +942,7 @@ export function BookingWizard({
                 </div>
               )}
             </div>
+            </ScrollArea>
 
             {/* Footer */}
             <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30">
