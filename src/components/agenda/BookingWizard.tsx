@@ -446,7 +446,8 @@ export function BookingWizard({
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="px-6 py-4 min-h-[350px]">
+            <ScrollArea className="max-h-[60vh] md:max-h-[65vh]">
+            <div className="px-6 py-4 min-h-[250px]">
               {/* Step 1: Customer */}
               {step === 1 && (
                 <div className="space-y-4 animate-fade-in">
