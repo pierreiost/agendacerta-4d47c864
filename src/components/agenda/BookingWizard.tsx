@@ -983,7 +983,6 @@ export function BookingWizard({
         open={newCustomerDialogOpen}
         onOpenChange={setNewCustomerDialogOpen}
         customer={null}
-        onCustomerCreated={handleNewCustomerCreated}
       />
     </>
   );
