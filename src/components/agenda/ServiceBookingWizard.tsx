@@ -787,9 +787,18 @@ export function ServiceBookingWizard({
                     {/* Total */}
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Total</span>
-                      <span className="text-xl font-bold text-primary">
-                        {formatCurrency(totalPrice)}
-                      </span>
+                      {usePackage && matchedPackage ? (
+                        <div className="text-right">
+                          <span className="line-through text-sm text-muted-foreground mr-2">{formatCurrency(totalPrice)}</span>
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            <PackageCheck className="h-3 w-3 mr-1" /> Pacote
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-xl font-bold text-primary">
+                          {formatCurrency(totalPrice)}
+                        </span>
+                      )}
                     </div>
                   </Card>
 
