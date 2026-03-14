@@ -132,6 +132,18 @@ export function ServiceBookingWizard({
   // Only watch scalar fields that don't cause reference-instability loops
   const customerName = watch('customerName');
   const selectedDate = watch('date');
+  const customerId = watch('customerId');
+
+  // Package detection
+  const { activePackages } = useCustomerPackages(customerId);
+  const matchedPackage = useMemo(() => {
+    if (!activePackages || localServiceIds.length === 0) return null;
+    return activePackages.find(pkg =>
+      localServiceIds.includes(pkg.service_id) &&
+      pkg.used_sessions < pkg.total_sessions &&
+      (!pkg.expires_at || new Date(pkg.expires_at) > new Date())
+    ) || null;
+  }, [activePackages, localServiceIds]);
 
   // Fetch availability using stable local state (no watch() involved)
   const { data: availability, isLoading: availabilityLoading } = useProfessionalAvailability(
