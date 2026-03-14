@@ -129,6 +129,8 @@ export function BookingWizard({
   const [customerPopoverOpen, setCustomerPopoverOpen] = useState(false);
   const [newCustomerDialogOpen, setNewCustomerDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [confirmArmed, setConfirmArmed] = useState(false);
+  const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
   const { customers } = useCustomers();
