@@ -43,6 +43,7 @@ import { Badge } from '@/components/ui/badge';
 export default function Clientes() {
   const { customers, isLoading, deleteCustomer } = useCustomers();
   const { currentVenue } = useVenue();
+  const showPackagesTab = currentVenue?.segment === 'beauty' || currentVenue?.segment === 'health';
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('clientes');
   
   const [searchTerm, setSearchTerm] = useState('');
