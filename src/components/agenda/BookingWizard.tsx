@@ -981,13 +981,9 @@ export function BookingWizard({
 
       <CustomerFormDialog
         open={newCustomerDialogOpen}
-        onOpenChange={(open) => {
-          setNewCustomerDialogOpen(open);
-          if (!open) {
-            // Refresh customers list when dialog closes
-          }
-        }}
+        onOpenChange={setNewCustomerDialogOpen}
         customer={null}
+        onCustomerCreated={handleNewCustomerCreated}
       />
     </>
   );
