@@ -46,6 +46,7 @@ export default function Clientes() {
   const { customers, isLoading, deleteCustomer } = useCustomers();
   const { currentVenue } = useVenue();
   const showPackagesTab = currentVenue?.segment === 'beauty' || currentVenue?.segment === 'health';
+  const showMensalistasTab = currentVenue?.segment === 'sports';
   const { isReady, registerModal, setModalState, clearModal } = useModalPersist('clientes');
   
   const [searchTerm, setSearchTerm] = useState('');
