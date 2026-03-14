@@ -340,6 +340,7 @@ export function BookingWizard({
     selectedSpaceId && selectedDate && startHour && endHour && parseInt(endHour) > parseInt(startHour);
 
   const onSubmit = async (data: FormData) => {
+    if (step !== 3) return; // Guard: only submit on final step
     if (!currentVenue?.id || !data.date) return;
 
     const space = spaces.find((s) => s.id === data.spaceId);
