@@ -96,7 +96,7 @@ export function ServiceBookingWizard({
   const [newCustomerDialogOpen, setNewCustomerDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [usePackage, setUsePackage] = useState(false);
   // --- Local state for fields that previously caused re-render loops via watch() ---
   const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
   const [localProfessionalId, setLocalProfessionalId] = useState('');
