@@ -406,6 +406,7 @@ export function BookingWizard({
             clearDraft();
             onOpenChange(false);
           },
+          onSettled: () => { submitLockRef.current = false; },
         }
       );
     }
