@@ -626,6 +626,23 @@ export function ServiceBookingWizard({
                     </div>
                   )}
 
+                  {/* Package alert */}
+                  {matchedPackage && (
+                    <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
+                      <PackageCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-sm text-green-800 dark:text-green-300">
+                          Pacote ativo: <strong>{matchedPackage.service_title}</strong>. Restam{' '}
+                          {matchedPackage.total_sessions - matchedPackage.used_sessions} de {matchedPackage.total_sessions} sessões.
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Usar pacote?</span>
+                          <Switch checked={usePackage} onCheckedChange={setUsePackage} />
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   {/* Summary */}
                   {selectedServices.length > 0 && (
                     <Card className="p-3 bg-muted/50">
@@ -633,7 +650,14 @@ export function ServiceBookingWizard({
                         <span className="text-muted-foreground">
                           {selectedServices.length} serviço(s) • {totalDuration} min
                         </span>
-                        <span className="font-semibold">{formatCurrency(totalPrice)}</span>
+                        <span className="font-semibold">
+                          {usePackage && matchedPackage ? (
+                            <span className="flex items-center gap-2">
+                              <span className="line-through text-muted-foreground">{formatCurrency(totalPrice)}</span>
+                              <span className="text-green-600 dark:text-green-400">Cortesia</span>
+                            </span>
+                          ) : formatCurrency(totalPrice)}
+                        </span>
                       </div>
                     </Card>
                   )}
