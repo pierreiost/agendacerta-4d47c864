@@ -112,18 +112,7 @@ export function ServiceBookingWizard({
   const venueSegment = (currentVenue as { segment?: string })?.segment;
   const ServiceIcon = getServiceIcon(venueSegment);
 
-  // Package detection
-  const customerId = watch('customerId');
-  const { activePackages } = useCustomerPackages(customerId);
 
-  const matchedPackage = useMemo(() => {
-    if (!activePackages || localServiceIds.length === 0) return null;
-    return activePackages.find(pkg =>
-      localServiceIds.includes(pkg.service_id) &&
-      pkg.used_sessions < pkg.total_sessions &&
-      (!pkg.expires_at || new Date(pkg.expires_at) > new Date())
-    ) || null;
-  }, [activePackages, localServiceIds]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
