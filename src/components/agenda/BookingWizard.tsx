@@ -198,6 +198,10 @@ export function BookingWizard({
   // Generate available time slots based on operating hours
   const availableTimeSlots = useMemo(() => {
     if (!selectedDate) return [];
+    // Block past dates entirely
+    const today = startOfDay(new Date());
+    if (isBefore(selectedDate, today)) return [];
+    
     const dayOfWeek = selectedDate.getDay();
     const dayConfig = operatingHours.find(h => h.day_of_week === dayOfWeek);
     if (!dayConfig || !dayConfig.is_open) return [];
