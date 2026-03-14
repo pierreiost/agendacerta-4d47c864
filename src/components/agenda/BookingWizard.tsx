@@ -796,8 +796,8 @@ export function BookingWizard({
                   <Card className="p-4 border-dashed">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-accent-100 flex items-center justify-center">
-                          <Repeat className="h-5 w-5 text-accent-600" />
+                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                           <Repeat className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
                           <Label className="text-sm font-medium">Reserva Recorrente</Label>
