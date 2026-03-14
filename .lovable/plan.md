@@ -1,68 +1,51 @@
 
-# Reservas em tempo real no Dashboard
 
-## Problema
-Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
+## Diagnóstico
 
-## Solucao
+Analisei o `BookingWizard.tsx`, `dialog.tsx` e o `tailwind.config.ts`. Dois problemas distintos:
 
-Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
+### 1. Auto-submit no Step 3
+O `<form onSubmit={handleSubmit(onSubmit)}>` envolve todo o wizard. Quando o usuário clica "Continuar" no step 2, o `setStep(3)` roda, mas não há nenhuma guard no `onSubmit` que impeça submissão se `step !== 3`. Se por algum motivo o form disparar submit (ex: enter implícito, double-click rápido que pega o botão "Confirmar" que aparece no lugar do "Continuar"), a reserva é criada imediatamente.
 
-## Mudancas
+**Correção**: Adicionar guard `if (step !== 3) return;` no início do `onSubmit`. Isso garante que, mesmo que o form submeta acidentalmente, nada acontece se não estiver na tela 3.
 
-### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
+### 2. Scroll não funciona com mouse wheel
+O `DialogContent` usa `overflow-hidden` que bloqueia propagação de scroll para filhos. O `overflow-y-auto` na div interna deveria funcionar, mas o Radix Dialog pode estar interceptando o evento de scroll. O `overflow-hidden` no container pai impede o scroll nativo de borbulhar.
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-```
+**Correção**: Trocar a estrutura: remover `overflow-hidden` do `DialogContent` e usar `max-h-[92dvh] overflow-y-auto` diretamente. O header e footer ficam dentro do fluxo normal do scroll (não fixos via flex), usando `sticky` para o footer ficar sempre visível.
 
-### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+Alternativa mais limpa: manter `overflow-hidden` no `DialogContent` mas garantir que a div scrollável tenha altura explícita calculada (não depender de `flex-1 min-h-0` que pode falhar em certos browsers). Usar `overflow-y-auto` com `-webkit-overflow-scrolling: touch`.
 
-Adicionar um `useEffect` no hook `useBookingQueries` que:
-- Cria um canal Supabase Realtime filtrado por `venue_id`
-- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
-- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
-- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
-- Faz cleanup do canal no return do useEffect
+### 3. Cores "estouradas"
+As classes `bg-primary-500`, `bg-success-600`, `bg-accent-100` resolvem para cores com saturação 84%, que são muito vibrantes. Trocar para classes padrão do shadcn/tailwind: `bg-primary`, `text-primary-foreground`, `bg-green-50`, etc.
 
-```typescript
-// Realtime: atualiza automaticamente quando novas reservas chegam
-useEffect(() => {
-  if (!currentVenue?.id || !user) return;
+## Plano de implementação
 
-  const channel = supabase
-    .channel(`bookings-realtime-${currentVenue.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `venue_id=eq.${currentVenue.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
-      }
-    )
-    .subscribe();
+### Arquivo: `src/components/agenda/BookingWizard.tsx`
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentVenue?.id, user, queryClient]);
-```
+1. **Guard no onSubmit**: Adicionar `if (step !== 3) return;` como primeira linha
+2. **Reestruturar layout do modal**:
+   - `DialogContent`: `max-h-[92dvh] flex flex-col p-0 gap-0` (sem `overflow-hidden`)
+   - Header (progress + title): `shrink-0`
+   - Body: `flex-1 min-h-0 overflow-y-auto overscroll-contain` (scroll nativo, sem ScrollArea)
+   - Footer: `shrink-0 sticky bottom-0`
+3. **Corrigir cores**: Substituir todas as classes de cor com número (`primary-500`, `success-50`, `accent-100` etc.) por equivalentes neutros/padrão:
+   - `bg-primary-500` → `bg-primary`
+   - `bg-primary-600` → `bg-primary/90`
+   - `bg-primary-100` → `bg-primary/10`
+   - `text-primary-600` → `text-primary`
+   - `bg-success-50` → `bg-green-50`
+   - `bg-success-600` → `bg-green-600`
+   - `bg-accent-100` → `bg-muted`
+   - `text-accent-600` → `text-muted-foreground`
+   - `border-primary-500` → `border-primary`
 
-### Resumo
+### Arquivos: `ServiceBookingWizard.tsx`, `TechnicianBookingWizard.tsx`
+- Mesma correção de estrutura de scroll (se aplicável)
+- Mesma correção de cores estouradas
 
-| Acao | Ficheiro |
-|---|---|
-| Habilitar Realtime na tabela bookings | Migracao SQL |
-| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
+### Resultado esperado
+- Step 3 sempre para e mostra resumo + toggle recorrência
+- Scroll funciona via mouse wheel e touch
+- Cores neutras e profissionais, sem saturação excessiva
 
-### Resultado
-
-- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
-- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
-- As metricas do dashboard (contadores) tambem se atualizam
-- Nenhum polling manual ou intervalo necessario
