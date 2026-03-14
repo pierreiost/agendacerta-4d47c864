@@ -36,6 +36,7 @@ import {
   Plus,
   Heart,
   Scissors,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
