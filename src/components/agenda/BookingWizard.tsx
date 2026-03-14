@@ -274,6 +274,8 @@ export function BookingWizard({
     if (open) {
       setStep(1);
       setSelectedDuration(null);
+      setConfirmArmed(false);
+      submitLockRef.current = false;
       // Only reset with defaultSlot values if this is a fresh open with a slot
       if (defaultSlot && initialLoadRef.current) {
         reset({

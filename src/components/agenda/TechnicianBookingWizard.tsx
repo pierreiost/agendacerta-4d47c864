@@ -187,6 +187,8 @@ export function TechnicianBookingWizard({
   useEffect(() => {
     if (open) {
       setStep(1);
+      setConfirmArmed(false);
+      submitLockRef.current = false;
       if (defaultDate && initialLoadRef.current) {
         reset({
           customerName: '',
