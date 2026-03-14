@@ -129,6 +129,8 @@ export function TechnicianBookingWizard({
   const [newCustomerDialogOpen, setNewCustomerDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmArmed, setConfirmArmed] = useState(false);
+  const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
   const { user } = useAuth();
