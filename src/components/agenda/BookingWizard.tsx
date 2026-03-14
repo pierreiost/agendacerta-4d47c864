@@ -129,6 +129,8 @@ export function BookingWizard({
   const [customerPopoverOpen, setCustomerPopoverOpen] = useState(false);
   const [newCustomerDialogOpen, setNewCustomerDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [confirmArmed, setConfirmArmed] = useState(false);
+  const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
   const { customers } = useCustomers();
@@ -272,6 +274,8 @@ export function BookingWizard({
     if (open) {
       setStep(1);
       setSelectedDuration(null);
+      setConfirmArmed(false);
+      submitLockRef.current = false;
       // Only reset with defaultSlot values if this is a fresh open with a slot
       if (defaultSlot && initialLoadRef.current) {
         reset({
@@ -339,9 +343,17 @@ export function BookingWizard({
   const canProceedToStep3 =
     selectedSpaceId && selectedDate && startHour && endHour && parseInt(endHour) > parseInt(startHour);
 
-  const onSubmit = async (data: FormData) => {
-    if (step !== 3) return; // Guard: only submit on final step
-    if (!currentVenue?.id || !data.date) return;
+  const handleFinalConfirm = () => {
+    if (step !== 3 || !confirmArmed || submitLockRef.current) return;
+    submitLockRef.current = true;
+    handleSubmit(doSubmit)();
+  };
+
+  const doSubmit = async (data: FormData) => {
+    if (!currentVenue?.id || !data.date) {
+      submitLockRef.current = false;
+      return;
+    }
 
     const space = spaces.find((s) => s.id === data.spaceId);
     const isRecurringBooking = data.isRecurring && data.recurrenceCount && parseInt(data.recurrenceCount) > 1;
@@ -369,6 +381,7 @@ export function BookingWizard({
             clearDraft();
             onOpenChange(false);
           },
+          onSettled: () => { submitLockRef.current = false; },
         }
       );
     } else {
@@ -395,6 +408,7 @@ export function BookingWizard({
             clearDraft();
             onOpenChange(false);
           },
+          onSettled: () => { submitLockRef.current = false; },
         }
       );
     }
@@ -445,7 +459,7 @@ export function BookingWizard({
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col min-h-0 flex-1">
+          <div className="flex flex-col min-h-0 flex-1">
             <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-4 md:px-6 py-4 pb-6 min-h-[250px]">
               {/* Step 1: Customer */}
@@ -913,25 +927,35 @@ export function BookingWizard({
               {step < 3 ? (
                 <Button
                   type="button"
-                  onClick={() => setStep(step + 1)}
+                  onClick={() => {
+                    const nextStep = step + 1;
+                    setStep(nextStep);
+                    if (nextStep === 3) {
+                      setConfirmArmed(false);
+                      setTimeout(() => setConfirmArmed(true), 600);
+                    }
+                  }}
                   disabled={step === 1 ? !canProceedToStep2 : !canProceedToStep3}
-                  className="bg-primary hover:bg-primary/90"
                 >
                   Continuar
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
                 <Button
-                  type="submit"
-                  disabled={createBookingAtomic.isPending || createRecurringBookings.isPending}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  type="button"
+                  onClick={handleFinalConfirm}
+                  disabled={!confirmArmed || createBookingAtomic.isPending || createRecurringBookings.isPending || submitLockRef.current}
                 >
-                  {(createBookingAtomic.isPending || createRecurringBookings.isPending) ? 'Criando...' : 'Confirmar Reserva'}
+                  {(createBookingAtomic.isPending || createRecurringBookings.isPending)
+                    ? 'Criando...'
+                    : !confirmArmed
+                      ? 'Revise os dados...'
+                      : 'Confirmar Reserva'}
                   <Check className="h-4 w-4 ml-1" />
                 </Button>
               )}
             </div>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
 

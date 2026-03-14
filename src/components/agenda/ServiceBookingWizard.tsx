@@ -97,6 +97,8 @@ export function ServiceBookingWizard({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usePackage, setUsePackage] = useState(false);
+  const [confirmArmed, setConfirmArmed] = useState(false);
+  const submitLockRef = useRef(false);
   // --- Local state for fields that previously caused re-render loops via watch() ---
   const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
   const [localProfessionalId, setLocalProfessionalId] = useState('');
@@ -157,6 +159,8 @@ export function ServiceBookingWizard({
   useEffect(() => {
     if (open) {
       setStep(1);
+      setConfirmArmed(false);
+      submitLockRef.current = false;
       if (defaultDate && initialLoadRef.current) {
         reset({
           customerName: '',
@@ -278,9 +282,10 @@ export function ServiceBookingWizard({
   const canProceedToStep4 = localStartTime;
 
   const onSubmit = async (data: FormData) => {
-    if (step !== 4) return; // Guard: only submit on final step
+    if (step !== 4 || !confirmArmed || submitLockRef.current) return;
     if (!currentVenue?.id) return;
     
+    submitLockRef.current = true;
     setIsSubmitting(true);
     try {
       // Use local state values (already synced to form before handleSubmit validation)
@@ -310,11 +315,13 @@ export function ServiceBookingWizard({
       });
     } finally {
       setIsSubmitting(false);
+      submitLockRef.current = false;
     }
   };
 
   // Synchronize local state into form right before submit so zod validation passes
   const handleFormSubmit = () => {
+    if (!confirmArmed || submitLockRef.current || isSubmitting) return;
     setValue('serviceIds', localServiceIds);
     setValue('professionalId', localProfessionalId);
     setValue('startTime', localStartTime);
@@ -829,7 +836,14 @@ export function ServiceBookingWizard({
               {step < 4 ? (
                 <Button
                   type="button"
-                  onClick={() => setStep(step + 1)}
+                  onClick={() => {
+                    const nextStep = step + 1;
+                    setStep(nextStep);
+                    if (nextStep === 4) {
+                      setConfirmArmed(false);
+                      setTimeout(() => setConfirmArmed(true), 600);
+                    }
+                  }}
                   disabled={
                     (step === 1 && !canProceedToStep2) ||
                     (step === 2 && !canProceedToStep3) ||
@@ -843,11 +857,12 @@ export function ServiceBookingWizard({
                 <Button
                   type="button"
                   onClick={handleFormSubmit}
-                  disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
+                  disabled={!confirmArmed || isSubmitting || submitLockRef.current}
                 >
                   {isSubmitting ? (
                     <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Criando...</>
+                  ) : !confirmArmed ? (
+                    'Revise os dados...'
                   ) : (
                     <><Check className="h-4 w-4 mr-1" /> Confirmar</>
                   )}
