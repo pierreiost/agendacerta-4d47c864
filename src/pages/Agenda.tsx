@@ -490,6 +490,9 @@ export default function Agenda() {
           />
         );
       })()}
+
+      {/* Finalize Day FAB */}
+      <FinalizeDayButton bookings={bookings} currentDate={currentDate} />
     </AppLayout>
   );
 }
