@@ -1,68 +1,33 @@
 
-# Reservas em tempo real no Dashboard
 
-## Problema
-Quando uma nova reserva chega do site publico, o botao "Mostrar Pendentes" do Dashboard nao a exibe porque os dados so sao recarregados quando o usuario troca de aba (refetchOnWindowFocus). Nao existe nenhuma assinatura Realtime para a tabela `bookings`.
+## Botão "Finalizar Dia" na Agenda
 
-## Solucao
+### O que será feito
+Adicionar um botão na agenda que, com um clique, finaliza todas as reservas **CONFIRMED** do dia atual — inserindo pagamento como **Dinheiro (CASH)** pelo valor do `grand_total` de cada reserva e atualizando o status para `FINALIZED`.
 
-Adicionar uma assinatura Supabase Realtime na tabela `bookings` dentro do hook `useBookingQueries`, seguindo o mesmo padrao ja usado em `useNotifications.ts`. Quando um INSERT ou UPDATE ocorrer na tabela bookings para a venue atual, o cache do React Query sera invalidado automaticamente, trazendo os dados novos sem necessidade de recarregar a pagina.
+### UX (Mobile-first)
+- Botão flutuante (FAB) ao lado do botão de filtro existente (canto inferior, lado direito), visível apenas quando há reservas confirmadas no dia.
+- Ícone de `CheckCheck` (lucide) + texto "Finalizar Dia" no desktop.
+- Ao clicar, abre um **AlertDialog** de confirmação mostrando quantas reservas serão finalizadas e o valor total estimado.
+- Feedback via toast ao concluir.
 
-## Mudancas
+### Implementação
 
-### 1. Habilitar Realtime na tabela `bookings` (migracao SQL)
+**1. Arquivo: `src/pages/Agenda.tsx`**
+- Computar `confirmedTodayBookings`: filtrar `bookings` com `status === 'CONFIRMED'` e `start_time` no dia de `currentDate`.
+- Adicionar função `handleFinalizeDay`:
+  - Para cada reserva confirmada do dia, chamar `supabase.from('payments').insert(...)` com `method: 'CASH'` e `amount: booking.grand_total`.
+  - Depois, atualizar o status de todas para `FINALIZED` em batch.
+  - Invalidar queries de bookings, payments, financial-metrics, dashboard-metrics.
+- Adicionar `AlertDialog` com resumo (ex: "Finalizar 5 atendimentos? Total: R$ 1.200,00").
+- Botão FAB fixo no canto inferior direito (`fixed bottom-16 right-3 z-40`), visível apenas se `confirmedTodayBookings.length > 0`.
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-```
+**2. Fluxo de dados**
+- Usa o `supabase` client diretamente (sem criar novo hook) para a operação em lote.
+- Pagamento: 1 registro por reserva, `method: 'CASH'`, `amount: booking.grand_total || booking.space_total || 0`.
+- Status update: batch `UPDATE bookings SET status = 'FINALIZED' WHERE id IN (...)`.
 
-### 2. Adicionar subscription Realtime em `src/hooks/useBookingQueries.ts`
+**3. Proteções**
+- Estado `isFinalizingDay` para desabilitar o botão e mostrar spinner durante a operação.
+- Não finaliza reservas com `grand_total = 0` ou nulo (pula silenciosamente ou inclui com valor 0 — a confirmar, mas incluiremos com o valor que tiver).
 
-Adicionar um `useEffect` no hook `useBookingQueries` que:
-- Cria um canal Supabase Realtime filtrado por `venue_id`
-- Escuta eventos `INSERT` e `UPDATE` na tabela `bookings`
-- Ao receber um evento, invalida a query key `['bookings', venueId, ...]`
-- Tambem invalida `['dashboard-metrics', venueId]` para atualizar as metricas
-- Faz cleanup do canal no return do useEffect
-
-```typescript
-// Realtime: atualiza automaticamente quando novas reservas chegam
-useEffect(() => {
-  if (!currentVenue?.id || !user) return;
-
-  const channel = supabase
-    .channel(`bookings-realtime-${currentVenue.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `venue_id=eq.${currentVenue.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentVenue?.id, user, queryClient]);
-```
-
-### Resumo
-
-| Acao | Ficheiro |
-|---|---|
-| Habilitar Realtime na tabela bookings | Migracao SQL |
-| Adicionar subscription + invalidacao de cache | `src/hooks/useBookingQueries.ts` |
-
-### Resultado
-
-- Novas reservas do site publico aparecem automaticamente no Dashboard em 1-2 segundos
-- O botao "Mostrar Pendentes" reflete imediatamente reservas novas com status PENDING
-- As metricas do dashboard (contadores) tambem se atualizam
-- Nenhum polling manual ou intervalo necessario
