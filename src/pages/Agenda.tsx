@@ -21,6 +21,7 @@ import { BookingOrderSheet } from '@/components/bookings/BookingOrderSheet';
 import { BeautyBookingSheet } from '@/components/bookings/BeautyBookingSheet';
 import { TechnicianBookingSheet } from '@/components/bookings/TechnicianBookingSheet';
 import { DayViewSkeleton, WeekViewSkeleton, MonthViewSkeleton } from '@/components/agenda/AgendaSkeletons';
+import { FinalizeDayButton } from '@/components/agenda/FinalizeDayButton';
 import { useModalPersist } from '@/hooks/useModalPersist';
 import {
   startOfWeek,
@@ -489,6 +490,9 @@ export default function Agenda() {
           />
         );
       })()}
+
+      {/* Finalize Day FAB */}
+      <FinalizeDayButton bookings={bookings} currentDate={currentDate} />
     </AppLayout>
   );
 }
