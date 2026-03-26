@@ -36,6 +36,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, 'Preço deve ser positivo'),
   duration_minutes: z.coerce.number().min(5, 'Duração mínima de 5 minutos').max(480, 'Duração máxima de 8 horas'),
   is_active: z.boolean(),
+  assign_all_professionals: z.boolean(),
 });
 
 type FormData = z.infer<typeof formSchema>;
