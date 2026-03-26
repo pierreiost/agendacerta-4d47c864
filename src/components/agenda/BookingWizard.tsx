@@ -911,14 +911,15 @@ export function BookingWizard({
                         type="number"
                         min={0}
                         step={0.01}
-                        value={customPrice ?? 0}
-                        onChange={(e) => setCustomPrice(Number(e.target.value))}
+                        value={customPriceStr}
+                        onChange={(e) => setCustomPriceStr(e.target.value)}
                         className="pl-10 text-lg font-bold"
+                        placeholder="0"
                       />
                     </div>
-                    {isRecurring && recurrenceCount && customPrice !== null && (
+                    {isRecurring && recurrenceCount && customPriceStr && (
                       <p className="text-xs text-muted-foreground text-right">
-                        Total: {formatCurrency(customPrice * parseInt(recurrenceCount))} ({recurrenceCount} reservas)
+                        Total: {formatCurrency((parseFloat(customPriceStr) || 0) * parseInt(recurrenceCount))} ({recurrenceCount} reservas)
                       </p>
                     )}
                   </Card>
