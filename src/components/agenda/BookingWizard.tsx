@@ -364,7 +364,12 @@ export function BookingWizard({
     const isRecurringBooking = data.isRecurring && data.recurrenceCount && parseInt(data.recurrenceCount) > 1;
     
     if (isRecurringBooking) {
-      // Use atomic recurring bookings RPC function
+      // For recurring: use customPrice per booking to derive price_per_hour
+      const hours = parseInt(data.endHour) - parseInt(data.startHour);
+      const effectivePricePerHour = hours > 0 && customPrice !== null
+        ? customPrice / hours
+        : space?.price_per_hour ?? 0;
+
       createRecurringBookings.mutate(
         {
           venue_id: currentVenue.id,
@@ -377,7 +382,7 @@ export function BookingWizard({
           customer_phone: data.customerPhone || null,
           customer_id: data.customerId || null,
           notes: data.notes || null,
-          space_price_per_hour: space?.price_per_hour ?? 0,
+          space_price_per_hour: effectivePricePerHour,
           recurrence_type: data.recurrenceType || 'weekly',
           recurrence_count: parseInt(data.recurrenceCount || '1'),
         },
@@ -390,9 +395,13 @@ export function BookingWizard({
         }
       );
     } else {
-      // Use atomic single booking RPC function
+      // For single: use customPrice to derive price_per_hour
       const startTime = setMinutes(setHours(data.date, parseInt(data.startHour)), 0);
       const endTime = setMinutes(setHours(data.date, parseInt(data.endHour)), 0);
+      const hours = parseInt(data.endHour) - parseInt(data.startHour);
+      const effectivePricePerHour = hours > 0 && customPrice !== null
+        ? customPrice / hours
+        : space?.price_per_hour ?? 0;
       
       createBookingAtomic.mutate(
         {
@@ -406,7 +415,7 @@ export function BookingWizard({
           customer_id: data.customerId || null,
           notes: data.notes || null,
           status: 'CONFIRMED',
-          space_price_per_hour: space?.price_per_hour ?? 0,
+          space_price_per_hour: effectivePricePerHour,
         },
         {
           onSuccess: () => {
