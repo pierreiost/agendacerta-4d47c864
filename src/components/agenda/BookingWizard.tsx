@@ -130,7 +130,7 @@ export function BookingWizard({
   const [newCustomerDialogOpen, setNewCustomerDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
-  const [customPrice, setCustomPrice] = useState<number | null>(null);
+  const [customPriceStr, setCustomPriceStr] = useState('');
   const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
