@@ -21,8 +21,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 import { useServices } from '@/hooks/useServices';
+import { supabase } from '@/integrations/supabase/client';
 import { useFormPersist } from '@/hooks/useFormPersist';
 import { useVenue } from '@/contexts/VenueContext';
 import { ServiceCoverUpload } from './ServiceCoverUpload';
@@ -34,6 +36,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, 'Preço deve ser positivo'),
   duration_minutes: z.coerce.number().min(5, 'Duração mínima de 5 minutos').max(480, 'Duração máxima de 8 horas'),
   is_active: z.boolean(),
+  assign_all_professionals: z.boolean(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -58,6 +61,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
       price: 0,
       duration_minutes: 30,
       is_active: true,
+      assign_all_professionals: true,
     },
   });
 
@@ -77,6 +81,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
           price: service.price,
           duration_minutes: service.duration_minutes,
           is_active: service.is_active,
+          assign_all_professionals: true,
         });
         setCoverImageUrl(service.cover_image_url || null);
       } else {
@@ -88,6 +93,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
             price: 0,
             duration_minutes: 30,
             is_active: true,
+            assign_all_professionals: true,
           });
         }
         setCoverImageUrl(null);
@@ -100,7 +106,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
       if (isEditing && service) {
         await updateService.mutateAsync({ id: service.id, ...data, cover_image_url: coverImageUrl });
       } else {
-        await createService.mutateAsync({
+        const newService = await createService.mutateAsync({
           title: data.title,
           description: data.description || null,
           price: data.price,
@@ -108,6 +114,13 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
           is_active: data.is_active,
           cover_image_url: coverImageUrl,
         });
+        // If user unchecked "assign all professionals", remove auto-created links
+        if (!data.assign_all_professionals && newService?.id) {
+          await supabase
+            .from('professional_services')
+            .delete()
+            .eq('service_id', newService.id);
+        }
       }
       clearDraft();
       form.reset();
@@ -214,6 +227,32 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
                 venueId={currentVenue.id}
                 value={coverImageUrl}
                 onChange={setCoverImageUrl}
+              />
+            )}
+
+            {/* Checkbox: assign to all professionals (only for new services) */}
+            {!isEditing && (
+              <FormField
+                control={form.control}
+                name="assign_all_professionals"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel className="cursor-pointer">
+                        Disponibilizar para todos os profissionais
+                      </FormLabel>
+                      <FormDescription className="text-xs">
+                        Todos os profissionais da unidade poderão realizar este serviço
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
               />
             )}
 

@@ -45,6 +45,7 @@ export function useServices() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services', currentVenue?.id] });
+      queryClient.invalidateQueries({ queryKey: ['professionals'] });
       toast({ title: 'Serviço criado com sucesso!' });
     },
     onError: (error: Error) => {
