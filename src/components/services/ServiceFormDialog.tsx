@@ -106,7 +106,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
       if (isEditing && service) {
         await updateService.mutateAsync({ id: service.id, ...data, cover_image_url: coverImageUrl });
       } else {
-        await createService.mutateAsync({
+        const newService = await createService.mutateAsync({
           title: data.title,
           description: data.description || null,
           price: data.price,
@@ -114,6 +114,13 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
           is_active: data.is_active,
           cover_image_url: coverImageUrl,
         });
+        // If user unchecked "assign all professionals", remove auto-created links
+        if (!data.assign_all_professionals && newService?.id) {
+          await supabase
+            .from('professional_services')
+            .delete()
+            .eq('service_id', newService.id);
+        }
       }
       clearDraft();
       form.reset();
