@@ -305,6 +305,14 @@ export function ServiceBookingWizard({
 
       if (error) throw error;
 
+      // Update grand_total if custom price differs from catalog total
+      if (bookingId && customPrice !== null && customPrice !== totalPrice && !usePackage) {
+        await supabase
+          .from('bookings')
+          .update({ grand_total: customPrice })
+          .eq('id', bookingId);
+      }
+
       toast({ title: 'Agendamento criado com sucesso!' });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       onOpenChange(false);
