@@ -93,6 +93,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
             price: 0,
             duration_minutes: 30,
             is_active: true,
+            assign_all_professionals: true,
           });
         }
         setCoverImageUrl(null);
