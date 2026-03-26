@@ -289,7 +289,7 @@ export function TechnicianBookingWizard({
         booking_type: 'service',
         notes: data.notes || null,
         created_by: user?.id,
-        grand_total: customPrice,
+        grand_total: parseFloat(customPriceStr) || 0,
         metadata: data.serviceOrderId ? { service_order_id: data.serviceOrderId } : null,
       }).select('id').single();
 
