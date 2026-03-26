@@ -130,7 +130,7 @@ export function TechnicianBookingWizard({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
-  const [customPrice, setCustomPrice] = useState<number>(0);
+  const [customPriceStr, setCustomPriceStr] = useState('');
   const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
