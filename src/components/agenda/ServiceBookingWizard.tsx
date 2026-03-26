@@ -98,7 +98,7 @@ export function ServiceBookingWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usePackage, setUsePackage] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
-  const [customPrice, setCustomPrice] = useState<number | null>(null);
+  const [customPriceStr, setCustomPriceStr] = useState('');
   const submitLockRef = useRef(false);
   // --- Local state for fields that previously caused re-render loops via watch() ---
   const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
@@ -306,10 +306,11 @@ export function ServiceBookingWizard({
       if (error) throw error;
 
       // Update grand_total if custom price differs from catalog total
-      if (bookingId && customPrice !== null && customPrice !== totalPrice && !usePackage) {
+      const parsedPrice = parseFloat(customPriceStr) || 0;
+      if (bookingId && parsedPrice !== totalPrice && !usePackage) {
         await supabase
           .from('bookings')
-          .update({ grand_total: customPrice })
+          .update({ grand_total: parsedPrice })
           .eq('id', bookingId);
       }
 
@@ -820,9 +821,10 @@ export function ServiceBookingWizard({
                             type="number"
                             min={0}
                             step={0.01}
-                            value={customPrice ?? 0}
-                            onChange={(e) => setCustomPrice(Number(e.target.value))}
+                            value={customPriceStr}
+                            onChange={(e) => setCustomPriceStr(e.target.value)}
                             className="pl-10 text-lg font-bold"
+                            placeholder="0"
                           />
                         </div>
                       )}
@@ -856,7 +858,7 @@ export function ServiceBookingWizard({
                   onClick={() => {
                     const nextStep = step + 1;
                     if (nextStep === 4) {
-                      setCustomPrice(usePackage && matchedPackage ? 0 : totalPrice);
+                      setCustomPriceStr(String(usePackage && matchedPackage ? 0 : totalPrice));
                       setConfirmArmed(false);
                       setTimeout(() => setConfirmArmed(true), 600);
                     }

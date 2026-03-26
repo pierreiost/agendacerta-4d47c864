@@ -130,7 +130,7 @@ export function TechnicianBookingWizard({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
-  const [customPrice, setCustomPrice] = useState<number>(0);
+  const [customPriceStr, setCustomPriceStr] = useState('');
   const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
@@ -289,7 +289,7 @@ export function TechnicianBookingWizard({
         booking_type: 'service',
         notes: data.notes || null,
         created_by: user?.id,
-        grand_total: customPrice,
+        grand_total: parseFloat(customPriceStr) || 0,
         metadata: data.serviceOrderId ? { service_order_id: data.serviceOrderId } : null,
       }).select('id').single();
 
@@ -727,9 +727,10 @@ export function TechnicianBookingWizard({
                         type="number"
                         min={0}
                         step={0.01}
-                        value={customPrice}
-                        onChange={(e) => setCustomPrice(Number(e.target.value))}
+                        value={customPriceStr}
+                        onChange={(e) => setCustomPriceStr(e.target.value)}
                         className="pl-10 text-lg font-bold"
+                        placeholder="0"
                       />
                     </div>
                   </Card>

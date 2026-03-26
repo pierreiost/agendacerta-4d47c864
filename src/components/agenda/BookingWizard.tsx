@@ -130,7 +130,7 @@ export function BookingWizard({
   const [newCustomerDialogOpen, setNewCustomerDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
-  const [customPrice, setCustomPrice] = useState<number | null>(null);
+  const [customPriceStr, setCustomPriceStr] = useState('');
   const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
@@ -364,11 +364,9 @@ export function BookingWizard({
     const isRecurringBooking = data.isRecurring && data.recurrenceCount && parseInt(data.recurrenceCount) > 1;
     
     if (isRecurringBooking) {
-      // For recurring: use customPrice per booking to derive price_per_hour
       const hours = parseInt(data.endHour) - parseInt(data.startHour);
-      const effectivePricePerHour = hours > 0 && customPrice !== null
-        ? customPrice / hours
-        : space?.price_per_hour ?? 0;
+      const parsedPrice = parseFloat(customPriceStr) || 0;
+      const effectivePricePerHour = hours > 0 ? parsedPrice / hours : space?.price_per_hour ?? 0;
 
       createRecurringBookings.mutate(
         {
@@ -395,13 +393,11 @@ export function BookingWizard({
         }
       );
     } else {
-      // For single: use customPrice to derive price_per_hour
       const startTime = setMinutes(setHours(data.date, parseInt(data.startHour)), 0);
       const endTime = setMinutes(setHours(data.date, parseInt(data.endHour)), 0);
       const hours = parseInt(data.endHour) - parseInt(data.startHour);
-      const effectivePricePerHour = hours > 0 && customPrice !== null
-        ? customPrice / hours
-        : space?.price_per_hour ?? 0;
+      const parsedPrice = parseFloat(customPriceStr) || 0;
+      const effectivePricePerHour = hours > 0 ? parsedPrice / hours : space?.price_per_hour ?? 0;
       
       createBookingAtomic.mutate(
         {
@@ -915,14 +911,15 @@ export function BookingWizard({
                         type="number"
                         min={0}
                         step={0.01}
-                        value={customPrice ?? 0}
-                        onChange={(e) => setCustomPrice(Number(e.target.value))}
+                        value={customPriceStr}
+                        onChange={(e) => setCustomPriceStr(e.target.value)}
                         className="pl-10 text-lg font-bold"
+                        placeholder="0"
                       />
                     </div>
-                    {isRecurring && recurrenceCount && customPrice !== null && (
+                    {isRecurring && recurrenceCount && customPriceStr && (
                       <p className="text-xs text-muted-foreground text-right">
-                        Total: {formatCurrency(customPrice * parseInt(recurrenceCount))} ({recurrenceCount} reservas)
+                        Total: {formatCurrency((parseFloat(customPriceStr) || 0) * parseInt(recurrenceCount))} ({recurrenceCount} reservas)
                       </p>
                     )}
                   </Card>
@@ -947,7 +944,7 @@ export function BookingWizard({
                   onClick={() => {
                     const nextStep = step + 1;
                     if (nextStep === 3) {
-                      setCustomPrice(pricePreview ?? 0);
+                      setCustomPriceStr(String(pricePreview ?? 0));
                       setConfirmArmed(false);
                       setTimeout(() => setConfirmArmed(true), 600);
                     }
