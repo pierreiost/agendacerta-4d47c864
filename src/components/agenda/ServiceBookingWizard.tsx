@@ -306,10 +306,11 @@ export function ServiceBookingWizard({
       if (error) throw error;
 
       // Update grand_total if custom price differs from catalog total
-      if (bookingId && customPrice !== null && customPrice !== totalPrice && !usePackage) {
+      const parsedPrice = parseFloat(customPriceStr) || 0;
+      if (bookingId && parsedPrice !== totalPrice && !usePackage) {
         await supabase
           .from('bookings')
-          .update({ grand_total: customPrice })
+          .update({ grand_total: parsedPrice })
           .eq('id', bookingId);
       }
 
