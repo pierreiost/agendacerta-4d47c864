@@ -947,7 +947,7 @@ export function BookingWizard({
                   onClick={() => {
                     const nextStep = step + 1;
                     if (nextStep === 3) {
-                      setCustomPrice(pricePreview ?? 0);
+                      setCustomPriceStr(String(pricePreview ?? 0));
                       setConfirmArmed(false);
                       setTimeout(() => setConfirmArmed(true), 600);
                     }
