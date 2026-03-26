@@ -857,7 +857,7 @@ export function ServiceBookingWizard({
                   onClick={() => {
                     const nextStep = step + 1;
                     if (nextStep === 4) {
-                      setCustomPrice(usePackage && matchedPackage ? 0 : totalPrice);
+                      setCustomPriceStr(String(usePackage && matchedPackage ? 0 : totalPrice));
                       setConfirmArmed(false);
                       setTimeout(() => setConfirmArmed(true), 600);
                     }
