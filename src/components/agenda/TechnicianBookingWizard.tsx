@@ -727,9 +727,10 @@ export function TechnicianBookingWizard({
                         type="number"
                         min={0}
                         step={0.01}
-                        value={customPrice}
-                        onChange={(e) => setCustomPrice(Number(e.target.value))}
+                        value={customPriceStr}
+                        onChange={(e) => setCustomPriceStr(e.target.value)}
                         className="pl-10 text-lg font-bold"
+                        placeholder="0"
                       />
                     </div>
                   </Card>
