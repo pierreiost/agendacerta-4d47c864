@@ -364,11 +364,9 @@ export function BookingWizard({
     const isRecurringBooking = data.isRecurring && data.recurrenceCount && parseInt(data.recurrenceCount) > 1;
     
     if (isRecurringBooking) {
-      // For recurring: use customPrice per booking to derive price_per_hour
       const hours = parseInt(data.endHour) - parseInt(data.startHour);
-      const effectivePricePerHour = hours > 0 && customPrice !== null
-        ? customPrice / hours
-        : space?.price_per_hour ?? 0;
+      const parsedPrice = parseFloat(customPriceStr) || 0;
+      const effectivePricePerHour = hours > 0 ? parsedPrice / hours : space?.price_per_hour ?? 0;
 
       createRecurringBookings.mutate(
         {
@@ -395,13 +393,11 @@ export function BookingWizard({
         }
       );
     } else {
-      // For single: use customPrice to derive price_per_hour
       const startTime = setMinutes(setHours(data.date, parseInt(data.startHour)), 0);
       const endTime = setMinutes(setHours(data.date, parseInt(data.endHour)), 0);
       const hours = parseInt(data.endHour) - parseInt(data.startHour);
-      const effectivePricePerHour = hours > 0 && customPrice !== null
-        ? customPrice / hours
-        : space?.price_per_hour ?? 0;
+      const parsedPrice = parseFloat(customPriceStr) || 0;
+      const effectivePricePerHour = hours > 0 ? parsedPrice / hours : space?.price_per_hour ?? 0;
       
       createBookingAtomic.mutate(
         {
