@@ -230,6 +230,32 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
               />
             )}
 
+            {/* Checkbox: assign to all professionals (only for new services) */}
+            {!isEditing && (
+              <FormField
+                control={form.control}
+                name="assign_all_professionals"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel className="cursor-pointer">
+                        Disponibilizar para todos os profissionais
+                      </FormLabel>
+                      <FormDescription className="text-xs">
+                        Todos os profissionais da unidade poderão realizar este serviço
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="is_active"
