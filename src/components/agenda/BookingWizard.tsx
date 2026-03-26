@@ -892,28 +892,31 @@ export function BookingWizard({
                     )}
                   </Card>
 
-                  {/* Price card */}
-                  {pricePreview !== null && (
-                   <Card className="p-4 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
-                       <div className="flex items-center justify-between">
-                         <span className="font-medium">
-                           {isRecurring && recurrenceCount
-                             ? `Total (${recurrenceCount} reservas)`
-                             : 'Total'}
-                         </span>
-                         <span className="text-xl font-bold text-primary">
-                          {formatCurrency(
-                            pricePreview * (isRecurring && recurrenceCount ? parseInt(recurrenceCount) : 1)
-                          )}
-                        </span>
-                      </div>
-                      {isRecurring && recurrenceCount && (
-                        <div className="text-xs text-muted-foreground text-right mt-1">
-                          {formatCurrency(pricePreview)} por reserva
-                        </div>
-                      )}
-                    </Card>
-                  )}
+                  {/* Editable Price */}
+                  <Card className="p-4 space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      {isRecurring && recurrenceCount
+                        ? 'Valor por reserva'
+                        : 'Valor a cobrar nesta reserva'}
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={customPrice ?? 0}
+                        onChange={(e) => setCustomPrice(Number(e.target.value))}
+                        className="pl-10 text-lg font-bold"
+                      />
+                    </div>
+                    {isRecurring && recurrenceCount && customPrice !== null && (
+                      <p className="text-xs text-muted-foreground text-right">
+                        Total: {formatCurrency(customPrice * parseInt(recurrenceCount))} ({recurrenceCount} reservas)
+                      </p>
+                    )}
+                  </Card>
                 </div>
               )}
             </div>

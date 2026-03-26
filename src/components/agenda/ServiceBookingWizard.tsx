@@ -98,6 +98,7 @@ export function ServiceBookingWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usePackage, setUsePackage] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
+  const [customPrice, setCustomPrice] = useState<number | null>(null);
   const submitLockRef = useRef(false);
   // --- Local state for fields that previously caused re-render loops via watch() ---
   const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
