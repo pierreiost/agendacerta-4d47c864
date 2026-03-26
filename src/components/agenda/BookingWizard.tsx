@@ -937,11 +937,12 @@ export function BookingWizard({
                   type="button"
                   onClick={() => {
                     const nextStep = step + 1;
-                    setStep(nextStep);
                     if (nextStep === 3) {
+                      setCustomPrice(pricePreview ?? 0);
                       setConfirmArmed(false);
                       setTimeout(() => setConfirmArmed(true), 600);
                     }
+                    setStep(nextStep);
                   }}
                   disabled={step === 1 ? !canProceedToStep2 : !canProceedToStep3}
                 >
