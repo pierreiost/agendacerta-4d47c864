@@ -820,9 +820,10 @@ export function ServiceBookingWizard({
                             type="number"
                             min={0}
                             step={0.01}
-                            value={customPrice ?? 0}
-                            onChange={(e) => setCustomPrice(Number(e.target.value))}
+                            value={customPriceStr}
+                            onChange={(e) => setCustomPriceStr(e.target.value)}
                             className="pl-10 text-lg font-bold"
+                            placeholder="0"
                           />
                         </div>
                       )}
