@@ -98,6 +98,7 @@ export function ServiceBookingWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usePackage, setUsePackage] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
+  const [customPrice, setCustomPrice] = useState<number | null>(null);
   const submitLockRef = useRef(false);
   // --- Local state for fields that previously caused re-render loops via watch() ---
   const [localServiceIds, setLocalServiceIds] = useState<string[]>([]);
@@ -303,6 +304,14 @@ export function ServiceBookingWizard({
       });
 
       if (error) throw error;
+
+      // Update grand_total if custom price differs from catalog total
+      if (bookingId && customPrice !== null && customPrice !== totalPrice && !usePackage) {
+        await supabase
+          .from('bookings')
+          .update({ grand_total: customPrice })
+          .eq('id', bookingId);
+      }
 
       toast({ title: 'Agendamento criado com sucesso!' });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -794,20 +803,28 @@ export function ServiceBookingWizard({
 
                     <Separator />
 
-                    {/* Total */}
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Total</span>
+                    {/* Editable Total */}
+                    <div>
+                      <Label className="text-sm font-medium mb-1 block">Valor a cobrar nesta reserva</Label>
                       {usePackage && matchedPackage ? (
-                        <div className="text-right">
-                          <span className="line-through text-sm text-muted-foreground mr-2">{formatCurrency(totalPrice)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="line-through text-sm text-muted-foreground">{formatCurrency(totalPrice)}</span>
                           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                             <PackageCheck className="h-3 w-3 mr-1" /> Pacote
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-xl font-bold text-primary">
-                          {formatCurrency(totalPrice)}
-                        </span>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={customPrice ?? 0}
+                            onChange={(e) => setCustomPrice(Number(e.target.value))}
+                            className="pl-10 text-lg font-bold"
+                          />
+                        </div>
                       )}
                     </div>
                   </Card>
@@ -838,11 +855,12 @@ export function ServiceBookingWizard({
                   type="button"
                   onClick={() => {
                     const nextStep = step + 1;
-                    setStep(nextStep);
                     if (nextStep === 4) {
+                      setCustomPrice(usePackage && matchedPackage ? 0 : totalPrice);
                       setConfirmArmed(false);
                       setTimeout(() => setConfirmArmed(true), 600);
                     }
+                    setStep(nextStep);
                   }}
                   disabled={
                     (step === 1 && !canProceedToStep2) ||

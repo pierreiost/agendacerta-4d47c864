@@ -130,6 +130,7 @@ export function TechnicianBookingWizard({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmArmed, setConfirmArmed] = useState(false);
+  const [customPrice, setCustomPrice] = useState<number>(0);
   const submitLockRef = useRef(false);
 
   const { currentVenue } = useVenue();
@@ -275,7 +276,7 @@ export function TechnicianBookingWizard({
       // Get or create a default space for the venue
       const defaultSpaceId = await getOrCreateDefaultSpace();
 
-      const { error } = await supabase.from('bookings').insert({
+      const { data: bookingData, error } = await supabase.from('bookings').insert({
         venue_id: currentVenue.id,
         space_id: defaultSpaceId,
         customer_name: data.customerName,
@@ -288,8 +289,9 @@ export function TechnicianBookingWizard({
         booking_type: 'service',
         notes: data.notes || null,
         created_by: user?.id,
+        grand_total: customPrice,
         metadata: data.serviceOrderId ? { service_order_id: data.serviceOrderId } : null,
-      });
+      }).select('id').single();
 
       if (error) throw error;
 
@@ -715,6 +717,22 @@ export function TechnicianBookingWizard({
                       <p className="text-sm text-muted-foreground">{form.watch('notes')}</p>
                     </Card>
                   )}
+
+                  {/* Editable Price */}
+                  <Card className="p-4 space-y-2">
+                    <Label className="text-sm font-medium">Valor a cobrar nesta reserva</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={customPrice}
+                        onChange={(e) => setCustomPrice(Number(e.target.value))}
+                        className="pl-10 text-lg font-bold"
+                      />
+                    </div>
+                  </Card>
                 </div>
               )}
             </div>
