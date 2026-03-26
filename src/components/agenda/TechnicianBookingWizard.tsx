@@ -276,7 +276,7 @@ export function TechnicianBookingWizard({
       // Get or create a default space for the venue
       const defaultSpaceId = await getOrCreateDefaultSpace();
 
-      const { error } = await supabase.from('bookings').insert({
+      const { data: bookingData, error } = await supabase.from('bookings').insert({
         venue_id: currentVenue.id,
         space_id: defaultSpaceId,
         customer_name: data.customerName,
@@ -289,8 +289,9 @@ export function TechnicianBookingWizard({
         booking_type: 'service',
         notes: data.notes || null,
         created_by: user?.id,
+        grand_total: customPrice,
         metadata: data.serviceOrderId ? { service_order_id: data.serviceOrderId } : null,
-      });
+      }).select('id').single();
 
       if (error) throw error;
 
