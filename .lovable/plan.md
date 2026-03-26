@@ -1,66 +1,63 @@
 
 
-## Plano: Preço editável nos Wizards de Reserva
+## Plano: Auto-vincular serviços novos a todos os profissionais da venue
 
-### Contexto
-Três wizards criam reservas com fluxos de preço distintos:
-- **BookingWizard** (sports): `hours × price_per_hour`, enviado via RPC `create_booking_atomic`
-- **ServiceBookingWizard** (beauty/health): soma dos `service.price`, via RPC `create_service_booking` 
-- **TechnicianBookingWizard** (custom): sem preço exibido atualmente
+### O que será feito
 
-### Abordagem
-Adicionar um `<Input type="number">` editável na tela de confirmação de cada wizard. O valor inicia com o preço calculado e pode ser alterado para qualquer valor (incluindo R$ 0). Após a criação da reserva, se o valor customizado diferir do calculado, fazemos um `UPDATE` no `grand_total` do booking criado.
+1. **Trigger no banco** — Ao inserir um serviço na tabela `services`, uma function dispara automaticamente e insere uma linha em `professional_services` para cada `venue_member` com `is_bookable = true` daquela venue.
 
-### Alterações por arquivo
+2. **Checkbox no formulário** — No `ServiceFormDialog`, adicionar um campo "Disponibilizar para todos os profissionais" (marcado por padrão). Se desmarcado, a criação do serviço inclui um flag no metadata ou uma coluna auxiliar que a trigger verifica antes de criar os vínculos.
 
-**1. `BookingWizard.tsx` (Step 3)**
-- Novo estado `customPrice: number | null`
-- Ao entrar no Step 3, inicializar `customPrice` com `pricePreview`
-- Substituir o Card de preço estático por Input editável com label "Valor a cobrar"
-- No `doSubmit`, após `createBookingAtomic` ou `createRecurringBookings` retornar o booking_id, se `customPrice !== pricePreview`, executar `supabase.from('bookings').update({ grand_total: customPrice })`
-- Para recorrentes: aplicar o valor por reserva (customPrice / recurrenceCount) ou o valor total — usar o campo como "valor por reserva" com indicação clara
+3. **UX do ProfessionalFormDialog** — Já possui lista de serviços com checkboxes. Como agora todos virão marcados por padrão, o profissional só precisa desmarcar o que não faz.
 
-**2. `ServiceBookingWizard.tsx` (Step 4)**
-- Novo estado `customPrice: number | null`
-- Ao entrar no Step 4 (confirmação), inicializar com `totalPrice` (ou R$ 0 se `usePackage`)
-- Substituir exibição estática do total por Input editável
-- No `onSubmit`, após o RPC `create_service_booking` retornar o booking_id, executar `supabase.from('bookings').update({ grand_total: customPrice })` se diferir
+### Implementação
 
-**3. `TechnicianBookingWizard.tsx` (Step 3)**
-- Novo estado `customPrice: number` (default 0)
-- Adicionar Input de preço no card de resumo
-- No `doSubmit`, após o insert, executar update no `grand_total` com o valor informado
+**Migração SQL**
+```sql
+CREATE OR REPLACE FUNCTION public.auto_assign_service_to_professionals()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO professional_services (member_id, service_id)
+  SELECT vm.id, NEW.id
+  FROM venue_members vm
+  WHERE vm.venue_id = NEW.venue_id
+    AND vm.is_bookable = true
+  ON CONFLICT DO NOTHING;
+  RETURN NEW;
+END;
+$$;
 
-### UI do Input (igual nos 3 wizards)
+CREATE TRIGGER trg_auto_assign_service
+AFTER INSERT ON public.services
+FOR EACH ROW
+EXECUTE FUNCTION public.auto_assign_service_to_professionals();
 ```
-<div>
-  <Label>Valor a cobrar nesta reserva</Label>
-  <div className="relative">
-    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-    <Input 
-      type="number" 
-      min="0" 
-      step="0.01"
-      value={customPrice}
-      onChange={e => setCustomPrice(Number(e.target.value))}
-      className="pl-10 text-lg font-bold"
-    />
-  </div>
-</div>
-```
+- `ON CONFLICT DO NOTHING` previne duplicatas (a tabela `professional_services` não tem unique constraint em `(member_id, service_id)`, mas a trigger é idempotente).
+- `SECURITY DEFINER` + `SET search_path = public` segue o padrão de segurança do projeto.
 
-### Fluxo de dados
-- O preço do catálogo **não** é alterado — apenas o `grand_total` da reserva individual
-- A trigger `calculate_booking_totals` pode recalcular o total; precisamos verificar se ela sobrescreve updates manuais. Se sim, o update deve ser feito com `space_total` (sports) ou via `booking_services.price` (service)
-- Para sports: enviar `customPrice / hours` como `space_price_per_hour` no RPC (mais limpo que update pós-criação)
-- Para service: update pós-criação no `grand_total` é necessário pois o RPC lê preços do catálogo
+**Arquivo: `src/components/services/ServiceFormDialog.tsx`**
+- Adicionar campo `assign_all_professionals` (boolean, default `true`) ao schema zod.
+- Renderizar um checkbox com label "Disponibilizar para todos os profissionais" antes do switch de "Ativo".
+- Quando `assign_all_professionals` é `false`, após criar o serviço, deletar os registros auto-criados pela trigger: `supabase.from('professional_services').delete().eq('service_id', newService.id)`.
+- Abordagem alternativa (mais limpa): a trigger sempre roda, e se o checkbox está desmarcado, o front faz cleanup pós-insert. Isso evita adicionar colunas no schema.
 
-### Segurança
-- Validação client-side: `min=0`, `step=0.01`, sanitização via `Number()`
-- O update usa o booking_id retornado e RLS já protege por `venue_member`
-- Nenhuma alteração no schema do banco
+**Arquivo: `src/hooks/useServices.ts`**
+- A mutation `createService` retorna o `data` (com `id`). O cleanup pós-insert será feito no `ServiceFormDialog` usando o id retornado.
 
-### Telas impactadas
-- Agenda (modal de nova reserva — todos os 3 segmentos)
-- Nenhuma outra tela é afetada (o valor salvo já é lido de `grand_total` em todo o sistema)
+**Arquivo: `src/components/team/ProfessionalFormDialog.tsx`**
+- Nenhuma alteração necessária — já tem a lista de serviços com checkboxes. Como a trigger preenche automaticamente, ao abrir o dialog o profissional já terá todos os serviços marcados.
+
+### Arquivos alterados
+- Nova migração SQL (trigger + function)
+- `src/components/services/ServiceFormDialog.tsx` — checkbox + cleanup condicional
+- `src/hooks/useServices.ts` — invalidar query `professionals` após criar serviço
+
+### Resultado esperado
+- Criar serviço → todos os profissionais bookable já recebem vínculo automático
+- Checkbox desmarcado → serviço criado sem vínculos (cleanup pós-trigger)
+- Tela de profissional mostra todos os serviços já ligados, bastando desligar o que não se aplica
 
