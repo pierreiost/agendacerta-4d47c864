@@ -49,6 +49,7 @@ import { VenueSettingsTab } from '@/components/settings/VenueSettingsTab';
 import type { BookableMember } from '@/types/services';
 import { OSCustomFieldsTab } from '@/components/settings/OSCustomFieldsTab';
 import { ProductSettingsTab } from '@/components/settings/ProductSettingsTab';
+import { WarrantyTemplateTab } from '@/components/settings/WarrantyTemplateTab';
 import { getServiceIcon, getClientsLabel } from '@/lib/segment-utils';
 import {
   Loader2,
@@ -214,6 +215,10 @@ export default function Configuracoes() {
             <TabsTrigger value="products">
               <Package className="mr-2 h-4 w-4" />
               Produtos
+            </TabsTrigger>
+            <TabsTrigger value="warranty">
+              <Shield className="mr-2 h-4 w-4" />
+              Garantia
             </TabsTrigger>
           </TabsList>
           </div>
@@ -494,6 +499,11 @@ export default function Configuracoes() {
           {/* TAB: PRODUTOS */}
           <TabsContent value="products">
             <ProductSettingsTab />
+          </TabsContent>
+
+          {/* TAB: GARANTIA */}
+          <TabsContent value="warranty">
+            <WarrantyTemplateTab />
           </TabsContent>
 
         </Tabs>

@@ -1940,6 +1940,38 @@ export type Database = {
           },
         ]
       }
+      warranty_templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_templates_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: true
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       bookings_safe: {

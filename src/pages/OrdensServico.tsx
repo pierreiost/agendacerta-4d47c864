@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Trash2, FileText, ClipboardList, FileDown, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, ClipboardList, FileDown, Loader2, MoreVertical, Shield } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useServiceOrders, type ServiceOrder } from "@/hooks/useServiceOrders";
 import { useServiceOrderPdf } from "@/hooks/useServiceOrderPdf";
 import { useToast } from "@/hooks/use-toast";
+import { WarrantyTermDialog } from "@/components/service-orders/WarrantyTermDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -69,6 +70,7 @@ export default function OrdensServico() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
+  const [warrantyOrder, setWarrantyOrder] = useState<ServiceOrder | null>(null);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -249,6 +251,21 @@ export default function OrdensServico() {
                                 </TooltipTrigger>
                                 <TooltipContent>{isFinalized(order) ? "Visualizar" : "Editar"}</TooltipContent>
                               </Tooltip>
+                              {isFinalized(order) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => setWarrantyOrder(order)}>
+                                      <Shield className="h-4 w-4 mr-2" />
+                                      Gerar Termo de Garantia
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                               {!isFinalized(order) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -288,6 +305,14 @@ export default function OrdensServico() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {warrantyOrder && (
+        <WarrantyTermDialog
+          open={!!warrantyOrder}
+          onOpenChange={(open) => !open && setWarrantyOrder(null)}
+          order={warrantyOrder}
+        />
+      )}
     </AppLayout>
   );
 }
