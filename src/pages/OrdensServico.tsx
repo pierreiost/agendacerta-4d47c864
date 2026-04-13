@@ -251,6 +251,21 @@ export default function OrdensServico() {
                                 </TooltipTrigger>
                                 <TooltipContent>{isFinalized(order) ? "Visualizar" : "Editar"}</TooltipContent>
                               </Tooltip>
+                              {isFinalized(order) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => setWarrantyOrder(order)}>
+                                      <Shield className="h-4 w-4 mr-2" />
+                                      Gerar Termo de Garantia
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                               {!isFinalized(order) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -290,6 +305,14 @@ export default function OrdensServico() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {warrantyOrder && (
+        <WarrantyTermDialog
+          open={!!warrantyOrder}
+          onOpenChange={(open) => !open && setWarrantyOrder(null)}
+          order={warrantyOrder}
+        />
+      )}
     </AppLayout>
   );
 }
