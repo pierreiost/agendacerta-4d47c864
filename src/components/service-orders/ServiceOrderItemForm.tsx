@@ -57,6 +57,13 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogFilter, setCatalogFilter] = useState<'products' | 'services' | 'all'>('products');
   const [selectedTab, setSelectedTab] = useState<string>("catalog");
+  const [catalogQuantities, setCatalogQuantities] = useState<Record<string, number>>({});
+
+  const getItemKey = (item: CatalogItem) => `${item.type}-${item.id}`;
+  const getQty = (item: CatalogItem) => catalogQuantities[getItemKey(item)] ?? 1;
+  const setQty = (item: CatalogItem, qty: number) => {
+    setCatalogQuantities((prev) => ({ ...prev, [getItemKey(item)]: qty }));
+  };
 
   const activeProducts = products.filter((p) => p.is_active !== false);
   const activeServices = services.filter((s) => s.is_active !== false);
@@ -116,12 +123,18 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
     }).format(value);
 
   const handleAddCatalogItem = async (item: CatalogItem) => {
+    const qty = Math.max(1, getQty(item) || 1);
     await onAddItem({
       description: item.name,
-      quantity: 1,
+      quantity: qty,
       unit_price: item.price,
-      subtotal: item.price,
+      subtotal: qty * item.price,
       service_code: item.type === 'service' && orderType === 'complete' ? '14.01' : null,
+    });
+    setCatalogQuantities((prev) => {
+      const next = { ...prev };
+      delete next[getItemKey(item)];
+      return next;
     });
   };
 
@@ -221,40 +234,70 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
               {catalogSearch ? "Nenhum item encontrado" : "Nenhum item cadastrado"}
             </p>
           ) : (
-            <ScrollArea className="h-[200px]">
+            <ScrollArea className="h-[260px]">
               <div className="space-y-1">
-                {filteredCatalog.map((item) => (
-                  <button
-                    key={`${item.type}-${item.id}`}
-                    onClick={() => handleAddCatalogItem(item)}
-                    className={cn(
-                      "w-full flex items-center justify-between p-3 rounded-md text-left",
-                      "hover:bg-accent transition-colors",
-                      "border border-transparent hover:border-border",
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={item.type === 'product' ? 'secondary' : 'default'}
-                        className="text-xs"
-                      >
-                        {item.type === 'product' ? (
-                          <><Package className="h-2.5 w-2.5 mr-1" />Peça</>
-                        ) : (
-                          <><Briefcase className="h-2.5 w-2.5 mr-1" />Serviço</>
-                        )}
-                      </Badge>
-                      <div>
-                        <p className="font-medium text-sm">{item.name}</p>
-                        {item.category && <p className="text-xs text-muted-foreground">{item.category}</p>}
+                {filteredCatalog.map((item) => {
+                  const qty = getQty(item);
+                  return (
+                    <div
+                      key={`${item.type}-${item.id}`}
+                      className={cn(
+                        "w-full flex items-center justify-between gap-3 p-3 rounded-md",
+                        "border border-transparent hover:border-border hover:bg-accent/40 transition-colors",
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Badge
+                          variant={item.type === 'product' ? 'secondary' : 'default'}
+                          className="text-xs shrink-0"
+                        >
+                          {item.type === 'product' ? (
+                            <><Package className="h-2.5 w-2.5 mr-1" />Peça</>
+                          ) : (
+                            <><Briefcase className="h-2.5 w-2.5 mr-1" />Serviço</>
+                          )}
+                        </Badge>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatCurrency(item.price)}
+                            {qty > 1 && ` × ${qty} = ${formatCurrency(item.price * qty)}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1">
+                          <Label htmlFor={`qty-${item.type}-${item.id}`} className="text-xs text-muted-foreground hidden sm:inline">
+                            Qtd
+                          </Label>
+                          <Input
+                            id={`qty-${item.type}-${item.id}`}
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={qty}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              setQty(item, isNaN(v) || v < 1 ? 1 : v);
+                            }}
+                            onBlur={(e) => {
+                              if (!e.target.value || parseInt(e.target.value, 10) < 1) setQty(item, 1);
+                            }}
+                            className="w-16 h-9 text-center"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleAddCatalogItem(item)}
+                        >
+                          <Plus className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Adicionar</span>
+                        </Button>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-sm">{formatCurrency(item.price)}</p>
-                      <p className="text-xs text-muted-foreground">Clique para adicionar</p>
-                    </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           )}
