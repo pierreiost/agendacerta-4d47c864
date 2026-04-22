@@ -104,6 +104,7 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
     resolver: zodResolver(laborSchema),
     defaultValues: {
       description: "Mão de Obra - Serviço Técnico",
+      quantity: 1,
       value: 0,
     },
   });
