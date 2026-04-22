@@ -139,12 +139,12 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
   const handleAddLabor = async (data: LaborData) => {
     await onAddItem({
       description: data.description,
-      quantity: 1,
+      quantity: data.quantity,
       unit_price: data.value,
-      subtotal: data.value,
+      subtotal: data.quantity * data.value,
       service_code: orderType === "complete" ? "14.01" : null,
     });
-    laborForm.reset({ description: "Mão de Obra - Serviço Técnico", value: 0 });
+    laborForm.reset({ description: "Mão de Obra - Serviço Técnico", quantity: 1, value: 0 });
   };
 
   const isLoadingCatalog = loadingProducts || loadingServices;
