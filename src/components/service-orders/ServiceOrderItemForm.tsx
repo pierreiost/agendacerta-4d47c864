@@ -57,6 +57,13 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogFilter, setCatalogFilter] = useState<'products' | 'services' | 'all'>('products');
   const [selectedTab, setSelectedTab] = useState<string>("catalog");
+  const [catalogQuantities, setCatalogQuantities] = useState<Record<string, number>>({});
+
+  const getItemKey = (item: CatalogItem) => `${item.type}-${item.id}`;
+  const getQty = (item: CatalogItem) => catalogQuantities[getItemKey(item)] ?? 1;
+  const setQty = (item: CatalogItem, qty: number) => {
+    setCatalogQuantities((prev) => ({ ...prev, [getItemKey(item)]: qty }));
+  };
 
   const activeProducts = products.filter((p) => p.is_active !== false);
   const activeServices = services.filter((s) => s.is_active !== false);
