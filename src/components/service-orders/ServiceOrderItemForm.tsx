@@ -123,12 +123,18 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
     }).format(value);
 
   const handleAddCatalogItem = async (item: CatalogItem) => {
+    const qty = Math.max(1, getQty(item) || 1);
     await onAddItem({
       description: item.name,
-      quantity: 1,
+      quantity: qty,
       unit_price: item.price,
-      subtotal: item.price,
+      subtotal: qty * item.price,
       service_code: item.type === 'service' && orderType === 'complete' ? '14.01' : null,
+    });
+    setCatalogQuantities((prev) => {
+      const next = { ...prev };
+      delete next[getItemKey(item)];
+      return next;
     });
   };
 
