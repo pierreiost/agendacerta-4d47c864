@@ -24,6 +24,7 @@ const manualItemSchema = z.object({
 
 const laborSchema = z.object({
   description: z.string().min(1, "Descrição obrigatória"),
+  quantity: z.coerce.number().min(1, "Mínimo 1"),
   value: z.coerce.number().min(0.01, "Valor inválido"),
 });
 
@@ -103,6 +104,7 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
     resolver: zodResolver(laborSchema),
     defaultValues: {
       description: "Mão de Obra - Serviço Técnico",
+      quantity: 1,
       value: 0,
     },
   });
@@ -137,12 +139,12 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
   const handleAddLabor = async (data: LaborData) => {
     await onAddItem({
       description: data.description,
-      quantity: 1,
+      quantity: data.quantity,
       unit_price: data.value,
-      subtotal: data.value,
+      subtotal: data.quantity * data.value,
       service_code: orderType === "complete" ? "14.01" : null,
     });
-    laborForm.reset({ description: "Mão de Obra - Serviço Técnico", value: 0 });
+    laborForm.reset({ description: "Mão de Obra - Serviço Técnico", quantity: 1, value: 0 });
   };
 
   const isLoadingCatalog = loadingProducts || loadingServices;
@@ -275,19 +277,35 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
                 )}
               />
 
-              <FormField
-                control={laborForm.control}
-                name="value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor da Mão de Obra (R$)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" min="0" placeholder="0,00" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(0); field.onBlur(); }} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={laborForm.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantidade *</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" step="1" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(1); field.onBlur(); }} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={laborForm.control}
+                  name="value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Unitário (R$) *</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" min="0" placeholder="0,00" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(0); field.onBlur(); }} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="flex gap-2 pt-2">
                 <Button type="button" className="flex-1" onClick={laborForm.handleSubmit(handleAddLabor)}>
