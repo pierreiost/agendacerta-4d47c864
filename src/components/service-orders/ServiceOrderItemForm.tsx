@@ -277,19 +277,35 @@ export function ServiceOrderItemForm({ orderType, onAddItem, onCancel }: Service
                 )}
               />
 
-              <FormField
-                control={laborForm.control}
-                name="value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor da Mão de Obra (R$)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" min="0" placeholder="0,00" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(0); field.onBlur(); }} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={laborForm.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantidade *</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" step="1" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(1); field.onBlur(); }} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={laborForm.control}
+                  name="value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Unitário (R$) *</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" min="0" placeholder="0,00" {...field} onBlur={(e) => { if (!e.target.value) field.onChange(0); field.onBlur(); }} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="flex gap-2 pt-2">
                 <Button type="button" className="flex-1" onClick={laborForm.handleSubmit(handleAddLabor)}>
