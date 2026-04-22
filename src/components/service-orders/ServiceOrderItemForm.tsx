@@ -24,6 +24,7 @@ const manualItemSchema = z.object({
 
 const laborSchema = z.object({
   description: z.string().min(1, "Descrição obrigatória"),
+  quantity: z.coerce.number().min(1, "Mínimo 1"),
   value: z.coerce.number().min(0.01, "Valor inválido"),
 });
 
