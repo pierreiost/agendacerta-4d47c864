@@ -73,6 +73,7 @@ export default function OrcamentoForm() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const signedPhotoUrls = useSignedInquiryUrls(existingQuote?.photo_urls);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
 
   const loadedRef = useRef(false);
