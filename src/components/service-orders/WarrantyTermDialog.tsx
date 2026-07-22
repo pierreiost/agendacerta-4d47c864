@@ -20,7 +20,8 @@ import {
 import { Loader2, FileDown, Printer, Plus, Trash2 } from "lucide-react";
 import { useWarrantyTemplate } from "@/hooks/useWarrantyTemplate";
 import { useWarrantyPdf, type WarrantyPdfFormat, type WarrantyItem } from "@/hooks/useWarrantyPdf";
-import { useServiceOrders, type ServiceOrder, type ServiceOrderItem } from "@/hooks/useServiceOrders";
+import type { ServiceOrder } from "@/hooks/useServiceOrders";
+import { supabase } from "@/integrations/supabase/client";
 import { useVenue } from "@/contexts/VenueContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
