@@ -22,7 +22,7 @@ export function useFormPersist<T extends FieldValues>({
   const storageKey = `form_draft_${key}`;
   const hasRestoredRef = useRef(false);
   const isDirtyRef = useRef(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Store stable references to avoid dependency issues
   const formRef = useRef(form);
