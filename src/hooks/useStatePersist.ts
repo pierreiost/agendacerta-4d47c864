@@ -21,7 +21,7 @@ export function useStatePersist<T>({
   const storageKey = `state_draft_${key}`;
   const hasRestoredRef = useRef(false);
   const isInitializedRef = useRef(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef(state);
 
   // Keep stateRef in sync
