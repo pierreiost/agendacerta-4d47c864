@@ -66,9 +66,9 @@ export function WarrantyTemplateTab() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Template do Termo de Garantia</CardTitle>
+          <CardTitle>Cláusulas do Termo de Garantia</CardTitle>
           <CardDescription>
-            Edite o texto padrão que será utilizado ao gerar termos de garantia. Use as variáveis abaixo para inserir dados dinâmicos.
+            Este texto contém apenas as <strong>cláusulas de garantia</strong>. Cabeçalho da empresa, dados do cliente, equipamento, itens e valores são preenchidos automaticamente a partir da OS ao gerar o termo. Use as variáveis abaixo se quiser referenciá-los dentro das cláusulas.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

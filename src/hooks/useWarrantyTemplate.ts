@@ -6,36 +6,21 @@ import type { ServiceOrder } from "@/hooks/useServiceOrders";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const DEFAULT_TEMPLATE = `TERMO DE GARANTIA E ENTREGA DE EQUIPAMENTO
-
-Pelo presente termo, a empresa abaixo identificada declara que realizou o(s) serviço(s) descrito(s) no equipamento do cliente, conforme detalhamento a seguir:
-
-Cliente: {cliente_nome}
-Equipamento/Modelo: {equipamento_modelo}
-Serviço(s) realizado(s): {detalhamento_servico}
-Valor total: {valor_total}
-Data de entrega: {data_entrega}
-Técnico responsável: {tecnico_responsavel}
-
-CONDIÇÕES DE GARANTIA
-
-1. O prazo de garantia dos serviços executados é de 90 (noventa) dias corridos, contados a partir da data de entrega do equipamento.
+const DEFAULT_TEMPLATE = `1. O prazo de garantia dos serviços executados é de 90 (noventa) dias corridos, contados a partir da data de entrega do equipamento, salvo indicação diferente por item no resumo abaixo.
 
 2. A garantia cobre exclusivamente os serviços e peças descritos neste termo.
 
 3. A garantia será automaticamente CANCELADA nos seguintes casos:
    a) Danos causados por quedas, impactos ou mau uso do equipamento;
    b) Contato com líquidos ou umidade excessiva;
-   c) Rompimento do lacre de garantia;
+   c) Rompimento do lacre de segurança / garantia;
    d) Abertura ou reparo realizado por terceiros não autorizados;
-   e) Danos causados por variação de energia elétrica;
-   f) Utilização de acessórios ou peças não originais/compatíveis.
+   e) Danos causados por variação de energia elétrica, vírus ou formatação posterior;
+   f) Utilização de acessórios ou peças não originais / não compatíveis.
 
 4. É de responsabilidade do cliente realizar backup de todos os dados antes da entrega do equipamento. A empresa não se responsabiliza por perda de dados, arquivos, fotos, contatos ou qualquer informação armazenada no dispositivo.
 
-5. O equipamento deve ser retirado em até 30 (trinta) dias após a comunicação de conclusão do serviço. Após este prazo, será cobrada taxa de armazenamento.
-
-Declaro que recebi o equipamento em perfeito funcionamento, conforme os serviços descritos acima, e estou ciente das condições de garantia.`;
+5. O equipamento deve ser retirado em até 30 (trinta) dias após a comunicação de conclusão do serviço. Após este prazo, será cobrada taxa de armazenamento.`;
 
 export function useWarrantyTemplate() {
   const { currentVenue } = useVenue();
