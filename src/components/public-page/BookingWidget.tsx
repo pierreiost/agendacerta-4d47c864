@@ -307,8 +307,8 @@ export function BookingWidget({ venue, whatsappPhone }: BookingWidgetProps) {
         continue;
       }
 
-      const { data: { publicUrl } } = supabase.storage.from('inquiry-photos').getPublicUrl(filePath);
-      uploadedUrls.push(publicUrl);
+      // Store bucket path; admin viewers convert to signed URLs on demand.
+      uploadedUrls.push(filePath);
     }
     return uploadedUrls;
   };

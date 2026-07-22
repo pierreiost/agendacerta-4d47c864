@@ -10,6 +10,7 @@ import { useVenue } from "@/contexts/VenueContext";
 import { useToast } from "@/hooks/use-toast";
 import { maskCPFCNPJ, maskPhone, maskCEP } from "@/lib/masks";
 import { ServiceOrderItemForm } from "@/components/service-orders/ServiceOrderItemForm";
+import { useSignedInquiryUrls } from "@/hooks/useSignedInquiryUrls";
 import { useCepLookup } from "@/hooks/useCepLookup";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -72,6 +73,7 @@ export default function OrcamentoForm() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const signedPhotoUrls = useSignedInquiryUrls(existingQuote?.photo_urls);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
 
   const loadedRef = useRef(false);
@@ -432,7 +434,7 @@ export default function OrcamentoForm() {
                       </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3">
-                      {existingQuote.photo_urls.map((url, i) => (
+                      {signedPhotoUrls.map((url, i) => (
                         <img
                           key={i}
                           src={url}
@@ -453,7 +455,7 @@ export default function OrcamentoForm() {
                   Anexos ({existingQuote.photo_urls.length})
                 </h2>
                 <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {existingQuote.photo_urls.map((url, i) => (
+                  {signedPhotoUrls.map((url, i) => (
                     <div
                       key={i}
                       className="group relative aspect-square border border-foreground/10 overflow-hidden cursor-pointer hover:border-foreground/30 transition-colors"

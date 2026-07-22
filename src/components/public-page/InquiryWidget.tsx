@@ -97,11 +97,8 @@ export function InquiryWidget({ venue, whatsappPhone }: InquiryWidgetProps) {
           .from('inquiry-photos')
           .upload(path, photo, { contentType: photo.type });
         if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('inquiry-photos')
-          .getPublicUrl(path);
-        uploadedUrls.push(urlData.publicUrl);
+        // Store the bucket-relative path; admins render via short-lived signed URLs.
+        uploadedUrls.push(path);
       }
 
       const email = 'sem-email@agendamento.local';
