@@ -10,6 +10,7 @@ import { useVenue } from "@/contexts/VenueContext";
 import { useToast } from "@/hooks/use-toast";
 import { maskCPFCNPJ, maskPhone, maskCEP } from "@/lib/masks";
 import { ServiceOrderItemForm } from "@/components/service-orders/ServiceOrderItemForm";
+import { useSignedInquiryUrls } from "@/hooks/useSignedInquiryUrls";
 import { useCepLookup } from "@/hooks/useCepLookup";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
