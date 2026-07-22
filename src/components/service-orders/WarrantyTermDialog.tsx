@@ -52,7 +52,6 @@ const toDisplayDate = (isoDate: string) => {
 export function WarrantyTermDialog({ open, onOpenChange, order }: WarrantyTermDialogProps) {
   const { getContent, isLoading: templateLoading } = useWarrantyTemplate();
   const { generatePdf } = useWarrantyPdf();
-  const { getOrderItems } = useServiceOrders();
   const { currentVenue } = useVenue();
   const { toast } = useToast();
 
@@ -71,28 +70,31 @@ export function WarrantyTermDialog({ open, onOpenChange, order }: WarrantyTermDi
     if (!open) return;
     let cancelled = false;
     setItemsLoading(true);
-    getOrderItems(order.id)
-      .then((rows: ServiceOrderItem[]) => {
-        if (cancelled) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("service_order_items")
+        .select("description, quantity, unit_price")
+        .eq("service_order_id", order.id)
+        .order("created_at", { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        setItems([]);
+      } else {
         setItems(
-          rows.map((r) => ({
+          (data ?? []).map((r) => ({
             description: r.description,
             quantity: Number(r.quantity) || 1,
             unit_price: Number(r.unit_price) || 0,
             warranty_days: 90,
           }))
         );
-      })
-      .catch(() => {
-        if (!cancelled) setItems([]);
-      })
-      .finally(() => {
-        if (!cancelled) setItemsLoading(false);
-      });
+      }
+      setItemsLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
-  }, [open, order.id, getOrderItems]);
+  }, [open, order.id]);
 
   const clausulas = getContent();
 
