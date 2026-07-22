@@ -251,31 +251,28 @@ export default function OrdensServico() {
                                 </TooltipTrigger>
                                 <TooltipContent>{isFinalized(order) ? "Visualizar" : "Editar"}</TooltipContent>
                               </Tooltip>
-                              {isFinalized(order) && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => setWarrantyOrder(order)}>
-                                      <Shield className="h-4 w-4 mr-2" />
-                                      Gerar Termo de Garantia
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setWarrantyOrder(order)}>
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    Gerar Termo de Garantia
+                                  </DropdownMenuItem>
+                                  {!isFinalized(order) && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(order.id)}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Excluir
                                     </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                              {!isFinalized(order) && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(order.id)}>
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Excluir</TooltipContent>
-                                </Tooltip>
-                              )}
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </TooltipProvider>
                         </TableCell>
