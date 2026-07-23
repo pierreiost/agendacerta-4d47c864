@@ -23,15 +23,15 @@ const DUMMY_ORDER = {
 } as any;
 
 export function WarrantyTemplateTab() {
-  const { getContent, upsertTemplate, replaceVariables, isLoading, DEFAULT_TEMPLATE } = useWarrantyTemplate();
+  const { template, upsertTemplate, replaceVariables, isLoading, DEFAULT_TEMPLATE } = useWarrantyTemplate();
   const [content, setContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!isLoading) {
-      setContent(getContent());
+      setContent(template?.content || DEFAULT_TEMPLATE);
     }
-  }, [isLoading, getContent]);
+  }, [isLoading, template?.content, DEFAULT_TEMPLATE]);
 
   const insertVariable = (tag: string) => {
     const el = textareaRef.current;
